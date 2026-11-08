@@ -7,8 +7,14 @@ export class EventoController {
 
   buscar = async (req, res, next) => {
     try {
-      const { q, categoria, orden, direccion } = req.query;
-      const eventos = await this.eventoService.buscar({ q, categoria, orden, direccion });
+      const { q, categoria, orden, direccion, incluirRealizados } = req.query;
+      const eventos = await this.eventoService.buscar({
+        q,
+        categoria,
+        orden,
+        direccion,
+        incluirRealizados,
+      });
       res.status(200).json(eventos);
     } catch (e) {
       next(e);
@@ -26,7 +32,7 @@ export class EventoController {
 
   create = async (req, res, next) => {
     try {
-      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
+      const organizadorId = req.user?.id || req.headers["x-user-id"];
       const nuevoEvento = await this.eventoService.create(req.body, organizadorId);
       res.status(201).json(nuevoEvento);
     } catch (e) {
@@ -36,29 +42,9 @@ export class EventoController {
 
   listarMios = async (req, res, next) => {
     try {
-      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
+      const organizadorId = req.user?.id || req.headers["x-user-id"];
       const misEventos = await this.eventoService.listarMios(organizadorId);
       res.status(200).json(misEventos);
-    } catch (e) {
-      next(e);
-    }
-  };
-
-  update = async (req, res, next) => {
-    try {
-      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
-      const eventoActualizado = await this.eventoService.actualizar(req.params.id, req.body, organizadorId);
-      res.status(200).json(eventoActualizado);
-    } catch (e) {
-      next(e);
-    }
-  };
-
-  delete = async (req, res, next) => {
-    try {
-      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
-      await this.eventoService.eliminar(req.params.id, organizadorId);
-      res.status(204).send();
     } catch (e) {
       next(e);
     }

@@ -2,7 +2,7 @@ import { eventoRepository } from "../repositories/EventoRepository.js";
 import { categoriaRepository } from "../repositories/CategoriaRepository.js";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
 import { compraRepository } from "../repositories/CompraRepository.js";
-import { reseniaRepository } from "../repositories/ReseniaRepository.js";
+import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { reputacionService } from "./ReputacionService.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
@@ -19,14 +19,14 @@ export class EventoService {
     catRepo = categoriaRepository,
     userRepo = usuarioRepository,
     compRepo = compraRepository,
-    resRepo = reseniaRepository,
+    resRepo = resenaRepository,
     repService = reputacionService
   ) {
     this.eventoRepository = eventoRepo;
     this.categoriaRepository = catRepo;
     this.usuarioRepository = userRepo;
     this.compraRepository = compRepo;
-    this.reseniaRepository = resRepo;
+    this.resenaRepository = resRepo;
     this.reputacionService = repService;
   }
 
@@ -56,12 +56,11 @@ export class EventoService {
       throw new BadRequestError("Fecha de evento inválida");
     }
     if (fechaEvento <= new Date()) {
-      throw new BadRequestError("La fecha del evento debe ser a futuro (Regla S11)");
+      throw new BadRequestError("La fecha del evento debe ser a futuro");
     }
 
     const tiposEntradaArmados = (nuevo.tiposEntrada || []).map((tipo, idx) => ({
       id: tipo.id || `tipo_${idx + 1}`,
-      _id: tipo.id || `tipo_${idx + 1}`,
       nombre: tipo.nombre.trim(),
       descripcion: tipo.descripcion || "",
       precio: tipo.precio,
@@ -142,8 +141,7 @@ export class EventoService {
         const precioMinimo = precios.length > 0 ? Math.min(...precios) : 0;
         const realizado = new Date(ev.fecha) < ahora;
 
-        const orgId =
-          ev.organizador?.id || ev.organizador?._id || ev.organizador;
+        const orgId = ev.organizador?.id || ev.organizador;
         const reputacion = await this.reputacionService.calcularPuntajeOrganizador(orgId);
 
         return {
@@ -213,10 +211,7 @@ export class EventoService {
       throw new NotFoundError("Evento no encontrado");
     }
 
-    const orgId =
-      evento.organizador?.id ||
-      evento.organizador?._id ||
-      evento.organizador;
+    const orgId = evento.organizador?.id || evento.organizador;
 
     // Calcular reputación del organizador y obtener todas sus reseñas
     const reputacionOrg = await this.reputacionService.calcularPuntajeOrganizador(orgId);
@@ -251,7 +246,7 @@ export class EventoService {
     const compras = await this.compraRepository.findByEvento(id);
 
     const tiposEntradaConDisponibilidad = (evento.tiposEntrada || []).map((t) => {
-      const tId = t.id || t._id;
+      const tId = t.id;
       const vendidas = compras
         .filter(
           (c) =>
@@ -291,7 +286,7 @@ export class EventoService {
     });
 
     const disponibilidadPorTipo = (evento.tiposEntrada || []).map((tipo) => {
-      const tId = tipo.id || tipo._id;
+      const tId = tipo.id;
       const vendidas = compras
         .filter(
           (c) =>

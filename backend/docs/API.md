@@ -1,330 +1,137 @@
-# Contrato de API y Especificación de Endpoints - AI Ticket It
+# Documentación de la API HTTP - AI Ticket It
 
-Documento de referencia para el módulo Front-End (React Native) y Back-End (Node + Express).
-Persistencia 100% en memoria, autenticación simulada mediante header HTTP `x-user-id`.
+## Autenticación Simulada
 
----
-
-## 1. Valores Exactos de Enumerados (Enums)
-
-### Roles de Usuario (`RolUsuario`)
-- `COMPRADOR`: Usuario cliente que busca eventos, compra entradas, paga, cancela reservas, chatea y califica eventos utilizados.
-- `ORGANIZADOR`: Productora o teatro que crea y administra eventos, valida entradas (`UTILIZADA`), chatea con compradores y visualiza métricas de ventas.
-
-### Estados de Compra (`EstadoCompra`)
-- `PENDIENTE`: Compra recién creada. Reserva y descuenta cupo inmediatamente. Puede pagarse o cancelarse.
-- `CONFIRMADA`: Compra pagada exitosamente. Mantiene cupo descontado y expone `diasRestantes`. Puede utilizarse al ingresar o cancelarse con reembolso.
-- `UTILIZADA`: Entrada validada por el organizador en el acceso al evento. Bloquea cancelaciones y habilita calificación/reseña única.
-- `CANCELADA`: Reserva en estado `PENDIENTE` cancelada antes de pagar. Libera el cupo.
-- `REEMBOLSADA`: Compra `CONFIRMADA` cancelada antes del evento. Libera el cupo y registra `montoReembolsado`.
-
-### Categorías Precargadas (`Categoria`)
-- `cat_recitales`: Recitales y Conciertos (`recitales_y_conciertos`)
-- `cat_teatro`: Obras de Teatro (`obras_de_teatro`)
-- `cat_festivales`: Festivales (`festivales`)
-- `cat_deportes`: Deportes (`deportes`)
-- `cat_conferencias`: Conferencias y Charlas (`conferencias_y_charlas`)
+La plataforma utiliza un esquema de autenticación simulada mediante cabeceras HTTP:
+- **Header**: `x-user-id: <id_usuario>`
+- **Rutas Públicas**: únicamente `GET /health` y `GET /usuarios` (además de `POST /dev/reset` cuando se encuentre activo en desarrollo).
+- Cualquier otra petición sin cabecera o con usuario inexistente recibe `401 Unauthorized` `{ error: { code: "NO_AUTORIZADO", message: "..." } }`.
+- Para endpoints con control de acceso por rol (`ORGANIZADOR` o `COMPRADOR`), si el usuario autenticado tiene un rol distinto, recibe `403 Forbidden` `{ error: { code: "ACCESO_DENEGADO", message: "..." } }`.
 
 ---
 
-## 2. Autenticación y Formato Uniforme de Errores
+## Formato Uniforme de Respuestas de Error
 
-### Autenticación Simulada
-Todas las rutas (excepto las públicas `GET /health` y `GET /usuarios`) requieren el header:
-```http
-x-user-id: <id_usuario>
-```
-Si falta el header o el usuario no existe en memoria, el servidor responde **401 Unauthorized**.
+Todos los errores del sistema responden de manera uniforme con el siguiente esquema JSON:
 
-### Formato Uniforme de Respuesta de Error
 ```json
 {
   "error": {
-    "code": "CODIGO_ERROR",
-    "message": "Descripción legible de la causa del error"
+    "code": "CODIGO_DE_ERROR",
+    "message": "Descripción clara del error en español"
   },
   "status": "fail",
   "statusCode": 400,
-  "message": "Descripción legible de la causa del error",
-  "timestamp": "2026-11-08T04:50:00.000Z"
+  "message": "Descripción clara del error en español",
+  "timestamp": "2026-11-08T05:00:00.000Z"
+}
+```
+
+En errores internos no controlados (`500 Internal Server Error`), se responde un mensaje genérico protegiendo la seguridad sin filtrar el stack trace hacia el cliente:
+```json
+{
+  "error": {
+    "code": "ERROR_INTERNO",
+    "message": "Error interno del servidor"
+  },
+  "status": "error",
+  "statusCode": 500,
+  "message": "Error interno del servidor",
+  "timestamp": "2026-11-08T05:00:00.000Z"
 }
 ```
 
 ---
 
-## 3. Inventario Completo de Endpoints
+## Estados de la Compra y Máquina de Estados
 
-### 3.1. Salud y Usuarios
+Los strings exactos que definen el ciclo de vida de una compra (`compra.estado`) en el sistema son:
 
-#### `GET /health`
-- **Rol:** Público (sin autenticación).
-- **Respuesta 200:** `{ "status": "ok", "uptime": 123.45 }`
-
-#### `GET /usuarios`
-- **Rol:** Público (sin autenticación). Lista los usuarios para selector de sesión en la app.
-- **Respuesta 200:** `[ { "id", "nombre", "apellido", "email", "rol", "favoritos" } ]`
-
----
-
-### 3.2. Categorías
-
-#### `GET /categorias`
-- **Rol:** Autenticado (`COMPRADOR` u `ORGANIZADOR`).
-- **Respuesta 200:** `[ { "id", "nombre", "codigo", "descripcion" } ]`
+| String del Estado | Descripción | Transición Permitida |
+|---|---|---|
+| `"PENDIENTE"` | Estado inicial al reservar entradas. Descuenta cupo. | Puede transicionar a `"CONFIRMADA"` (mediante pago) o a `"CANCELADA"`. |
+| `"CONFIRMADA"` | Compra pagada. Descuenta cupo y calcula `diasRestantes`. | Puede transicionar a `"UTILIZADA"` (en evento) o a `"REEMBOLSADA"`. |
+| `"UTILIZADA"` | Entrada validada y consumida en el evento. Descuenta cupo. | Estado final. **No permite cancelación ni reembolso**. Habilita calificar (`puedeResenar`). |
+| `"CANCELADA"` | Compra cancelada desde estado pendiente. **Libera cupo**. | Estado terminal. No admite transiciones adicionales. |
+| `"REEMBOLSADA"` | Compra cancelada desde estado confirmada. **Libera cupo y registra `montoReembolsado = total`**. | Estado terminal. No admite transiciones adicionales. |
 
 ---
 
-### 3.3. Eventos y Catálogo
+## Campo `historialEstados`
 
-#### `GET /eventos`
-- **Rol:** Autenticado (`COMPRADOR` u `ORGANIZADOR`).
-- **Query params:**
-  - `q` (búsqueda textual insensible a acentos/tildes y segura con caracteres especiales)
-  - `categoria` (id o slug)
-  - `orden` (`precio` | `fecha` | `puntaje`, default `fecha`)
-  - `direccion` (`asc` | `desc`, default `asc`, excepto `puntaje` que es `desc`)
-  - `incluirRealizados` (boolean, default `false`)
-- **Respuesta 200:** Lista de eventos enriquecidos:
-  ```json
-  [
+En la consulta detallada de una compra (`GET /compras/:id`), se incluye el campo `historialEstados`: un arreglo cronológico de los cambios de estado registrados para esa compra.
+
+Cada elemento del historial posee la siguiente estructura:
+```json
+{
+  "id": "cam_a1b2c3d4",
+  "compraId": "cmp_confirmada_1",
+  "estadoAnterior": "PENDIENTE",
+  "estadoNuevo": "CONFIRMADA",
+  "fecha": "2026-11-08T03:00:00.000Z",
+  "motivo": "Pago confirmado exitosamente"
+}
+```
+
+---
+
+## Respuesta del Endpoint de Reseñas de Organizador (`GET /organizadores/:id/resenas`)
+
+El contrato original de la Etapa 6 devuelve una estructura plana con el puntaje promedio, cantidad total de reseñas y el arreglo detallado:
+
+```json
+{
+  "puntajePromedio": 4.0,
+  "cantidadResenas": 2,
+  "resenas": [
     {
-      "id": "evt_cosquin",
-      "nombre": "Cosquín Rock 2027",
-      "descripcion": "...",
-      "categoria": { "id", "nombre" },
-      "fecha": "2027-02-10T20:00:00.000Z",
-      "realizado": false,
-      "precioMinimo": 25000,
-      "puntajeOrganizador": 4.0,
-      "cantidadResenas": 2,
-      "organizador": { "id": "usr_org_rock", "nombre": "Productora" },
-      "tiposEntrada": [ ... ]
-    }
-  ]
-  ```
-- **Errores:** 400 (orden o dirección inválidos), 401.
-
-#### `GET /eventos/:id`
-- **Rol:** Autenticado. Devuelve el evento (incluso si está realizado).
-- **Respuesta 200:**
-  ```json
-  {
-    "id": "evt_cosquin",
-    "nombre": "Cosquín Rock 2027",
-    "realizado": false,
-    "precioMinimo": 25000,
-    "tiposEntrada": [
-      {
-        "id": "tipo_rock_1",
-        "nombre": "Campo General",
-        "precio": 25000,
-        "cupo": 500,
-        "cupoRestante": 496
+      "id": "res_2",
+      "puntaje": 3,
+      "comentario": "El sonido en el campo trasero estuvo regular, pero buena onda.",
+      "fecha": "2026-11-05T05:00:00.000Z",
+      "evento": {
+        "id": "evt_divididos",
+        "nombre": "Divididos en vivo"
+      },
+      "autor": {
+        "id": "usr_comprador_2",
+        "nombre": "Mariana"
       }
-    ],
-    "organizador": {
-      "id": "usr_org_rock",
-      "nombre": "Productora Rock Nacional",
-      "puntajePromedio": 4.0,
-      "cantidadResenas": 2,
-      "resenas": [
-        {
-          "id": "res_1",
-          "puntaje": 5,
-          "comentario": "¡Increíble!",
-          "fecha": "2026-11-04T00:00:00.000Z",
-          "evento": { "id", "nombre" },
-          "autor": { "id", "nombre" }
-        }
-      ]
-    }
-  }
-  ```
-- **Errores:** 401, 404 (no encontrado).
-
-#### `POST /eventos`
-- **Rol:** Exclusivo `ORGANIZADOR`.
-- **Body JSON:**
-  ```json
-  {
-    "nombre": "Concierto Acústico",
-    "descripcion": "Show íntimo acústico en vivo",
-    "categoria": "cat_recitales",
-    "fecha": "2027-05-20T21:00:00.000Z",
-    "tiposEntrada": [
-      { "nombre": "General", "precio": 15000, "cupo": 150 }
-    ],
-    "multimedia": ["https://..."]
-  }
-  ```
-- **Respuesta 201:** Evento creado.
-- **Errores:** 400 (fecha no futura S11, nombres de entradas duplicados, validación Zod), 401, 403 (rol no organizador).
-
-#### `GET /eventos/mios`
-- **Rol:** Exclusivo `ORGANIZADOR`. Lista eventos creados por el organizador autenticado.
-- **Respuesta 200:** `[ Evento ]`
-- **Errores:** 401, 403.
-
-#### `GET /eventos/:id/compras`
-- **Rol:** Exclusivo `ORGANIZADOR` dueño del evento.
-- **Respuesta 200:**
-  ```json
-  {
-    "compras": [ ...compras del evento sin mensajes... ],
-    "disponibilidadPorTipo": [
-      {
-        "tipoEntradaId": "tipo_rock_1",
-        "nombre": "Campo General",
-        "precio": 25000,
-        "cupoTotal": 500,
-        "cupoRestante": 496
-      }
-    ]
-  }
-  ```
-- **Errores:** 401, 403, 404.
-
-#### `GET /eventos/:id/resenas`
-- **Rol:** Autenticado.
-- **Respuesta 200:**
-  ```json
-  {
-    "puntajePromedio": 5.0,
-    "cantidadResenas": 1,
-    "resenas": [ ...reseñas exclusivas del evento, de más nueva a más vieja... ]
-  }
-  ```
-- **Errores:** 401, 404.
-
----
-
-### 3.4. Compras y Ciclo de Vida
-
-#### `POST /compras`
-- **Rol:** Exclusivo `COMPRADOR`.
-- **Body JSON:** `{ "eventoId": "evt_cosquin", "tipoEntradaId": "tipo_rock_1", "cantidad": 2 }`
-- **Respuesta 201:** Compra en estado `PENDIENTE` (reserva y descuenta cupo inmediatamente).
-- **Errores:** 400 (cantidad <= 0 o no entera), 401, 403 (no comprador), 404, 409 (cupo insuficiente S3 o evento pasado S11).
-
-#### `GET /compras/mias`
-- **Rol:** Exclusivo `COMPRADOR`. Lista compras del comprador autenticado (sin mensajes).
-- **Respuesta 200:**
-  ```json
-  [
-    {
-      "id": "cmp_123",
-      "estado": "CONFIRMADA",
-      "total": 50000,
-      "diasRestantes": 94,
-      "puedePagar": false,
-      "puedeCancelar": true,
-      "puedeUtilizar": false,
-      "puedeResenar": false,
-      "resenada": false
     }
   ]
-  ```
-
-#### `GET /compras/:id`
-- **Rol:** Participantes (`COMPRADOR` titular u `ORGANIZADOR` dueño del evento).
-- **Respuesta 200:** Detalle de compra con flags de acción (`puedePagar`, `puedeCancelar`, `puedeUtilizar`, `puedeResenar`, `resenada`) e `historialEstados`. No incluye mensajes.
-
-#### `POST /compras/:id/pagar`
-- **Rol:** `COMPRADOR` titular. Transiciona de `PENDIENTE` a `CONFIRMADA`.
-- **Respuesta 200:** Compra actualizada en estado `CONFIRMADA`.
-- **Errores:** 401, 403, 404, 409 (estado no permite pagar).
-
-#### `POST /compras/:id/utilizar`
-- **Rol:** `ORGANIZADOR` dueño del evento. Transiciona de `CONFIRMADA` a `UTILIZADA`.
-- **Respuesta 200:** Compra actualizada en estado `UTILIZADA`.
-- **Errores:** 401, 403 (organizador ajeno o comprador), 404, 409 (no confirmada o ya utilizada).
-
-#### `POST /compras/:id/cancelar`
-- **Rol:** `COMPRADOR` titular. Si era `PENDIENTE` pasa a `CANCELADA`. Si era `CONFIRMADA` pasa a `REEMBOLSADA`.
-- **Respuesta 200:** Compra actualizada con `fechaCancelacion` y `montoReembolsado`. Libera el cupo.
-- **Errores:** 401, 403 (ajeno u organizador), 404, 409 (evento ya realizado S8/S11, o entrada ya utilizada S8).
+}
+```
 
 ---
 
-### 3.5. Chat de la Compra
+## Tabla Exhaustiva de Rutas Montadas (Total: 25 rutas verificadas en código)
 
-#### `GET /compras/:id/mensajes`
-- **Rol:** `COMPRADOR` titular u `ORGANIZADOR` dueño del evento.
-- **Query param opcional:** `desde` (ISO 8601).
-- **Respuesta 200:** Mensajes ordenados cronológicamente:
-  ```json
-  [
-    {
-      "id": "msg_001",
-      "compraId": "cmp_123",
-      "texto": "¿A qué hora abren las puertas?",
-      "fecha": "2026-11-08T04:20:00.000Z",
-      "autor": { "id": "usr_comprador_1", "nombre": "Lucas", "rol": "COMPRADOR" },
-      "esPropio": true
-    }
-  ]
-  ```
-- **Errores:** 400 (`desde` inválido), 401, 403 (usuario ajeno), 404.
+A continuación se lista la totalidad de las 25 rutas registradas en el router de Express mediante introspección dinámica en tiempo de ejecución:
 
-#### `POST /compras/:id/mensajes`
-- **Rol:** `COMPRADOR` titular u `ORGANIZADOR` dueño del evento.
-- **Body JSON:** `{ "texto": "Respuesta o consulta" }`
-- **Respuesta 201:** Mensaje creado con `esPropio: true`. Funciona en cualquier estado de la compra.
-- **Errores:** 400 (texto vacío o > 1000 chars), 401, 403, 404.
-
----
-
-### 3.6. Reseñas y Organizadores
-
-#### `POST /compras/:id/resena`
-- **Rol:** Exclusivo `COMPRADOR` titular de una compra en estado `UTILIZADA`.
-- **Body JSON:**
-  ```json
-  {
-    "puntaje": 5,
-    "comentario": "Excelente recital y organización impecable."
-  }
-  ```
-- **Respuesta 201:**
-  ```json
-  {
-    "id": "res_001",
-    "compraId": "cmp_123",
-    "puntaje": 5,
-    "comentario": "Excelente recital y organización impecable.",
-    "fecha": "2026-11-08T04:51:00.000Z",
-    "evento": { "id": "evt_teatro", "nombre": "Toc Toc" },
-    "autor": { "id": "usr_comprador_1", "nombre": "Lucas" }
-  }
-  ```
-- **Errores:** 400 (puntaje fuera de 1..5, comentario vacío o > 500), 401, 403 (ajeno u organizador), 404, 409 (compra no `UTILIZADA` o compra ya calificada S9).
-
-#### `GET /compras/:id/resena`
-- **Rol:** `COMPRADOR` titular u `ORGANIZADOR` del evento.
-- **Respuesta 200:** Reseña de la compra.
-- **Errores:** 401, 403, 404 (`code: RESENA_NO_ENCONTRADA` si aún no fue calificada).
-
-#### `GET /organizadores/:id`
-- **Rol:** Autenticado.
-- **Respuesta 200:**
-  ```json
-  {
-    "id": "usr_org_rock",
-    "nombre": "Productora Rock Nacional",
-    "puntajePromedio": 4.0,
-    "cantidadResenas": 2
-  }
-  ```
-- **Errores:** 401, 404 (si no existe o rol != `ORGANIZADOR`).
-
-#### `GET /organizadores/:id/resenas`
-- **Rol:** Autenticado.
-- **Respuesta 200:**
-  ```json
-  {
-    "puntajePromedio": 4.0,
-    "cantidadResenas": 2,
-    "resenas": [ ...reseñas de todos sus eventos, de más nueva a más vieja... ]
-  }
-  ```
-- **Errores:** 401, 404.
+| # | Método | Ruta | Auth Requerida | Rol Permitido | Descripción | Códigos HTTP |
+|---|---|---|---|---|---|---|
+| 1 | `GET` | `/health` | No | Público | Estado de disponibilidad del servicio | 200 |
+| 2 | `GET` | `/usuarios` | No | Público | Lista todos los usuarios cargados en el seed | 200 |
+| 3 | `GET` | `/usuarios/me` | Sí | Cualquier rol | Datos del usuario actualmente autenticado | 200, 401 |
+| 4 | `GET` | `/usuarios/:id` | Sí | Cualquier rol | Consulta de usuario por su identificador | 200, 401, 404 |
+| 5 | `GET` | `/categorias` | Sí | Cualquier rol | Listado de las 5 categorías canónicas fijas | 200, 401 |
+| 6 | `GET` | `/eventos/mios` | Sí | `ORGANIZADOR` | Lista los eventos del organizador autenticado | 200, 401, 403 |
+| 7 | `GET` | `/eventos` | Sí | Cualquier rol | Exploración, búsqueda (`q`), filtro (`categoria`), orden (`precio`, `fecha`, `puntaje`) e histórico (`incluirRealizados`) | 200, 400, 401 |
+| 8 | `POST` | `/eventos` | Sí | `ORGANIZADOR` | Creación de nuevo evento con múltiples tipos de entrada | 201, 400, 401, 403 |
+| 9 | `GET` | `/eventos/:id` | Sí | Cualquier rol | Detalle de evento con datos del organizador, cupo restante y reseñas | 200, 401, 404 |
+| 10 | `GET` | `/eventos/:id/compras` | Sí | `ORGANIZADOR` | Compras del evento y disponibilidad por tipo de entrada | 200, 401, 403, 404 |
+| 11 | `GET` | `/eventos/:id/resenas` | Sí | Cualquier rol | Reseñas asociadas a un evento específico | 200, 401, 404 |
+| 12 | `GET` | `/compras/mias` | Sí | `COMPRADOR` | Listado de compras del comprador con badges calculados | 200, 401, 403 |
+| 13 | `POST` | `/compras` | Sí | `COMPRADOR` | Creación de compra (`PENDIENTE`) y descuento de cupo | 201, 400, 401, 403, 404, 409 |
+| 14 | `GET` | `/compras/:id` | Sí | Participante | Detalle de compra e `historialEstados` | 200, 401, 403, 404 |
+| 15 | `POST` | `/compras/:id/pagar` | Sí | `COMPRADOR` | Pasa de `PENDIENTE` a `CONFIRMADA` | 200, 401, 403, 404, 409 |
+| 16 | `POST` | `/compras/:id/utilizar` | Sí | `ORGANIZADOR` | Pasa de `CONFIRMADA` a `UTILIZADA` | 200, 401, 403, 404, 409 |
+| 17 | `POST` | `/compras/:id/cancelar` | Sí | `COMPRADOR` | Cancela (`CANCELADA` o `REEMBOLSADA`) y libera cupo | 200, 401, 403, 404, 409 |
+| 18 | `GET` | `/compras/:id/mensajes` | Sí | Participante | Historial de chat de la compra | 200, 401, 403, 404 |
+| 19 | `POST` | `/compras/:id/mensajes` | Sí | Participante | Envía mensaje en el chat de la compra | 201, 400, 401, 403, 404 |
+| 20 | `GET` | `/compras/:id/resena` | Sí | Participante | Consulta la reseña de una compra | 200, 401, 403, 404 |
+| 21 | `POST` | `/compras/:id/resena` | Sí | `COMPRADOR` | Crea reseña en compra `UTILIZADA` (puntaje 1 a 5 y comentario) | 201, 400, 401, 403, 404, 409 |
+| 22 | `GET` | `/organizadores/:id` | Sí | Cualquier rol | **Contrato original Etapa 6**: Perfil del organizador (`id`, `nombre`, `puntajePromedio`, `cantidadResenas`) | 200, 401, 404 |
+| 23 | `GET` | `/organizadores/:id/reputacion` | Sí | Cualquier rol | *Alias de `/organizadores/:id`* mantenido para retrocompatibilidad | 200, 401, 404 |
+| 24 | `GET` | `/organizadores/:id/resenas` | Sí | Cualquier rol | **Contrato original Etapa 6**: Reseñas acumuladas de los eventos del organizador | 200, 401, 404 |
+| 25 | `POST` | `/dev/reset` | No | Entorno Dev | Restaura la persistencia en memoria al seed original (`ENABLE_DEV_ENDPOINTS=true`) | 200, 404 |

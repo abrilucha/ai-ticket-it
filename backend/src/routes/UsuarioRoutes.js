@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { UsuarioController } from "../src/controllers/UsuarioController.js";
+import { UsuarioController } from "../controllers/UsuarioController.js";
 
 const router = Router({ mergeParams: true });
 const usuarioController = new UsuarioController();

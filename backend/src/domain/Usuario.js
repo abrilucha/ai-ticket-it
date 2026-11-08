@@ -1,7 +1,9 @@
 export class Usuario {
-  constructor({ nombre, apellido, favoritos }) {
+  constructor({ id, nombre, apellido, email, rol }) {
+    this.id = id;
     this.nombre = nombre;
     this.apellido = apellido;
-    this.favoritos = favoritos ?? [];
+    this.email = email;
+    this.rol = rol;
   }
 }

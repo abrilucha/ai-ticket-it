@@ -1,6 +1,5 @@
-
-import express from 'express';
-import {HealthCheckController} from "../src/controllers/HealthCheckController.js"
+import express from "express";
+import { HealthCheckController } from "../controllers/HealthCheckController.js";
 
 const router = express.Router();
 const healthCheckController = new HealthCheckController();
@@ -15,8 +14,6 @@ const healthCheckController = new HealthCheckController();
  *       200:
  *         description: El servidor está funcionando correctamente
  */
-router.get('/', (req, res) => healthCheckController.getHealth(req, res));
+router.get("/", (req, res) => healthCheckController.getHealth(req, res));
 
 export default router;
-
-

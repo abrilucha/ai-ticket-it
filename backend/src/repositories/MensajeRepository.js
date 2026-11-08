@@ -16,15 +16,13 @@ export class MensajeRepository {
   async save(mensaje) {
     const id =
       mensaje.id ||
-      mensaje._id ||
       `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const fecha = mensaje.fecha || new Date().toISOString();
 
-    const idx = this.mensajes.findIndex((m) => m.id === id || m._id === id);
+    const idx = this.mensajes.findIndex((m) => m.id === id);
     const entidad = {
       ...mensaje,
       id,
-      _id: id,
       fecha,
     };
 

@@ -48,7 +48,7 @@ export class MaquinaEstadoCompra {
 
       case "CANCELAR":
         if (estadoActual === EstadoCompra.UTILIZADA) {
-          throw new ConflictError("No se puede cancelar una compra cuya entrada ya fue utilizada (Regla S8)");
+          throw new ConflictError("No se puede cancelar una compra cuya entrada ya fue utilizada");
         }
         if (estadoActual === EstadoCompra.CANCELADA || estadoActual === EstadoCompra.REEMBOLSADA) {
           throw new ConflictError(`La compra ya se encuentra ${estadoActual.toLowerCase()}`);

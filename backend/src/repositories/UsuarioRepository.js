@@ -8,7 +8,7 @@ export class UsuarioRepository {
   }
 
   async findById(id) {
-    return this.usuarios.find((u) => u.id === id || u._id === id) || null;
+    return this.usuarios.find((u) => u.id === id) || null;
   }
 
   async findByEmail(email) {
@@ -16,11 +16,11 @@ export class UsuarioRepository {
   }
 
   async save(usuario) {
-    const id = usuario.id || usuario._id;
+    const id = usuario.id;
     if (id) {
-      const idx = this.usuarios.findIndex((u) => u.id === id || u._id === id);
+      const idx = this.usuarios.findIndex((u) => u.id === id);
       if (idx !== -1) {
-        this.usuarios[idx] = { ...this.usuarios[idx], ...usuario, id, _id: id };
+        this.usuarios[idx] = { ...this.usuarios[idx], ...usuario, id };
         return this.usuarios[idx];
       }
     }
@@ -28,15 +28,13 @@ export class UsuarioRepository {
     const nuevo = {
       ...usuario,
       id: nuevoId,
-      _id: nuevoId,
-      favoritos: usuario.favoritos || [],
     };
     this.usuarios.push(nuevo);
     return nuevo;
   }
 
   async delete(id) {
-    const idx = this.usuarios.findIndex((u) => u.id === id || u._id === id);
+    const idx = this.usuarios.findIndex((u) => u.id === id);
     if (idx !== -1) {
       this.usuarios.splice(idx, 1);
       return true;
