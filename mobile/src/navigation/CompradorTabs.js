@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors.js';
 import { Typography } from '../theme/typography.js';
-import { ExplorarScreen } from '../screens/comprador/ExplorarScreen.js';
+import { ExplorarStack } from './ExplorarStack.js';
 import { MisComprasScreen } from '../screens/comprador/MisComprasScreen.js';
 
 const Tab = createBottomTabNavigator();
@@ -29,8 +29,8 @@ export function CompradorTabs() {
       }}
     >
       <Tab.Screen
-        name="Explorar"
-        component={ExplorarScreen}
+        name="ExplorarTab"
+        component={ExplorarStack}
         options={{
           tabBarLabel: 'EXPLORAR',
           tabBarIcon: ({ color, size }) => (

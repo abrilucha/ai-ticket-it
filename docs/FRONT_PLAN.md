@@ -1,8 +1,8 @@
-# Plan de Auditoría y Diseño Front-End (Fase 0 y Fase 1)
+# Plan de Auditoría y Diseño Front-End (Fases 0, 1 y 2)
 ## AI Ticket It — Pop Kinetic Mobile (React Native + Expo)
 
 > **Documento de Auditoría y Planificación Visual / Técnica**  
-> **Estado:** Fase 1 en ejecución (Base del proyecto, tema, login y navegación por rol)  
+> **Estado:** Fase 2 completada (Catálogo, búsqueda, orden y detalle de evento)  
 > **Referencia Visual:** Exportación Stitch en `temp/`  
 > **Fuente de Verdad Técnica:** `backend/docs/API.md` (25 endpoints montados, 5 estados canónicos)
 

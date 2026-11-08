@@ -42,7 +42,7 @@ Para que el celular físico pueda conectarse con el servidor Express corriendo e
 
 ## 4. Ejecución del Proyecto
 
-1. Asegurate de que el backend esté corriendo en tu PC en el puerto 3000 (`npm run start` o `node src/index.js` dentro de `backend/`).
+1. Asegurate de que el backend esté corriendo en tu PC en el puerto 3000 (`npm run dev` desde la carpeta `backend/`).
 2. En otra terminal, iniciá el bundler de Expo dentro de `mobile/`:
 
 ```bash
