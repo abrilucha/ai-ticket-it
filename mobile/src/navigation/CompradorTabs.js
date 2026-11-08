@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors.js';
 import { Typography } from '../theme/typography.js';
 import { ExplorarStack } from './ExplorarStack.js';
-import { MisComprasScreen } from '../screens/comprador/MisComprasScreen.js';
+import { ComprasStack } from './ComprasStack.js';
 
 const Tab = createBottomTabNavigator();
 
@@ -39,8 +39,8 @@ export function CompradorTabs() {
         }}
       />
       <Tab.Screen
-        name="MisCompras"
-        component={MisComprasScreen}
+        name="MisComprasTab"
+        component={ComprasStack}
         options={{
           tabBarLabel: 'MIS COMPRAS',
           tabBarIcon: ({ color, size }) => (

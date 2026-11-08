@@ -1,15 +1,55 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
-import { Typography } from '../../theme/typography.js';
 import { useAuth } from '../../context/AuthContext.js';
+import { useMisCompras } from '../../hooks/useMisCompras.js';
 import { Screen } from '../../components/Screen.js';
 import { Header } from '../../components/Header.js';
+import { TicketCard } from '../../components/TicketCard.js';
+import { SegmentedFilter } from '../../components/SegmentedFilter.js';
+import { LoadingView } from '../../components/LoadingView.js';
+import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { EmptyState } from '../../components/EmptyState.js';
-import { StateBadge } from '../../components/StateBadge.js';
+import { PopButton } from '../../components/PopButton.js';
 
 export function MisComprasScreen({ navigation }) {
   const { usuario, logout } = useAuth();
+  const { data: compras, loading, error, reload } = useMisCompras();
+
+  // Recargar al recibir foco
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload])
+  );
+
+  const [selectedTab, setSelectedTab] = useState('ACTIVAS'); // 'ACTIVAS' | 'HISTORIAL'
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await reload();
+    setRefreshing(false);
+  };
+
+  // Agrupación visual por estado
+  const comprasActivas = useMemo(() => {
+    return compras.filter((c) => c.estado === 'PENDIENTE' || c.estado === 'CONFIRMADA');
+  }, [compras]);
+
+  const comprasHistorial = useMemo(() => {
+    return compras.filter(
+      (c) => c.estado === 'UTILIZADA' || c.estado === 'CANCELADA' || c.estado === 'REEMBOLSADA'
+    );
+  }, [compras]);
+
+  const displayedCompras = selectedTab === 'ACTIVAS' ? comprasActivas : comprasHistorial;
 
   return (
     <Screen>
@@ -18,54 +58,72 @@ export function MisComprasScreen({ navigation }) {
         onLogout={logout}
         onBack={() => navigation.navigate('ExplorarTab')}
       />
-      <View style={styles.container}>
-        <EmptyState
-          icon="🎟️"
-          title="BILLETERA DE ENTRADAS"
-          subtitle="Pantalla marcador de compras. En la siguiente etapa se visualizarán tus compras reales con cupones troquelados, cálculo de días restantes y acciones según el estado de la compra."
-        />
 
-        {/* Muestra de los 5 badges de estado canónicos requeridos */}
-        <View style={styles.badgesShowcase}>
-          <Text style={styles.showcaseTitle}>ESTADOS CANÓNICOS SOPORTADOS:</Text>
-          <View style={styles.badgeRow}>
-            <StateBadge estado="PENDIENTE" style={styles.sampleBadge} />
-            <StateBadge estado="CONFIRMADA" style={styles.sampleBadge} />
-            <StateBadge estado="UTILIZADA" style={styles.sampleBadge} />
-            <StateBadge estado="CANCELADA" style={styles.sampleBadge} />
-            <StateBadge estado="REEMBOLSADA" style={styles.sampleBadge} />
-          </View>
-        </View>
-      </View>
+      {/* Selector segmentado de filtros: Activas / Historial */}
+      <SegmentedFilter
+        selectedTab={selectedTab}
+        onSelect={setSelectedTab}
+        counts={{
+          activas: comprasActivas.length,
+          historial: comprasHistorial.length,
+        }}
+      />
+
+      <FlatList
+        data={displayedCompras}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.electricCobalt]}
+          />
+        }
+        renderItem={({ item }) => (
+          <TicketCard
+            compra={item}
+            onPress={() => navigation.navigate('CompraDetalle', { id: item.id })}
+          />
+        )}
+        ListEmptyComponent={
+          loading ? (
+            <LoadingView message="Cargando tus entradas..." />
+          ) : error ? (
+            <ErrorBanner message={error} onRetry={reload} />
+          ) : (
+            <EmptyState
+              icon={selectedTab === 'ACTIVAS' ? '🎟️' : '📋'}
+              title={
+                selectedTab === 'ACTIVAS'
+                  ? 'NO TENÉS ENTRADAS ACTIVAS'
+                  : 'HISTORIAL VACÍO'
+              }
+              subtitle={
+                selectedTab === 'ACTIVAS'
+                  ? 'Cuando reserves o pagues entradas para recitales y espectáculos, aparecerán acá.'
+                  : 'Aún no tenés compras utilizadas, canceladas ni reembolsadas.'
+              }
+              action={
+                <PopButton
+                  title="EXPLORAR EVENTOS"
+                  variant="primary"
+                  size="sm"
+                  onPress={() => navigation.navigate('ExplorarTab')}
+                />
+              }
+            />
+          )
+        }
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  badgesShowcase: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: Colors.canvasTint,
-    borderWidth: 2,
-    borderColor: Colors.inkBlack,
-    borderRadius: 10,
-  },
-  showcaseTitle: {
-    ...Typography.labelMd,
-    color: Colors.inkBlack,
-    marginBottom: 10,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  sampleBadge: {
-    marginRight: 6,
-    marginBottom: 6,
+  listContent: {
+    paddingTop: 8,
+    paddingBottom: 40,
   },
 });

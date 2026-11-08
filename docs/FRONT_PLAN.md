@@ -1,8 +1,8 @@
-# Plan de Auditoría y Diseño Front-End (Fases 0, 1 y 2)
+# Plan de Auditoría y Diseño Front-End (Fases 0, 1, 2 y 3)
 ## AI Ticket It — Pop Kinetic Mobile (React Native + Expo)
 
 > **Documento de Auditoría y Planificación Visual / Técnica**  
-> **Estado:** Fase 2 completada (Catálogo, búsqueda, orden y detalle de evento)  
+> **Estado:** Fase 3 completada (Comprar, pagar, mis compras, detalle de compra y cancelar)  
 > **Referencia Visual:** Exportación Stitch en `temp/`  
 > **Fuente de Verdad Técnica:** `backend/docs/API.md` (25 endpoints montados, 5 estados canónicos)
 
@@ -181,18 +181,18 @@ Se compone de dos familias de fuentes de Google Fonts:
 
 | Historia del TP | Estado en Front-End | Estrategia de Resolución |
 |---|---|---|
-| **Comprador ve sus compras con estado y días restantes** | Preparado (Fase 1: Marcador) | En la pestaña *"Mis compras"* se mostrarán las compras de `GET /compras/mias`, los 5 badges de estado y el indicador `"faltan N días"`. |
-| **Organizador ve compras de un evento con disponibilidad** | Preparado (Fase 1: Marcador) | Desde la pestaña *"Mis eventos"*, se accederá a la vista de ventas por evento con disponibilidad por tipo de entrada (`GET /eventos/:id/compras`). |
-| **Comprador busca y explora por categoría** | Comprobado (Fase 1: `ExplorarScreen`) | Llama a `GET /categorias` y en Fase 2 incorporará el filtro en `GET /eventos?categoria=...` y búsqueda `q`. |
-| **Organizador crea evento con tipos de entrada** | Preparado | Formulario para `POST /eventos` con agregado dinámico de tipos de entrada (nombre, precio, cupo inicial). |
-| **Comprador envía mensajes** | Preparado | Chat asociado a la compra consumiendo `POST /compras/:id/mensajes`. |
-| **Organizador responde mensajes** | Preparado | Misma pantalla de chat reutilizada para el organizador de la compra. |
-| **Comprador cancela compra** | Preparado | Botón de cancelación en el detalle de la compra invocando `POST /compras/:id/cancelar`. |
-| **Cancelación permitida solo si no está utilizada y el evento no se realizó** | Preparado | Regla validada en la UI: bloqueo del botón de cancelar si `estado === 'UTILIZADA'` o si el evento ya pasó, con feedback de error del backend. |
-| **Comprador puntúa y comenta** | Preparado | Formulario de calificación accesible en compras `UTILIZADA` para `POST /compras/:id/resena`. |
-| **Reseñas previas visibles en eventos del organizador** | Preparado | Pantalla de perfil de organizador accesible desde el detalle del evento para ver su puntaje promedio y opiniones. |
-| **Ordenar por precio, fecha y puntaje** | Preparado | Selector de orden en la cabecera del catálogo (`orden=precio_asc`, `fecha_asc`, `puntaje_desc`). |
-| **Comprar eligiendo tipo y cantidad sin superar el cupo** | Preparado | Selector de tipo de entrada y contador de cantidad en el detalle del evento (`POST /compras`). |
+| **Comprador ve sus compras con estado y días restantes** | Comprobado (Fase 3: `MisComprasScreen` y `CompraDetalleScreen`) | En la pestaña *"Mis compras"* se muestran las compras de `GET /compras/mias`, los 5 badges de estado, el cupón troquelado `TicketCard` y el indicador `"Faltan N días"`. |
+| **Organizador ve compras de un evento con disponibilidad** | Preparado (Fase 4) | Desde la pestaña *"Mis eventos"*, se accederá a la vista de ventas por evento con disponibilidad por tipo de entrada (`GET /eventos/:id/compras`). |
+| **Comprador busca y explora por categoría** | Comprobado (Fases 1 y 2: `ExplorarScreen`) | Llama a `GET /categorias` con filtro de categoría en `GET /eventos?categoria=...`, búsqueda en vivo por texto `q` y orden. |
+| **Organizador crea evento con tipos de entrada** | Preparado (Fase 4) | Formulario para `POST /eventos` con agregado dinámico de tipos de entrada (nombre, precio, cupo inicial). |
+| **Comprador envía mensajes** | Preparado (Fase 5) | Chat asociado a la compra consumiendo `POST /compras/:id/mensajes`. |
+| **Organizador responde mensajes** | Preparado (Fase 5) | Misma pantalla de chat reutilizada para el organizador de la compra. |
+| **Comprador cancela compra** | Comprobado (Fase 3: `CompraDetalleScreen`) | Botón de cancelación en el detalle de la compra invocando `POST /compras/:id/cancelar` con confirmación Pop Art. |
+| **Cancelación permitida solo si no está utilizada y el evento no se realizó** | Comprobado (Fase 3: `puedeCancelar` del back) | Regla regida por el backend: el botón de cancelar solo se muestra si `puedeCancelar === true`, mostrando mensaje descriptivo cuando está `UTILIZADA`. |
+| **Comprador puntúa y comenta** | Preparado (Fase 5) | Formulario de calificación accesible en compras `UTILIZADA` para `POST /compras/:id/resena`. |
+| **Reseñas previas visibles en eventos del organizador** | Comprobado (Fase 2: `OrganizadorPerfilScreen`) | Pantalla de perfil de organizador accesible desde el detalle del evento para ver su puntaje promedio y opiniones. |
+| **Ordenar por precio, fecha y puntaje** | Comprobado (Fase 2: `ExplorarScreen`) | Selector de orden en la cabecera del catálogo (`orden=precio_asc`, `fecha_asc`, `puntaje_desc`). |
+| **Comprar eligiendo tipo y cantidad sin superar el cupo** | Comprobado (Fase 3: `EventoDetalleScreen`) | Selector de tipo de entrada y `QuantityStepper` limitado al `cupoRestante` en el detalle del evento (`POST /compras`). |
 
 ---
 

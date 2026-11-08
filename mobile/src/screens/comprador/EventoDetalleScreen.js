@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   Pressable,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
 import { useEvento } from '../../hooks/useEvento.js';
+import { crearCompra } from '../../api/compras.js';
 import { Screen } from '../../components/Screen.js';
 import { EventImage } from '../../components/EventImage.js';
 import { HardShadow } from '../../components/HardShadow.js';
@@ -19,13 +20,76 @@ import { ReviewCard } from '../../components/ReviewCard.js';
 import { LoadingView } from '../../components/LoadingView.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { EmptyState } from '../../components/EmptyState.js';
+import { QuantityStepper } from '../../components/QuantityStepper.js';
+import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { formatFechaCompleta, formatPrecio } from '../../utils/formato.js';
 
 export function EventoDetalleScreen({ route, navigation }) {
   const { id } = route.params || {};
   const { data: evento, loading, error, reload } = useEvento(id);
 
-  if (loading) {
+  // Recargar datos al recibir foco para mantener el cupo actualizado
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload])
+  );
+
+  // Selección de tipo de entrada y cantidad
+  const [selectedTipoId, setSelectedTipoId] = useState(null);
+  const [cantidad, setCantidad] = useState(1);
+
+  // Modal de confirmación y estados de compra
+  const [modalVisible, setModalVisible] = useState(false);
+  const [comprando, setComprando] = useState(false);
+  const [compraError, setCompraError] = useState(null);
+
+  const tiposEntrada = Array.isArray(evento?.tiposEntrada) ? evento.tiposEntrada : [];
+
+  // Seleccionar automáticamente el primer tipo disponible si no hay seleccionado
+  const tipoSeleccionado = tiposEntrada.find((t) => t.id === selectedTipoId) ||
+    tiposEntrada.find((t) => (t.cupoRestante ?? t.cupoDisponible ?? t.cupo) > 0) ||
+    tiposEntrada[0];
+
+  const cupoMaximo = tipoSeleccionado
+    ? (tipoSeleccionado.cupoRestante ?? tipoSeleccionado.cupoDisponible ?? tipoSeleccionado.cupo)
+    : 0;
+
+  const totalEstimado = tipoSeleccionado ? tipoSeleccionado.precio * cantidad : 0;
+
+  const todasAgotadas = tiposEntrada.length > 0 && tiposEntrada.every(
+    (t) => (t.cupoRestante ?? t.cupoDisponible ?? t.cupo) <= 0
+  );
+
+  // Acción de compra con protección de doble toque
+  const handleConfirmarCompra = async () => {
+    if (comprando || !evento || !tipoSeleccionado) return;
+    setComprando(true);
+    setCompraError(null);
+
+    try {
+      const nuevaCompra = await crearCompra({
+        eventoId: evento.id,
+        tipoEntradaId: tipoSeleccionado.id,
+        cantidad,
+      });
+
+      setModalVisible(false);
+      // Navegamos al detalle de la compra recién creada reemplazando la vista para evitar estados viejos
+      navigation.replace('CompraDetalle', {
+        id: nuevaCompra.id,
+        origen: 'compra_nueva',
+      });
+    } catch (err) {
+      setCompraError(err.message || 'Error al procesar la compra.');
+      // Refrescar el detalle del evento para actualizar cupos
+      reload();
+    } finally {
+      setComprando(false);
+    }
+  };
+
+  if (loading && !evento) {
     return (
       <Screen>
         <LoadingView message="Cargando información del evento..." />
@@ -33,7 +97,7 @@ export function EventoDetalleScreen({ route, navigation }) {
     );
   }
 
-  if (error) {
+  if (error && !evento) {
     return (
       <Screen>
         <View style={styles.errorContainer}>
@@ -79,14 +143,8 @@ export function EventoDetalleScreen({ route, navigation }) {
   const categoriaCodigo = evento.categoria?.codigo || '';
   const categoriaNombre = evento.categoria?.nombre || 'General';
 
-  // Verificar si todas las entradas están agotadas
-  const tiposEntrada = Array.isArray(evento.tiposEntrada) ? evento.tiposEntrada : [];
-  const todasAgotadas = tiposEntrada.length > 0 && tiposEntrada.every(
-    (t) => (t.cupoRestante ?? t.cupoDisponible ?? t.cupo) <= 0
-  );
-
-  // Configuración del botón de compra según reglas de negocio
-  let btnTitle = 'COMPRAR ENTRADAS';
+  // Configuración del botón de compra
+  let btnTitle = 'INICIAR COMPRA';
   let btnDisabled = false;
 
   if (evento.realizado) {
@@ -95,15 +153,10 @@ export function EventoDetalleScreen({ route, navigation }) {
   } else if (todasAgotadas) {
     btnTitle = 'SIN ENTRADAS DISPONIBLES';
     btnDisabled = true;
+  } else if (!tipoSeleccionado || cupoMaximo <= 0) {
+    btnTitle = 'TIPO SELECCIONADO AGOTADO';
+    btnDisabled = true;
   }
-
-  const handleComprarPress = () => {
-    Alert.alert(
-      'FASE 2: DETALLE DE EVENTO',
-      'La selección de cantidad y compra de entradas se habilitará en la Fase 3.',
-      [{ text: 'ENTENDIDO' }]
-    );
-  };
 
   const resenasOrganizador = Array.isArray(evento.organizador?.resenas)
     ? evento.organizador.resenas
@@ -112,7 +165,7 @@ export function EventoDetalleScreen({ route, navigation }) {
 
   return (
     <Screen>
-      {/* Barra superior fija con botón volver siempre accesible */}
+      {/* Barra superior fija */}
       <View style={styles.topFixedBar}>
         <HardShadow offset={2} borderRadius={8}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={10}>
@@ -123,6 +176,11 @@ export function EventoDetalleScreen({ route, navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Banner de error de compra si ocurrió */}
+        {compraError ? (
+          <ErrorBanner message={compraError} onRetry={() => setCompraError(null)} />
+        ) : null}
+
         {/* Imagen de portada */}
         <HardShadow offset={4} borderRadius={12} style={styles.imageWrapper}>
           <View style={styles.imageCard}>
@@ -160,18 +218,33 @@ export function EventoDetalleScreen({ route, navigation }) {
           <Text style={styles.descripcion}>{evento.descripcion || 'Sin descripción detallada.'}</Text>
         </View>
 
-        {/* Tipos de Entrada y Cupos */}
+        {/* Tipos de Entrada y Selector de Cantidad */}
         <View style={styles.seccionBloque}>
-          <Text style={styles.seccionTitulo}>TIPOS DE ENTRADA Y DISPONIBILIDAD</Text>
+          <Text style={styles.seccionTitulo}>SELECCIONÁ TU ENTRADA Y CANTIDAD</Text>
           {tiposEntrada.map((tipo) => {
             const cupoRestante = tipo.cupoRestante ?? tipo.cupoDisponible ?? tipo.cupo;
             const esAgotado = cupoRestante <= 0;
+            const isSelected = (tipoSeleccionado?.id === tipo.id) && !esAgotado;
 
             return (
-              <HardShadow key={tipo.id} offset={3} borderRadius={10} style={styles.tipoWrapper}>
-                <View style={[styles.tipoCard, esAgotado && styles.tipoCardAgotado]}>
+              <HardShadow key={tipo.id} offset={isSelected ? 1 : 3} borderRadius={10} style={styles.tipoWrapper}>
+                <Pressable
+                  disabled={esAgotado}
+                  onPress={() => {
+                    setSelectedTipoId(tipo.id);
+                    setCantidad(1); // Reiniciar a 1 al cambiar de tipo
+                  }}
+                  style={[
+                    styles.tipoCard,
+                    isSelected && styles.tipoCardSelected,
+                    esAgotado && styles.tipoCardAgotado,
+                  ]}
+                >
                   <View style={styles.tipoHeader}>
-                    <Text style={styles.tipoNombre}>{tipo.nombre}</Text>
+                    <View style={styles.tipoNombreRow}>
+                      <Text style={styles.radioIndicator}>{isSelected ? '●' : '○'}</Text>
+                      <Text style={styles.tipoNombre}>{tipo.nombre}</Text>
+                    </View>
                     <Text style={styles.tipoPrecio}>{formatPrecio(tipo.precio)}</Text>
                   </View>
 
@@ -182,15 +255,43 @@ export function EventoDetalleScreen({ route, navigation }) {
                       </View>
                     ) : (
                       <Text style={styles.cupoTexto}>
-                        Cupo disponible: <Text style={styles.cupoNumero}>{cupoRestante}</Text> / {tipo.cupo} entradas
+                        Disponibles: <Text style={styles.cupoNumero}>{cupoRestante}</Text> / {tipo.cupo}
                       </Text>
                     )}
                   </View>
-                </View>
+
+                  {/* Selector de Cantidad si este tipo está seleccionado */}
+                  {isSelected && (
+                    <View style={styles.stepperContainer}>
+                      <Text style={styles.stepperLabel}>CANTIDAD:</Text>
+                      <QuantityStepper
+                        value={cantidad}
+                        min={1}
+                        max={cupoRestante}
+                        onChange={(nuevaCant) => setCantidad(nuevaCant)}
+                      />
+                    </View>
+                  )}
+                </Pressable>
               </HardShadow>
             );
           })}
         </View>
+
+        {/* Resumen del Total Estimado y Botón de Compra */}
+        {!evento.realizado && !todasAgotadas && tipoSeleccionado && cupoMaximo > 0 && (
+          <HardShadow offset={3} borderRadius={10} style={styles.resumenWrapper}>
+            <View style={styles.resumenCard}>
+              <View style={styles.resumenTextCol}>
+                <Text style={styles.resumenTipo}>
+                  {cantidad}x {tipoSeleccionado.nombre}
+                </Text>
+                <Text style={styles.resumenAviso}>Total estimado (definido por el back):</Text>
+              </View>
+              <Text style={styles.resumenTotal}>{formatPrecio(totalEstimado)}</Text>
+            </View>
+          </HardShadow>
+        )}
 
         {/* Botón de acción Comprar */}
         <View style={styles.actionBlock}>
@@ -199,11 +300,11 @@ export function EventoDetalleScreen({ route, navigation }) {
             variant={btnDisabled ? 'secondary' : 'primary'}
             disabled={btnDisabled}
             size="lg"
-            onPress={handleComprarPress}
+            onPress={() => setModalVisible(true)}
           />
         </View>
 
-        {/* Sección del Organizador y Reseñas previas */}
+        {/* Sección del Organizador y Reseñas */}
         <View style={styles.seccionBloque}>
           <View style={styles.organizadorHeaderRow}>
             <View style={styles.organizadorInfoCol}>
@@ -220,7 +321,6 @@ export function EventoDetalleScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Reseñas recientes del organizador en todos sus eventos */}
           <Text style={styles.resenasTitulo}>
             OPINIONES SOBRE EL ORGANIZADOR ({resenasOrganizador.length})
           </Text>
@@ -252,6 +352,27 @@ export function EventoDetalleScreen({ route, navigation }) {
           )}
         </View>
       </ScrollView>
+
+      {/* Modal Pop Art de Confirmación de Compra */}
+      <ConfirmModal
+        visible={modalVisible}
+        title="CONFIRMAR COMPRA"
+        message={`¿Deseas reservar ${cantidad}x entrada(s) '${tipoSeleccionado?.nombre}' para ${evento.nombre}?`}
+        confirmText="CONFIRMAR Y RESERVAR"
+        cancelText="CANCELAR"
+        variant="primary"
+        loading={comprando}
+        onConfirm={handleConfirmarCompra}
+        onCancel={() => setModalVisible(false)}
+      >
+        <View style={styles.modalResumenBox}>
+          <Text style={styles.modalResumenLabel}>TOTAL A PAGAR (ESTIMADO):</Text>
+          <Text style={styles.modalResumenTotal}>{formatPrecio(totalEstimado)}</Text>
+          <Text style={styles.modalAvisoReserva}>
+            Se generará una compra en estado PENDIENTE con cupo reservado.
+          </Text>
+        </View>
+      </ConfirmModal>
     </Screen>
   );
 }
@@ -381,7 +502,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   tipoWrapper: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   tipoCard: {
     backgroundColor: Colors.white,
@@ -389,6 +510,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.inkBlack,
     borderRadius: 10,
     padding: 14,
+  },
+  tipoCardSelected: {
+    backgroundColor: Colors.canvasTint,
+    borderColor: Colors.electricCobalt,
+    borderWidth: 2.5,
   },
   tipoCardAgotado: {
     backgroundColor: Colors.surfaceContainer,
@@ -398,6 +524,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
+  },
+  tipoNombreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  radioIndicator: {
+    fontSize: 18,
+    color: Colors.electricCobalt,
+    marginRight: 8,
   },
   tipoNombre: {
     ...Typography.titleMd,
@@ -410,6 +546,7 @@ const styles = StyleSheet.create({
   cupoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
   cupoTexto: {
     ...Typography.bodyMd,
@@ -431,8 +568,50 @@ const styles = StyleSheet.create({
     ...Typography.labelSm,
     color: Colors.error,
   },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1.5,
+    borderColor: Colors.surfaceDim,
+  },
+  stepperLabel: {
+    ...Typography.labelSm,
+    color: Colors.inkBlack,
+  },
+  resumenWrapper: {
+    marginBottom: 16,
+  },
+  resumenCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.canaryLight,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 10,
+    padding: 14,
+  },
+  resumenTextCol: {
+    flex: 1,
+  },
+  resumenTipo: {
+    ...Typography.titleMd,
+    color: Colors.inkBlack,
+  },
+  resumenAviso: {
+    ...Typography.bodyMd,
+    fontSize: 11,
+    color: Colors.onSurfaceVariant,
+  },
+  resumenTotal: {
+    ...Typography.headlineMd,
+    color: Colors.inkBlack,
+    fontWeight: '800',
+  },
   actionBlock: {
-    marginVertical: 10,
     marginBottom: 24,
   },
   organizadorHeaderRow: {
@@ -482,5 +661,28 @@ const styles = StyleSheet.create({
   backBtnWrapper: {
     alignSelf: 'center',
     marginTop: 16,
+  },
+  modalResumenBox: {
+    backgroundColor: Colors.white,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+  },
+  modalResumenLabel: {
+    ...Typography.labelSm,
+    color: Colors.outline,
+    marginBottom: 2,
+  },
+  modalResumenTotal: {
+    ...Typography.headlineMd,
+    color: Colors.electricCobalt,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  modalAvisoReserva: {
+    ...Typography.bodyMd,
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
   },
 });
