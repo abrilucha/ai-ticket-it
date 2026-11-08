@@ -1,5 +1,16 @@
+import { UsuarioModel } from "../mongoschemas/UsuarioModel.js";
+
 export class UsuarioService {
-  listar = async () => [];
-  obtenerActual = async (id) => ({ id, nombre: 'Simulado', apellido: 'Usuario' });
-  obtenerPorId = async (id) => ({ id });
+  listar = async () => {
+    return await UsuarioModel.find().lean();
+  };
+
+  obtenerActual = async (id) => {
+    if (!id) return null;
+    return await UsuarioModel.findById(id).lean();
+  };
+
+  obtenerPorId = async (id) => {
+    return await UsuarioModel.findById(id).lean();
+  };
 }
