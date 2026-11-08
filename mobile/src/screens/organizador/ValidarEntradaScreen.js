@@ -180,7 +180,7 @@ export function ValidarEntradaScreen({ navigation }) {
                 </HardShadow>
               ) : (
                 <View style={styles.cameraContainer}>
-                  {/* Visor de cámara con ScanFrame superpuesto */}
+                  {/* Visor de cámara con ScanFrame superpuesto como hijo directo */}
                   <View style={styles.cameraWrapper}>
                     {isFocused && (
                       <CameraView
@@ -192,22 +192,22 @@ export function ValidarEntradaScreen({ navigation }) {
                         onBarcodeScanned={
                           isScanningLocked.current ? undefined : handleBarcodeScanned
                         }
-                      />
-                    )}
+                      >
+                        {/* ScanFrame centrado directamente sobre el visor de la cámara */}
+                        <View style={styles.overlayFrameWrapper} pointerEvents="none">
+                          <ScanFrame
+                            overlay={true}
+                            label={loading ? 'VERIFICANDO...' : 'APUNTÁ AL QR'}
+                          />
+                        </View>
 
-                    {/* ScanFrame superpuesto */}
-                    <View style={styles.overlayFrameWrapper} pointerEvents="none">
-                      <ScanFrame
-                        overlay={true}
-                        label={loading ? 'VERIFICANDO...' : 'APUNTÁ AL QR'}
-                      />
-                    </View>
-
-                    {/* Notificación flotante de QR no reconocido */}
-                    {qrInvalidoMsg && (
-                      <View style={styles.toastContainer}>
-                        <Text style={styles.toastText}>⚠️ {qrInvalidoMsg}</Text>
-                      </View>
+                        {/* Notificación flotante de QR no reconocido */}
+                        {qrInvalidoMsg && (
+                          <View style={styles.toastContainer}>
+                            <Text style={styles.toastText}>⚠️ {qrInvalidoMsg}</Text>
+                          </View>
+                        )}
+                      </CameraView>
                     )}
                   </View>
 
@@ -383,19 +383,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderWidth: 3,
     borderColor: Colors.inkBlack,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
   },
   camera: {
     width: '100%',
     height: '100%',
+    position: 'relative',
   },
   overlayFrameWrapper: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+    zIndex: 10,
+    transform: [{ translateY: 48 }],
   },
   toastContainer: {
     position: 'absolute',
