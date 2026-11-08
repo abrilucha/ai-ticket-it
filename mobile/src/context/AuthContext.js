@@ -16,6 +16,11 @@ export function AuthProvider({ children }) {
   const [isInitializing, setIsInitializing] = useState(true);
 
   const logout = useCallback(async () => {
+    // Limpiar handler síncronamente
+    setAuthHandlers({
+      getUserId: () => null,
+      onUnauthorized: () => {},
+    });
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -24,7 +29,7 @@ export function AuthProvider({ children }) {
     setUsuario(null);
   }, []);
 
-  // Inicializar handlers del cliente HTTP para inyección de x-user-id y logout en 401
+  // Sincronizar handlers del cliente HTTP cuando cambie usuario o logout
   useEffect(() => {
     setAuthHandlers({
       getUserId: () => usuario?.id || null,
@@ -48,6 +53,10 @@ export function AuthProvider({ children }) {
 
           const perfil = await apiClient('/usuarios/me');
           if (perfil && perfil.id) {
+            setAuthHandlers({
+              getUserId: () => perfil.id,
+              onUnauthorized: () => logout(),
+            });
             setUsuario(perfil);
           } else {
             await AsyncStorage.removeItem(STORAGE_KEY);
@@ -70,6 +79,11 @@ export function AuthProvider({ children }) {
 
   const login = async (nuevoUsuario) => {
     if (!nuevoUsuario || !nuevoUsuario.id) return;
+    // Sincronizar síncronamente antes de renderizar para que el primer fetch lleve x-user-id
+    setAuthHandlers({
+      getUserId: () => nuevoUsuario.id,
+      onUnauthorized: () => logout(),
+    });
     try {
       await AsyncStorage.setItem(STORAGE_KEY, nuevoUsuario.id);
     } catch {
