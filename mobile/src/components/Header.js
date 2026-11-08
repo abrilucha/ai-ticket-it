@@ -6,19 +6,29 @@ import { HardShadow } from './HardShadow.js';
 
 /**
  * Header
- * Barra superior con logotipo Pop Art, nombre de usuario activo,
- * badge de rol y botón para cerrar sesión.
+ * Barra superior con botón opcional para retroceder (onBack), logotipo Pop Art,
+ * nombre de usuario activo, badge de rol y botón para cerrar sesión.
  */
-export function Header({ usuario, onLogout }) {
+export function Header({ usuario, onLogout, onBack = null }) {
   const isOrganizador = usuario?.rol === 'ORGANIZADOR';
 
   return (
     <View style={styles.container}>
       <View style={styles.brandingRow}>
-        <View style={styles.logoRow}>
-          <Text style={styles.brandTitle}>AI TICKET</Text>
-          <View style={styles.brandBadge}>
-            <Text style={styles.brandBadgeText}>IT!</Text>
+        <View style={styles.leftSection}>
+          {onBack ? (
+            <HardShadow offset={2} borderRadius={6} style={styles.backBtnShadow}>
+              <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
+                <Text style={styles.backBtnText}>←</Text>
+              </Pressable>
+            </HardShadow>
+          ) : null}
+
+          <View style={styles.logoRow}>
+            <Text style={styles.brandTitle}>AI TICKET</Text>
+            <View style={styles.brandBadge}>
+              <Text style={styles.brandBadgeText}>IT!</Text>
+            </View>
           </View>
         </View>
 
@@ -51,7 +61,7 @@ export function Header({ usuario, onLogout }) {
 
             {onLogout ? (
               <HardShadow offset={2} borderRadius={6}>
-                <Pressable onPress={onLogout} style={styles.logoutBtn}>
+                <Pressable onPress={onLogout} style={styles.logoutBtn} hitSlop={6}>
                   <Text style={styles.logoutText}>SALIR</Text>
                 </Pressable>
               </HardShadow>
@@ -75,6 +85,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backBtnShadow: {
+    marginRight: 10,
+  },
+  backBtn: {
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtnText: {
+    ...Typography.labelLg,
+    color: Colors.inkBlack,
+    fontSize: 16,
+    lineHeight: 18,
   },
   logoRow: {
     flexDirection: 'row',
@@ -109,7 +142,7 @@ const styles = StyleSheet.create({
   userName: {
     ...Typography.titleMd,
     color: Colors.inkBlack,
-    maxWidth: 120,
+    maxWidth: 110,
   },
   rolePill: {
     paddingHorizontal: 6,

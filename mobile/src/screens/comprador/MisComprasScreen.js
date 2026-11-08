@@ -8,17 +8,21 @@ import { Header } from '../../components/Header.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { StateBadge } from '../../components/StateBadge.js';
 
-export function MisComprasScreen() {
+export function MisComprasScreen({ navigation }) {
   const { usuario, logout } = useAuth();
 
   return (
     <Screen>
-      <Header usuario={usuario} onLogout={logout} />
+      <Header
+        usuario={usuario}
+        onLogout={logout}
+        onBack={() => navigation.navigate('ExplorarTab')}
+      />
       <View style={styles.container}>
         <EmptyState
           icon="🎟️"
           title="BILLETERA DE ENTRADAS"
-          subtitle="Pantalla marcador de Fase 1. En la siguiente etapa se visualizarán tus compras reales con cupones troquelados, cálculo de días restantes y acciones según el estado de la compra."
+          subtitle="Pantalla marcador de compras. En la siguiente etapa se visualizarán tus compras reales con cupones troquelados, cálculo de días restantes y acciones según el estado de la compra."
         />
 
         {/* Muestra de los 5 badges de estado canónicos requeridos */}

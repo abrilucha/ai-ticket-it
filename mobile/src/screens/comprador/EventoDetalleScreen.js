@@ -112,17 +112,17 @@ export function EventoDetalleScreen({ route, navigation }) {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Barra superior con botón volver */}
-        <View style={styles.topNavRow}>
-          <HardShadow offset={2} borderRadius={8}>
-            <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={styles.backButtonText}>← VOLVER</Text>
-            </Pressable>
-          </HardShadow>
-          <Text style={styles.screenTag}>DETALLE DEL EVENTO</Text>
-        </View>
+      {/* Barra superior fija con botón volver siempre accesible */}
+      <View style={styles.topFixedBar}>
+        <HardShadow offset={2} borderRadius={8}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={10}>
+            <Text style={styles.backButtonText}>← VOLVER</Text>
+          </Pressable>
+        </HardShadow>
+        <Text style={styles.screenTag}>DETALLE DEL EVENTO</Text>
+      </View>
 
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Imagen de portada */}
         <HardShadow offset={4} borderRadius={12} style={styles.imageWrapper}>
           <View style={styles.imageCard}>
@@ -261,11 +261,16 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  topNavRow: {
+  topFixedBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.canvasBase,
+    borderBottomWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    zIndex: 10,
   },
   backButton: {
     backgroundColor: Colors.white,

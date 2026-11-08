@@ -40,6 +40,16 @@ export function OrganizadorPerfilScreen({ route, navigation }) {
 
   return (
     <Screen>
+      {/* Barra superior fija con botón volver */}
+      <View style={styles.topFixedBar}>
+        <HardShadow offset={2} borderRadius={8}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={10}>
+            <Text style={styles.backButtonText}>← VOLVER</Text>
+          </Pressable>
+        </HardShadow>
+        <Text style={styles.screenTag}>PERFIL DE ORGANIZADOR</Text>
+      </View>
+
       <FlatList
         data={resenas}
         keyExtractor={(item) => item.id}
@@ -47,16 +57,6 @@ export function OrganizadorPerfilScreen({ route, navigation }) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            {/* Barra superior con volver */}
-            <View style={styles.topNavRow}>
-              <HardShadow offset={2} borderRadius={8}>
-                <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-                  <Text style={styles.backButtonText}>← VOLVER</Text>
-                </Pressable>
-              </HardShadow>
-              <Text style={styles.screenTag}>PERFIL DE ORGANIZADOR</Text>
-            </View>
-
             {/* Tarjeta de Reputación */}
             <HardShadow offset={4} borderRadius={12} style={styles.profileWrapper}>
               <View style={styles.profileCard}>
@@ -129,11 +129,16 @@ const styles = StyleSheet.create({
   headerBlock: {
     marginBottom: 16,
   },
-  topNavRow: {
+  topFixedBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.canvasBase,
+    borderBottomWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    zIndex: 10,
   },
   backButton: {
     backgroundColor: Colors.white,

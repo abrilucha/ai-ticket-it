@@ -5,17 +5,21 @@ import { Screen } from '../../components/Screen.js';
 import { Header } from '../../components/Header.js';
 import { EmptyState } from '../../components/EmptyState.js';
 
-export function ValidarEntradaScreen() {
+export function ValidarEntradaScreen({ navigation }) {
   const { usuario, logout } = useAuth();
 
   return (
     <Screen>
-      <Header usuario={usuario} onLogout={logout} />
+      <Header
+        usuario={usuario}
+        onLogout={logout}
+        onBack={() => navigation.navigate('MisEventos')}
+      />
       <View style={styles.container}>
         <EmptyState
           icon="📷"
           title="CONTROL DE ACCESO (O5)"
-          subtitle="Pantalla marcador de Fase 1 para Validación de Entradas. En una fase posterior se integrará el visor de cámara con expo-camera y la alternativa de validación manual por ID de compra."
+          subtitle="Pantalla marcador de Validación de Entradas. En una fase posterior se integrará el visor de cámara con expo-camera y la alternativa de validación manual por ID de compra."
         />
       </View>
     </Screen>
