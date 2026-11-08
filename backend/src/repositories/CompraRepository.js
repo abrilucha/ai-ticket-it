@@ -8,7 +8,7 @@ export class CompraRepository {
   }
 
   async findById(id) {
-    return this.compras.find((c) => c.id === id || c._id === id) || null;
+    return this.compras.find((c) => c.id === id) || null;
   }
 
   async findByComprador(compradorId) {
@@ -16,7 +16,6 @@ export class CompraRepository {
       .filter(
         (c) =>
           c.comprador?.id === compradorId ||
-          c.comprador?._id === compradorId ||
           c.comprador === compradorId
       )
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -26,17 +25,16 @@ export class CompraRepository {
     return this.compras.filter(
       (c) =>
         c.evento?.id === eventoId ||
-        c.evento?._id === eventoId ||
         c.evento === eventoId
     );
   }
 
   async save(compra) {
-    const id = compra.id || compra._id;
+    const id = compra.id;
     if (id) {
-      const idx = this.compras.findIndex((c) => c.id === id || c._id === id);
+      const idx = this.compras.findIndex((c) => c.id === id);
       if (idx !== -1) {
-        this.compras[idx] = { ...this.compras[idx], ...compra, id, _id: id };
+        this.compras[idx] = { ...this.compras[idx], ...compra, id };
         return this.compras[idx];
       }
     }
@@ -44,7 +42,6 @@ export class CompraRepository {
     const nuevo = {
       ...compra,
       id: nuevoId,
-      _id: nuevoId,
       mensajes: compra.mensajes || [],
       createdAt: new Date().toISOString(),
     };

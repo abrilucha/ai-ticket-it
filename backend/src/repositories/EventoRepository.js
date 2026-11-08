@@ -10,7 +10,6 @@ export class EventoRepository {
       result = result.filter(
         (e) =>
           e.categoria?.id === filter.categoria ||
-          e.categoria?._id === filter.categoria ||
           e.categoria === filter.categoria
       );
     }
@@ -28,7 +27,7 @@ export class EventoRepository {
   }
 
   async findById(id) {
-    return this.eventos.find((e) => e.id === id || e._id === id) || null;
+    return this.eventos.find((e) => e.id === id) || null;
   }
 
   async findByOrganizador(organizadorId) {
@@ -36,18 +35,17 @@ export class EventoRepository {
       .filter(
         (e) =>
           e.organizador?.id === organizadorId ||
-          e.organizador?._id === organizadorId ||
           e.organizador === organizadorId
       )
       .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   }
 
   async save(evento) {
-    const id = evento.id || evento._id;
+    const id = evento.id;
     if (id) {
-      const idx = this.eventos.findIndex((e) => e.id === id || e._id === id);
+      const idx = this.eventos.findIndex((e) => e.id === id);
       if (idx !== -1) {
-        this.eventos[idx] = { ...this.eventos[idx], ...evento, id, _id: id };
+        this.eventos[idx] = { ...this.eventos[idx], ...evento, id };
         return this.eventos[idx];
       }
     }
@@ -55,13 +53,11 @@ export class EventoRepository {
     const nuevo = {
       ...evento,
       id: nuevoId,
-      _id: nuevoId,
       tiposEntrada: (evento.tiposEntrada || []).map((t, idx) => {
-        const tId = t.id || t._id || `tipo_${idx + 1}`;
+        const tId = t.id || `tipo_${idx + 1}`;
         return {
           ...t,
           id: tId,
-          _id: tId,
           cupoDisponible: t.cupoDisponible !== undefined ? t.cupoDisponible : t.cupo,
         };
       }),
@@ -69,15 +65,6 @@ export class EventoRepository {
     };
     this.eventos.push(nuevo);
     return nuevo;
-  }
-
-  async delete(id) {
-    const idx = this.eventos.findIndex((e) => e.id === id || e._id === id);
-    if (idx !== -1) {
-      this.eventos.splice(idx, 1);
-      return true;
-    }
-    return false;
   }
 
   async clear() {

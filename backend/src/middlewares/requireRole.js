@@ -1,16 +1,17 @@
-import { AppError } from "../errors/AppError.js";
+import { ForbiddenError } from "../errors/ForbiddenError.js";
+import { UnauthorizedError } from "../errors/UnauthorizedError.js";
 
 export const requireRole = (rolRequerido) => {
   return (req, res, next) => {
     if (!req.user) {
-      const error = new AppError("No autorizado: se requiere cabecera x-user-id");
-      error.status = 401;
-      return next(error);
+      return next(
+        new UnauthorizedError("No autorizado: se requiere cabecera x-user-id")
+      );
     }
     if (req.user.rol && req.user.rol !== rolRequerido) {
-      const error = new AppError(`Acceso denegado: se requiere rol ${rolRequerido}`);
-      error.status = 403;
-      return next(error);
+      return next(
+        new ForbiddenError(`Acceso denegado: se requiere rol ${rolRequerido}`)
+      );
     }
     next();
   };

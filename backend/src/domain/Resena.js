@@ -1,4 +1,4 @@
-export class Resenia {
+export class Resena {
   constructor({
     id,
     compraId,

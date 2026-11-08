@@ -2,14 +2,14 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// Rutas
-import healthRoutes from "../routes/HealthCheckRoutes.js";
-import usuarioRoutes from "../routes/UsuarioRoutes.js";
-import categoriaRoutes from "../routes/CategoriaRoutes.js";
-import eventoRoutes from "../routes/EventoRoutes.js";
-import compraRoutes from "../routes/CompraRoutes.js";
-import organizadorRoutes from "../routes/OrganizadorRoutes.js";
-import favoritoRoutes from "../routes/FavoritoRoutes.js";
+// Rutas (todas bajo src/routes/)
+import healthRoutes from "./routes/HealthCheckRoutes.js";
+import usuarioRoutes from "./routes/UsuarioRoutes.js";
+import categoriaRoutes from "./routes/CategoriaRoutes.js";
+import eventoRoutes from "./routes/EventoRoutes.js";
+import compraRoutes from "./routes/CompraRoutes.js";
+import organizadorRoutes from "./routes/OrganizadorRoutes.js";
+import devRoutes from "./routes/DevRoutes.js";
 
 // Middlewares
 import { authSimulada } from "./middlewares/authSimulada.js";
@@ -36,7 +36,7 @@ app.use("/categorias", categoriaRoutes);
 app.use("/eventos", eventoRoutes);
 app.use("/compras", compraRoutes);
 app.use("/organizadores", organizadorRoutes);
-app.use("/favoritos", favoritoRoutes);
+app.use("/dev", devRoutes);
 
 // 3. Middlewares de errores
 app.use(errorLogger);

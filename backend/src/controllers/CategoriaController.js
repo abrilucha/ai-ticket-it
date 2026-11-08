@@ -12,12 +12,4 @@ export class CategoriaController {
       next(e);
     }
   };
-
-  crear = async (req, res, next) => {
-    try {
-      res.status(201).json(await this.categoriaService.crear(req.body));
-    } catch (e) {
-      next(e);
-    }
-  };
 }

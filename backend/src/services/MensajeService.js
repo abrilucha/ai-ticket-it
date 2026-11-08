@@ -30,11 +30,8 @@ export class MensajeService {
 
   // 2. Existencia de compra (404) y 3. Participación (403)
   validarParticipacion(compra, usuarioId) {
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
-    const orgEventoId =
-      compra.evento?.organizador?.id ||
-      compra.evento?.organizador?._id ||
-      compra.evento?.organizador;
+    const compradorId = compra.comprador?.id;
+    const orgEventoId = compra.evento?.organizador?.id || compra.evento?.organizador;
 
     const esComprador = Boolean(usuarioId && compradorId === usuarioId);
     const esOrganizadorEvento = Boolean(usuarioId && orgEventoId === usuarioId);
@@ -49,7 +46,7 @@ export class MensajeService {
   }
 
   formatearMensaje(m, usuarioActualId, compra, usuariosMap = {}) {
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
+    const compradorId = compra.comprador?.id;
     const esComprador = m.autorId === compradorId;
     const rolAutor = esComprador ? "COMPRADOR" : "ORGANIZADOR";
 

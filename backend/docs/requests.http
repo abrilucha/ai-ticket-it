@@ -1,0 +1,232 @@
+### Variables globales
+@baseUrl = http://localhost:3000
+@compradorId = usr_comprador_1
+@comprador2Id = usr_comprador_2
+@organizadorRockId = usr_org_rock
+@organizadorTeatroId = usr_org_teatro
+
+###############################################################################
+# HEALTH & USUARIOS (Rutas públicas)
+###############################################################################
+
+### Health check
+GET {{baseUrl}}/health
+
+### Listar usuarios disponibles en el seed
+GET {{baseUrl}}/usuarios
+
+
+###############################################################################
+# CASO DE USO 2: Explorar por categoría
+###############################################################################
+
+### Listar categorías canónicas
+GET {{baseUrl}}/categorias
+x-user-id: {{compradorId}}
+
+
+###############################################################################
+# CASO DE USO 1: Organizador crea un evento
+###############################################################################
+
+### Crear evento (Organizador)
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+x-user-id: {{organizadorRockId}}
+
+{
+  "nombre": "Festival Música Urbana 2027",
+  "descripcion": "El festival de trap, rap y ritmos urbanos más esperado del año con artistas nacionales e internacionales.",
+  "categoria": "cat_festivales",
+  "fecha": "2027-11-20T21:00:00.000Z",
+  "multimedia": [
+    "https://images.unsplash.com/photo-1470225620780-dba8ba36b745"
+  ],
+  "tiposEntrada": [
+    {
+      "nombre": "Campo General",
+      "descripcion": "Acceso a campo",
+      "precio": 22000,
+      "cupo": 400
+    },
+    {
+      "nombre": "Acceso VIP Front Stage",
+      "descripcion": "Ubicación preferencial frente al escenario",
+      "precio": 48000,
+      "cupo": 100
+    }
+  ]
+}
+
+### Listar mis eventos creados (Organizador)
+GET {{baseUrl}}/eventos/mios
+x-user-id: {{organizadorRockId}}
+
+
+###############################################################################
+# CASO DE USO 3 y 4: Búsqueda y ordenamiento en catálogo
+###############################################################################
+
+### Búsqueda textual por "rock"
+GET {{baseUrl}}/eventos?q=rock
+x-user-id: {{compradorId}}
+
+### Filtrar por categoría recitales
+GET {{baseUrl}}/eventos?categoria=cat_recitales
+x-user-id: {{compradorId}}
+
+### Ordenar por precio ascendente
+GET {{baseUrl}}/eventos?orden=precio&direccion=asc
+x-user-id: {{compradorId}}
+
+### Ordenar por fecha ascendente
+GET {{baseUrl}}/eventos?orden=fecha&direccion=asc
+x-user-id: {{compradorId}}
+
+### Ordenar por puntaje del organizador (descendente)
+GET {{baseUrl}}/eventos?orden=puntaje&direccion=desc
+x-user-id: {{compradorId}}
+
+### Búsqueda incluyendo eventos ya realizados
+GET {{baseUrl}}/eventos?q=rock&incluirRealizados=true
+x-user-id: {{compradorId}}
+
+
+###############################################################################
+# CASO DE USO 5: Detalle de evento
+###############################################################################
+
+### Detalle de evento con cupo restante y datos del organizador
+GET {{baseUrl}}/eventos/evt_cosquin
+x-user-id: {{compradorId}}
+
+### Reseñas asociadas a un evento
+GET {{baseUrl}}/eventos/evt_cosquin/resenas
+x-user-id: {{compradorId}}
+
+
+###############################################################################
+# CASO DE USO 6: Comprar entradas
+###############################################################################
+
+### Crear compra de entradas (Comprador)
+POST {{baseUrl}}/compras
+Content-Type: application/json
+x-user-id: {{compradorId}}
+
+{
+  "eventoId": "evt_cosquin",
+  "tipoEntradaId": "tipo_rock_1",
+  "cantidad": 2
+}
+
+
+###############################################################################
+# CASO DE USO 7: Pagar compra
+###############################################################################
+
+### Pagar compra pendiente para confirmarla
+POST {{baseUrl}}/compras/cmp_pendiente_1/pagar
+x-user-id: {{comprador2Id}}
+
+
+###############################################################################
+# CASO DE USO 8 y 9: Mis compras y Detalle de compra
+###############################################################################
+
+### Listar mis compras (con badges y acciones calculadas)
+GET {{baseUrl}}/compras/mias
+x-user-id: {{compradorId}}
+
+### Detalle de compra con historial de estados
+GET {{baseUrl}}/compras/cmp_confirmada_1
+x-user-id: {{compradorId}}
+
+
+###############################################################################
+# CASO DE USO 10: Cancelación de compra
+###############################################################################
+
+### Cancelar compra pendiente (libera cupo)
+POST {{baseUrl}}/compras/cmp_pendiente_1/cancelar
+x-user-id: {{comprador2Id}}
+
+### Cancelar compra confirmada (reembolsa y libera cupo)
+POST {{baseUrl}}/compras/cmp_confirmada_1/cancelar
+x-user-id: {{compradorId}}
+
+
+###############################################################################
+# CASO DE USO 12 y O5: Validar entrada (Utilizar)
+###############################################################################
+
+### Marcar entrada como utilizada (Organizador)
+POST {{baseUrl}}/compras/cmp_confirmada_1/utilizar
+x-user-id: {{organizadorRockId}}
+
+
+###############################################################################
+# CASO DE USO 11: Chat de la compra
+###############################################################################
+
+### Listar mensajes del chat de la compra
+GET {{baseUrl}}/compras/cmp_confirmada_1/mensajes
+x-user-id: {{compradorId}}
+
+### Enviar mensaje como comprador
+POST {{baseUrl}}/compras/cmp_confirmada_1/mensajes
+Content-Type: application/json
+x-user-id: {{compradorId}}
+
+{
+  "texto": "¿A qué hora finaliza el show aproximadamente?"
+}
+
+### Responder mensaje como organizador
+POST {{baseUrl}}/compras/cmp_confirmada_1/mensajes
+Content-Type: application/json
+x-user-id: {{organizadorRockId}}
+
+{
+  "texto": "Hola Lucas, el show termina aproximadamente a las 02:00 hs."
+}
+
+
+###############################################################################
+# CASO DE USO 12 y O7: Reseñas y Reputación
+###############################################################################
+
+### Dejar reseña sobre compra utilizada
+POST {{baseUrl}}/compras/cmp_utilizada_sin_resena/resena
+Content-Type: application/json
+x-user-id: {{compradorId}}
+
+{
+  "puntaje": 5,
+  "comentario": "Excelente acústica, accesos rápidos y puestos de hidratación impecables."
+}
+
+### Consultar reseña de una compra
+GET {{baseUrl}}/compras/cmp_utilizada_1/resena
+x-user-id: {{compradorId}}
+
+### Consultar reputación del organizador
+GET {{baseUrl}}/organizadores/usr_org_rock/reputacion
+x-user-id: {{compradorId}}
+
+
+###############################################################################
+# CASO DE USO O4: Organizador ve compras y disponibilidad del evento
+###############################################################################
+
+### Listar compras y disponibilidad por tipo de entrada
+GET {{baseUrl}}/eventos/evt_cosquin/compras
+x-user-id: {{organizadorRockId}}
+
+
+###############################################################################
+# DEV ENDPOINTS: Reset de base en memoria
+###############################################################################
+
+### Restaurar datos al seed inicial (Requiere ENABLE_DEV_ENDPOINTS=true)
+POST {{baseUrl}}/dev/reset

@@ -255,7 +255,23 @@ describe("BLOQUE B: Reseñas y Reputación de Organizadores (Jest + Supertest)",
       .get("/organizadores/usr_org_rock/resenas")
       .set("x-user-id", COMPRADOR_TITULAR);
     expect(resOrgResenas.status).toBe(200);
+    expect(resOrgResenas.body.puntajePromedio).toBe(4.0);
     expect(resOrgResenas.body.cantidadResenas).toBe(2);
+    expect(Array.isArray(resOrgResenas.body.resenas)).toBe(true);
+    expect(resOrgResenas.body.resenas.length).toBe(2);
+
+    resOrgResenas.body.resenas.forEach((r) => {
+      expect(r.id).toBeDefined();
+      expect(typeof r.puntaje).toBe("number");
+      expect(typeof r.comentario).toBe("string");
+      expect(r.fecha).toBeDefined();
+      expect(r.evento).toBeDefined();
+      expect(r.evento.id).toBeDefined();
+      expect(r.evento.nombre).toBeDefined();
+      expect(r.autor).toBeDefined();
+      expect(r.autor.id).toBeDefined();
+      expect(r.autor.nombre).toBeDefined();
+    });
 
     const resOrg404 = await request(app)
       .get("/organizadores/usr_inexistente_9999/resenas")

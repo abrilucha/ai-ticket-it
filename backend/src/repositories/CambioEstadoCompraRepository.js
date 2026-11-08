@@ -9,17 +9,16 @@ export class CambioEstadoCompraRepository {
 
   async findByCompra(compraId) {
     return this.cambios
-      .filter((c) => c.compra?.id === compraId || c.compra?._id === compraId || c.compra === compraId)
+      .filter((c) => c.compra?.id === compraId || c.compraId === compraId || c.compra === compraId)
       .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
   }
 
   async save(cambio) {
-    const id = cambio.id || cambio._id;
+    const id = cambio.id;
     const nuevoId = id || `cam_${crypto.randomUUID().slice(0, 8)}`;
     const nuevo = {
       ...cambio,
       id: nuevoId,
-      _id: nuevoId,
       fechaHora: cambio.fechaHora || new Date(),
     };
     this.cambios.push(nuevo);

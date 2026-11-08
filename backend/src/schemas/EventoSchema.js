@@ -28,7 +28,7 @@ export const EventoSchema = z.object({
       message: "Formato de fecha inválido",
     })
     .refine((val) => new Date(val) > new Date(), {
-      message: "La fecha del evento debe ser a futuro (Regla S11)",
+      message: "La fecha del evento debe ser a futuro",
     }),
   tiposEntrada: z
     .array(TipoEntradaSchema)
@@ -47,5 +47,3 @@ export const EventoSchema = z.object({
     .optional()
     .default([]),
 });
-
-export const EventoUpdateSchema = EventoSchema.partial();

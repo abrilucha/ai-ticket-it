@@ -2,7 +2,7 @@ import { compraRepository } from "../repositories/CompraRepository.js";
 import { eventoRepository } from "../repositories/EventoRepository.js";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
 import { cambioEstadoCompraRepository } from "../repositories/CambioEstadoCompraRepository.js";
-import { reseniaRepository } from "../repositories/ReseniaRepository.js";
+import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { EstadoCompra } from "../domain/EstadoCompra.js";
 import { Compra } from "../domain/Compra.js";
 import { MaquinaEstadoCompra } from "../domain/MaquinaEstadoCompra.js";
@@ -17,13 +17,13 @@ export class CompraService {
     evRepo = eventoRepository,
     usrRepo = usuarioRepository,
     histRepo = cambioEstadoCompraRepository,
-    resRepo = reseniaRepository
+    resRepo = resenaRepository
   ) {
     this.compraRepository = compRepo;
     this.eventoRepository = evRepo;
     this.usuarioRepository = usrRepo;
     this.cambioEstadoCompraRepository = histRepo;
-    this.reseniaRepository = resRepo;
+    this.resenaRepository = resRepo;
   }
 
   calcularDiasRestantes(fechaEvento) {
@@ -36,17 +36,14 @@ export class CompraService {
     const fechaEvento = compra.evento?.fecha;
     const eventoPasado = fechaEvento ? new Date(fechaEvento) <= new Date() : false;
 
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
-    const orgEventoId =
-      compra.evento?.organizador?.id ||
-      compra.evento?.organizador?._id ||
-      compra.evento?.organizador;
+    const compradorId = compra.comprador?.id;
+    const orgEventoId = compra.evento?.organizador?.id || compra.evento?.organizador;
 
     const esComprador = Boolean(usuarioId && compradorId === usuarioId);
     const esOrganizadorEvento = Boolean(usuarioId && orgEventoId === usuarioId);
 
-    const resenia = await this.reseniaRepository.findByCompra(compra.id || compra._id);
-    const resenada = Boolean(resenia);
+    const resena = await this.resenaRepository.findByCompra(compra.id);
+    const resenada = Boolean(resena);
 
     const puedePagar = compra.estado === EstadoCompra.PENDIENTE && esComprador;
     const puedeCancelar =
@@ -98,17 +95,20 @@ export class CompraService {
     }
 
     if (new Date(evento.fecha) <= new Date()) {
-      throw new ConflictError("No se pueden comprar entradas para un evento que ya se realizó (Regla S11)");
+      throw new ConflictError(
+        "No se pueden comprar entradas para un evento que ya se realizó",
+        "EVENTO_REALIZADO"
+      );
     }
 
     const tipoEntrada = (evento.tiposEntrada || []).find(
-      (t) => t.id === tipoEntradaId || t._id === tipoEntradaId
+      (t) => t.id === tipoEntradaId
     );
     if (!tipoEntrada) {
       throw new NotFoundError("Tipo de entrada no encontrado en este evento");
     }
 
-    // Regla S3: Verificar cupo disponible considerando compras previas (PENDIENTE, CONFIRMADA y UTILIZADA consumen cupo)
+    // Verificar cupo disponible considerando compras previas (PENDIENTE, CONFIRMADA y UTILIZADA consumen cupo)
     const comprasEvento = await this.compraRepository.findByEvento(eventoId);
     const entradasVendidas = comprasEvento
       .filter(
@@ -122,31 +122,30 @@ export class CompraService {
     const cupoRestante = Math.max(0, tipoEntrada.cupo - entradasVendidas);
     if (cantidad > cupoRestante) {
       throw new ConflictError(
-        `Cupo insuficiente (Regla S3): solo quedan ${cupoRestante} entradas de tipo '${tipoEntrada.nombre}'`
+        `Cupo insuficiente: solo quedan ${cupoRestante} entradas de tipo '${tipoEntrada.nombre}'`,
+        "CUPO_INSUFICIENTE"
       );
     }
 
-    // Regla S4: Cálculo del total
+    // Cálculo del total
     const total = tipoEntrada.precio * cantidad;
 
-    // Regla S5: Máquina de estados (nace en PENDIENTE)
+    // Máquina de estados (nace en PENDIENTE)
     const compraDominio = new Compra({
       comprador: {
         id: comprador.id,
-        _id: comprador.id,
         nombre: comprador.nombre,
         apellido: comprador.apellido,
         email: comprador.email,
       },
       evento: {
         id: evento.id,
-        _id: evento.id,
         nombre: evento.nombre,
         fecha: evento.fecha,
         organizador: evento.organizador,
       },
       tipoEntrada: {
-        tipoEntradaId: tipoEntrada.id || tipoEntrada._id,
+        tipoEntradaId: tipoEntrada.id,
         nombre: tipoEntrada.nombre,
         precio: tipoEntrada.precio,
       },
@@ -175,7 +174,7 @@ export class CompraService {
       throw new NotFoundError("Compra no encontrada");
     }
 
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
+    const compradorId = compra.comprador?.id;
     if (usuarioId && compradorId !== usuarioId) {
       throw new ForbiddenError("Acceso denegado: solo el comprador titular puede pagar esta compra");
     }
@@ -205,10 +204,7 @@ export class CompraService {
       throw new NotFoundError("Compra no encontrada");
     }
 
-    const orgEventoId =
-      compra.evento?.organizador?.id ||
-      compra.evento?.organizador?._id ||
-      compra.evento?.organizador;
+    const orgEventoId = compra.evento?.organizador?.id || compra.evento?.organizador;
 
     if (usuarioId && orgEventoId !== usuarioId) {
       throw new ForbiddenError(
@@ -239,29 +235,32 @@ export class CompraService {
       throw new NotFoundError("Compra no encontrada");
     }
 
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
-    const orgEventoId =
-      compra.evento?.organizador?.id ||
-      compra.evento?.organizador?._id ||
-      compra.evento?.organizador;
+    const compradorId = compra.comprador?.id;
+    const orgEventoId = compra.evento?.organizador?.id || compra.evento?.organizador;
 
     if (usuarioId && usuarioId === orgEventoId) {
-      throw new ForbiddenError("Los organizadores no pueden cancelar compras de sus clientes (Regla Caso de Uso 8)");
+      throw new ForbiddenError("Los organizadores no pueden cancelar compras de sus clientes");
     }
 
     if (usuarioId && compradorId !== usuarioId) {
       throw new ForbiddenError("Acceso denegado: solo el comprador titular puede solicitar la cancelación de su compra");
     }
 
-    // Regla S8: Bloqueo si la entrada ya fue utilizada
+    // Bloqueo si la entrada ya fue utilizada
     if (compra.estado === EstadoCompra.UTILIZADA) {
-      throw new ConflictError("No se puede cancelar una compra cuya entrada ya fue utilizada (Regla S8)");
+      throw new ConflictError(
+        "No se puede cancelar una compra cuya entrada ya fue utilizada",
+        "ENTRADA_YA_UTILIZADA"
+      );
     }
 
-    // Regla S8 / S11: Bloqueo si el evento ya se realizó
+    // Bloqueo si el evento ya se realizó
     const fechaEvento = compra.evento?.fecha;
     if (fechaEvento && new Date(fechaEvento) <= new Date()) {
-      throw new ConflictError("No se puede cancelar una compra de un evento que ya se realizó (Regla S8)");
+      throw new ConflictError(
+        "No se puede cancelar una compra de un evento que ya se realizó",
+        "EVENTO_REALIZADO"
+      );
     }
 
     const estadoAnterior = compra.estado;

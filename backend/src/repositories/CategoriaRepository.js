@@ -8,7 +8,7 @@ export class CategoriaRepository {
   }
 
   async findById(id) {
-    return this.categorias.find((c) => c.id === id || c._id === id) || null;
+    return this.categorias.find((c) => c.id === id) || null;
   }
 
   async findByCodigo(codigo) {
@@ -16,11 +16,11 @@ export class CategoriaRepository {
   }
 
   async save(categoria) {
-    const id = categoria.id || categoria._id;
+    const id = categoria.id;
     if (id) {
-      const idx = this.categorias.findIndex((c) => c.id === id || c._id === id);
+      const idx = this.categorias.findIndex((c) => c.id === id);
       if (idx !== -1) {
-        this.categorias[idx] = { ...this.categorias[idx], ...categoria, id, _id: id };
+        this.categorias[idx] = { ...this.categorias[idx], ...categoria, id };
         return this.categorias[idx];
       }
     }
@@ -28,7 +28,6 @@ export class CategoriaRepository {
     const nuevo = {
       ...categoria,
       id: nuevoId,
-      _id: nuevoId,
     };
     this.categorias.push(nuevo);
     return nuevo;

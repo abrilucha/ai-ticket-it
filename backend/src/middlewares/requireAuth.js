@@ -4,7 +4,7 @@ export const requireAuth = (req, res, next) => {
   const ruta = (req.originalUrl || req.url || "").split("?")[0];
 
   // Rutas públicas: GET /health y GET /usuarios
-  if (ruta === "/health" || (ruta === "/usuarios" && req.method === "GET")) {
+  if (ruta === "/health" || (ruta === "/usuarios" && req.method === "GET") || ruta === "/dev/reset") {
     return next();
   }
 

@@ -1,8 +1,8 @@
-import { reseniaRepository } from "../repositories/ReseniaRepository.js";
+import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { compraRepository } from "../repositories/CompraRepository.js";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
 import { ResenaSchema } from "../schemas/ResenaSchema.js";
-import { Resenia } from "../domain/Resenia.js";
+import { Resena } from "../domain/Resena.js";
 import { EstadoCompra } from "../domain/EstadoCompra.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { ForbiddenError } from "../errors/ForbiddenError.js";
@@ -12,11 +12,11 @@ import { UnauthorizedError } from "../errors/UnauthorizedError.js";
 
 export class ResenaService {
   constructor(
-    resRepo = reseniaRepository,
+    resRepo = resenaRepository,
     compRepo = compraRepository,
     usrRepo = usuarioRepository
   ) {
-    this.reseniaRepository = resRepo;
+    this.resenaRepository = resRepo;
     this.compraRepository = compRepo;
     this.usuarioRepository = usrRepo;
   }
@@ -29,11 +29,11 @@ export class ResenaService {
       comentario: resena.comentario,
       fecha: resena.fecha,
       evento: {
-        id: compra.evento?.id || compra.evento?._id || compra.evento,
+        id: compra.evento?.id || compra.evento,
         nombre: compra.evento?.nombre || "Evento",
       },
       autor: {
-        id: compra.comprador?.id || compra.comprador?._id,
+        id: compra.comprador?.id,
         nombre: compra.comprador?.nombre || "Comprador",
       },
     };
@@ -54,25 +54,27 @@ export class ResenaService {
     }
 
     // 3. Participación: solo el COMPRADOR titular (403)
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
+    const compradorId = compra.comprador?.id;
     if (compradorId !== usuarioActual.id) {
       throw new ForbiddenError(
         "Acceso denegado: solo el comprador titular de la entrada puede dejar una reseña"
       );
     }
 
-    // 4. Regla S9: Estado de la compra (409)
+    // 4. Estado de la compra (409)
     if (compra.estado !== EstadoCompra.UTILIZADA) {
       throw new ConflictError(
-        "Solo se pueden calificar compras cuya entrada haya sido utilizada (Regla S9)"
+        "Solo se pueden calificar compras cuya entrada haya sido utilizada",
+        "COMPRA_NO_UTILIZADA"
       );
     }
 
-    // 4b. Regla S9: Una sola reseña por compra (409)
-    const resenaPrevia = await this.reseniaRepository.findByCompra(compraId);
+    // 4b. Una sola reseña por compra (409)
+    const resenaPrevia = await this.resenaRepository.findByCompra(compraId);
     if (resenaPrevia) {
       throw new ConflictError(
-        "Esta compra ya cuenta con una reseña registrada (Regla S9)"
+        "Esta compra ya cuenta con una reseña registrada",
+        "RESENA_YA_EXISTE"
       );
     }
 
@@ -90,7 +92,7 @@ export class ResenaService {
     const { puntaje, comentario } = parsed.data;
 
     const id = `res_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const nuevaResena = new Resenia({
+    const nuevaResena = new Resena({
       id,
       compraId: compra.id,
       puntaje,
@@ -98,7 +100,7 @@ export class ResenaService {
       fecha: new Date().toISOString(),
     });
 
-    const guardada = await this.reseniaRepository.save(nuevaResena);
+    const guardada = await this.resenaRepository.save(nuevaResena);
 
     return this.formatearResena(guardada, compra);
   };
@@ -118,11 +120,8 @@ export class ResenaService {
     }
 
     // 3. Participación: Comprador titular u organizador del evento (403)
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
-    const orgEventoId =
-      compra.evento?.organizador?.id ||
-      compra.evento?.organizador?._id ||
-      compra.evento?.organizador;
+    const compradorId = compra.comprador?.id;
+    const orgEventoId = compra.evento?.organizador?.id || compra.evento?.organizador;
 
     const esComprador = Boolean(usuarioActual.id && compradorId === usuarioActual.id);
     const esOrganizadorEvento = Boolean(usuarioActual.id && orgEventoId === usuarioActual.id);
@@ -134,7 +133,7 @@ export class ResenaService {
     }
 
     // 4. Buscar reseña
-    const resena = await this.reseniaRepository.findByCompra(compraId);
+    const resena = await this.resenaRepository.findByCompra(compraId);
     if (!resena) {
       throw new NotFoundError("No se encontró reseña para esta compra", "RESENA_NO_ENCONTRADA");
     }

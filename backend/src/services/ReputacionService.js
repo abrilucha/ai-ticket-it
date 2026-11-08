@@ -1,14 +1,14 @@
-import { reseniaRepository } from "../repositories/ReseniaRepository.js";
+import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { compraRepository } from "../repositories/CompraRepository.js";
 import { eventoRepository } from "../repositories/EventoRepository.js";
 
 export class ReputacionService {
   constructor(
-    resRepo = reseniaRepository,
+    resRepo = resenaRepository,
     compRepo = compraRepository,
     evRepo = eventoRepository
   ) {
-    this.reseniaRepository = resRepo;
+    this.resenaRepository = resRepo;
     this.compraRepository = compRepo;
     this.eventoRepository = evRepo;
   }
@@ -19,15 +19,15 @@ export class ReputacionService {
    */
   async obtenerResenasOrganizador(organizadorId) {
     const eventos = await this.eventoRepository.findByOrganizador(organizadorId);
-    const eventosIds = new Set(eventos.map((e) => e.id || e._id));
+    const eventosIds = new Set(eventos.map((e) => e.id));
 
-    const todasResenas = await this.reseniaRepository.getAll();
+    const todasResenas = await this.resenaRepository.getAll();
     const resenasOrg = [];
 
     for (const r of todasResenas) {
       const compra = await this.compraRepository.findById(r.compraId);
       if (!compra) continue;
-      const evId = compra.evento?.id || compra.evento?._id || compra.evento;
+      const evId = compra.evento?.id || compra.evento;
       if (eventosIds.has(evId)) {
         resenasOrg.push({
           resena: r,
@@ -41,7 +41,7 @@ export class ReputacionService {
   }
 
   /**
-   * Única fuente de verdad para el cálculo del puntaje del organizador (Regla S10).
+   * Única fuente de verdad para el cálculo del puntaje del organizador.
    * Devuelve { puntajePromedio, cantidadResenas }.
    * Sin reseñas: puntajePromedio = null, cantidadResenas = 0.
    */
@@ -68,13 +68,13 @@ export class ReputacionService {
    * Obtiene y calcula el promedio de reseñas exclusivo de un evento específico.
    */
   async calcularPuntajeEvento(eventoId) {
-    const todasResenas = await this.reseniaRepository.getAll();
+    const todasResenas = await this.resenaRepository.getAll();
     const resenasEvento = [];
 
     for (const r of todasResenas) {
       const compra = await this.compraRepository.findById(r.compraId);
       if (!compra) continue;
-      const evId = compra.evento?.id || compra.evento?._id || compra.evento;
+      const evId = compra.evento?.id || compra.evento;
       if (evId === eventoId) {
         resenasEvento.push({
           resena: r,
