@@ -2,9 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import { MongoDBClient } from "./database/connection.js";
-import { seed } from "./database/seed.js";
-import { UsuarioModel } from "./mongoschemas/UsuarioModel.js";
+import { inicializarSeedInMemory } from "./data/seedInMemory.js";
 
 // Rutas
 import healthRoutes from "../routes/HealthCheckRoutes.js";
@@ -46,19 +44,13 @@ app.use(errorLogger);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// 4. Conexión a Base de Datos y Arranque
+// 4. Inicializar persistencia en memoria y arrancar servidor
 async function startServer() {
-  await MongoDBClient.connect();
-
-  // Si la base está vacía, correr el seed inicial automáticamente
-  const usuariosCount = await UsuarioModel.countDocuments();
-  if (usuariosCount === 0) {
-    console.log(" Base de datos vacía. Ejecutando seed inicial...");
-    await seed();
-  }
+  await inicializarSeedInMemory();
 
   app.listen(PORT, () => {
-    console.log(` Servidor de AI Ticket It corriendo en http://localhost:${PORT}`);
+    console.log(` Servidor de AI Ticket It corriendo con persistencia EN MEMORIA`);
+    console.log(` Escuchando en http://localhost:${PORT}`);
     console.log(` Health check: http://localhost:${PORT}/health`);
     console.log(` Usuarios seed: http://localhost:${PORT}/usuarios`);
   });

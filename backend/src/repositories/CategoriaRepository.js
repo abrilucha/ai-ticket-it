@@ -1,23 +1,41 @@
-import { CategoriaModel } from "../mongoschemas/CategoriaModel.js";
-
 export class CategoriaRepository {
+  constructor() {
+    this.categorias = [];
+  }
+
   async getAll() {
-    return await CategoriaModel.find().lean();
+    return [...this.categorias];
   }
 
   async findById(id) {
-    return await CategoriaModel.findById(id);
+    return this.categorias.find((c) => c.id === id || c._id === id) || null;
   }
 
   async findByCodigo(codigo) {
-    return await CategoriaModel.findOne({ codigo });
+    return this.categorias.find((c) => c.codigo === codigo) || null;
   }
 
   async save(categoria) {
-    if (categoria.id || categoria._id) {
-      return await CategoriaModel.findByIdAndUpdate(categoria.id || categoria._id, categoria, { new: true });
+    const id = categoria.id || categoria._id;
+    if (id) {
+      const idx = this.categorias.findIndex((c) => c.id === id || c._id === id);
+      if (idx !== -1) {
+        this.categorias[idx] = { ...this.categorias[idx], ...categoria, id, _id: id };
+        return this.categorias[idx];
+      }
     }
-    return await CategoriaModel.create(categoria);
+    const nuevoId = id || `cat_${crypto.randomUUID().slice(0, 8)}`;
+    const nuevo = {
+      ...categoria,
+      id: nuevoId,
+      _id: nuevoId,
+    };
+    this.categorias.push(nuevo);
+    return nuevo;
+  }
+
+  async clear() {
+    this.categorias = [];
   }
 }
 

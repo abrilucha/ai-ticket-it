@@ -1,16 +1,22 @@
-import { UsuarioModel } from "../mongoschemas/UsuarioModel.js";
+import { usuarioRepository } from "../repositories/UsuarioRepository.js";
 
 export class UsuarioService {
+  constructor(userRepo = usuarioRepository) {
+    this.usuarioRepository = userRepo;
+  }
+
   listar = async () => {
-    return await UsuarioModel.find().lean();
+    return await this.usuarioRepository.getAll();
   };
 
   obtenerActual = async (id) => {
     if (!id) return null;
-    return await UsuarioModel.findById(id).lean();
+    return await this.usuarioRepository.findById(id);
   };
 
   obtenerPorId = async (id) => {
-    return await UsuarioModel.findById(id).lean();
+    return await this.usuarioRepository.findById(id);
   };
 }
+
+export const usuarioService = new UsuarioService();
