@@ -1,23 +1,51 @@
-import { UsuarioModel } from "../mongoschemas/UsuarioModel.js";
-
 export class UsuarioRepository {
+  constructor() {
+    this.usuarios = [];
+  }
+
   async getAll() {
-    return await UsuarioModel.find().lean();
+    return [...this.usuarios];
   }
 
   async findById(id) {
-    return await UsuarioModel.findById(id);
+    return this.usuarios.find((u) => u.id === id || u._id === id) || null;
   }
 
   async findByEmail(email) {
-    return await UsuarioModel.findOne({ email });
+    return this.usuarios.find((u) => u.email === email) || null;
   }
 
   async save(usuario) {
-    if (usuario.id || usuario._id) {
-      return await UsuarioModel.findByIdAndUpdate(usuario.id || usuario._id, usuario, { new: true });
+    const id = usuario.id || usuario._id;
+    if (id) {
+      const idx = this.usuarios.findIndex((u) => u.id === id || u._id === id);
+      if (idx !== -1) {
+        this.usuarios[idx] = { ...this.usuarios[idx], ...usuario, id, _id: id };
+        return this.usuarios[idx];
+      }
     }
-    return await UsuarioModel.create(usuario);
+    const nuevoId = id || `usr_${crypto.randomUUID().slice(0, 8)}`;
+    const nuevo = {
+      ...usuario,
+      id: nuevoId,
+      _id: nuevoId,
+      favoritos: usuario.favoritos || [],
+    };
+    this.usuarios.push(nuevo);
+    return nuevo;
+  }
+
+  async delete(id) {
+    const idx = this.usuarios.findIndex((u) => u.id === id || u._id === id);
+    if (idx !== -1) {
+      this.usuarios.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
+  async clear() {
+    this.usuarios = [];
   }
 }
 

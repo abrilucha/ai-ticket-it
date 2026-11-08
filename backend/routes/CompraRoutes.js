@@ -2,6 +2,10 @@ import { Router } from "express";
 import { CompraController } from "../src/controllers/CompraController.js";
 import { MensajeController } from "../src/controllers/MensajeController.js";
 import { ResenaController } from "../src/controllers/ResenaController.js";
+import { requireRole } from "../src/middlewares/requireRole.js";
+import { validarSchema } from "../src/middlewares/validarSchema.js";
+import { CompraSchema } from "../src/schemas/CompraSchema.js";
+import { MensajeSchema } from "../src/schemas/MensajeSchema.js";
 
 const router = Router({ mergeParams: true });
 const compraController = new CompraController();
@@ -17,9 +21,24 @@ const resenaController = new ResenaController();
 
 /**
  * @swagger
+ * /compras/mias:
+ *   get:
+ *     summary: Lista las compras del comprador logueado con estado y días restantes
+ *     tags: [Compras]
+ *     responses:
+ *       200:
+ *         description: Lista de compras del usuario obtenida exitosamente
+ *       403:
+ *         description: Requiere rol COMPRADOR
+ */
+router.route("/mias")
+  .get(requireRole("COMPRADOR"), (req, res, next) => compraController.listarMias(req, res, next));
+
+/**
+ * @swagger
  * /compras:
  *   post:
- *     summary: Realiza una nueva compra de entradas para un evento
+ *     summary: Realiza una nueva compra de entradas para un evento (nace en estado PENDIENTE)
  *     tags: [Compras]
  *     requestBody:
  *       required: true
@@ -38,33 +57,23 @@ const resenaController = new ResenaController();
  *                 type: string
  *               cantidad:
  *                 type: integer
+ *                 minimum: 1
  *     responses:
  *       201:
- *         description: Compra creada en estado pendiente
+ *         description: Compra creada en estado PENDIENTE
  *       400:
- *         description: Cupo no disponible o datos inválidos
+ *         description: Cupo no disponible (Regla S3) o datos inválidos
+ *       403:
+ *         description: Requiere rol COMPRADOR
  */
 router.route("/")
-  .post((req, res, next) => compraController.crear(req, res, next));
-
-/**
- * @swagger
- * /compras/mias:
- *   get:
- *     summary: Lista las compras del comprador logueado con estado y días restantes
- *     tags: [Compras]
- *     responses:
- *       200:
- *         description: Lista de compras del usuario obtenida exitosamente
- */
-router.route("/mias")
-  .get((req, res, next) => compraController.listarMias(req, res, next));
+  .post(requireRole("COMPRADOR"), validarSchema(CompraSchema), (req, res, next) => compraController.crear(req, res, next));
 
 /**
  * @swagger
  * /compras/{id}:
  *   get:
- *     summary: Obtiene el detalle de una compra específica
+ *     summary: Obtiene el detalle de una compra específica con su historial de estados
  *     tags: [Compras]
  *     parameters:
  *       - in: path
@@ -85,7 +94,7 @@ router.route("/:id")
  * @swagger
  * /compras/{id}/pagar:
  *   post:
- *     summary: Realiza el pago de una compra para pasarla a estado confirmada
+ *     summary: Realiza el pago de una compra y transiciona su estado a CONFIRMADA (Regla S5)
  *     tags: [Compras]
  *     parameters:
  *       - in: path
@@ -95,10 +104,12 @@ router.route("/:id")
  *           type: string
  *     responses:
  *       200:
- *         description: Compra pagada y confirmada exitosamente
+ *         description: Compra pagada y confirmada exitosamente con cálculo de días restantes
+ *       400:
+ *         description: Estado no apto para pagar
  */
 router.route("/:id/pagar")
-  .post((req, res, next) => compraController.pagar(req, res, next));
+  .post(requireRole("COMPRADOR"), (req, res, next) => compraController.pagar(req, res, next));
 
 /**
  * @swagger
@@ -117,7 +128,7 @@ router.route("/:id/pagar")
  *         description: Compra marcada como utilizada exitosamente
  */
 router.route("/:id/utilizar")
-  .post((req, res, next) => compraController.utilizar(req, res, next));
+  .post(requireRole("ORGANIZADOR"), (req, res, next) => compraController.utilizar(req, res, next));
 
 /**
  * @swagger
