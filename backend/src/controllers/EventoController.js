@@ -52,7 +52,8 @@ export class EventoController {
 
   listarCompras = async (req, res, next) => {
     try {
-      const comprasInfo = await this.eventoService.listarCompras(req.params.id);
+      const organizadorId = req.user?.id || req.headers["x-user-id"];
+      const comprasInfo = await this.eventoService.listarCompras(req.params.id, organizadorId);
       res.status(200).json(comprasInfo);
     } catch (e) {
       next(e);

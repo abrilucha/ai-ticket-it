@@ -2,7 +2,7 @@
 ## AI Ticket It — Pop Kinetic Mobile (React Native + Expo)
 
 > **Documento de Auditoría y Planificación Visual / Técnica**  
-> **Estado:** Fase 4 completada (Lado del organizador: Mis eventos, Crear evento, Ventas por evento, Marcar como utilizada)  
+> **Estado:** Fases 4 y 4b completadas (Lado del organizador: Mis eventos, Crear evento, Ventas por evento, Validación de entradas con Cámara física y QR offline)  
 > **Referencia Visual:** Exportación Stitch en `temp/`  
 > **Fuente de Verdad Técnica:** `backend/docs/API.md` (25 endpoints montados, 5 estados canónicos)
 

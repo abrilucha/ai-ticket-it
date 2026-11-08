@@ -31,10 +31,8 @@ export function CompraRowOrganizador({
   const total = compra.total || 0;
   const fechaCompra = compra.createdAt ? formatFecha(compra.createdAt) : null;
 
-  // Se puede marcar si la bandera viene en true o si su estado es CONFIRMADA
-  const puedeUtilizar = compra.puedeUtilizar !== undefined
-    ? compra.puedeUtilizar
-    : compra.estado === 'CONFIRMADA';
+  // El front respeta exclusivamente la bandera que garantiza el backend
+  const puedeUtilizar = Boolean(compra.puedeUtilizar);
 
   return (
     <HardShadow offset={3} borderRadius={10} style={[styles.shadowWrapper, style]}>

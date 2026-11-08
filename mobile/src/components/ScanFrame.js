@@ -8,11 +8,11 @@ import { Typography } from '../theme/typography.js';
  * Marco decorativo de escaneo Pop Kinetic para la validación de accesos.
  * Modo manual decorativo: no inicializa cámaras físicas ni servicios externos.
  */
-export function ScanFrame({ style }) {
+export function ScanFrame({ children, overlay = false, label, style }) {
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, overlay && styles.overlayContainer, style]}>
       {/* Marco visor con esquineros Pop Art */}
-      <View style={styles.viewfinder}>
+      <View style={[styles.viewfinder, overlay && styles.overlayViewfinder]}>
         {/* Esquina superior izquierda */}
         <View style={[styles.corner, styles.cornerTL]} />
         {/* Esquina superior derecha */}
@@ -24,14 +24,21 @@ export function ScanFrame({ style }) {
 
         {/* Retícula y mira central decorativa */}
         <View style={styles.scanLine} />
-        <View style={styles.centerTarget}>
-          <Text style={styles.centerIcon}>🎯</Text>
-        </View>
 
-        {/* Leyenda explicativa de modo manual */}
-        <View style={styles.labelContainer}>
-          <Text style={styles.modePill}>MODO MANUAL</Text>
-        </View>
+        {children ? (
+          children
+        ) : (
+          <>
+            <View style={styles.centerTarget}>
+              <Text style={styles.centerIcon}>🎯</Text>
+            </View>
+
+            {/* Leyenda explicativa */}
+            <View style={styles.labelContainer}>
+              <Text style={styles.modePill}>{label || (overlay ? 'APUNTAR AL QR' : 'MODO MANUAL')}</Text>
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -45,6 +52,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 16,
+  },
+  overlayContainer: {
+    marginVertical: 0,
+    backgroundColor: 'transparent',
+  },
+  overlayViewfinder: {
+    backgroundColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 1.5,
   },
   viewfinder: {
     width: 240,

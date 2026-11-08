@@ -26,6 +26,15 @@ export function OrganizerEventCard({ evento, onPress, style }) {
     ? evento.tiposEntrada.reduce((sum, t) => sum + (t.cupo || 0), 0)
     : 0;
 
+  // Entradas vendidas sumando cupo - cupoDisponible de cada tipo
+  const totalVendidas = Array.isArray(evento.tiposEntrada)
+    ? evento.tiposEntrada.reduce((sum, t) => {
+        const cupo = t.cupo || 0;
+        const disponible = t.cupoDisponible !== undefined ? t.cupoDisponible : (t.cupoRestante !== undefined ? t.cupoRestante : cupo);
+        return sum + Math.max(0, cupo - disponible);
+      }, 0)
+    : 0;
+
   return (
     <HardShadow offset={4} borderRadius={12} style={[styles.shadowWrapper, style]}>
       <Pressable
@@ -65,7 +74,7 @@ export function OrganizerEventCard({ evento, onPress, style }) {
 
           {cupoTotal > 0 && (
             <Text style={styles.cupoText}>
-              Capacidad total: <Text style={{ fontWeight: '800' }}>{cupoTotal}</Text> entradas
+              Entradas vendidas: <Text style={{ fontWeight: '800' }}>{totalVendidas} / {cupoTotal}</Text>
             </Text>
           )}
 

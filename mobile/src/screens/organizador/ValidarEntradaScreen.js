@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useIsFocused } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -18,14 +20,34 @@ import { PopInput } from '../../components/PopInput.js';
 import { PopButton } from '../../components/PopButton.js';
 import { StateBadge } from '../../components/StateBadge.js';
 import { ScanFrame } from '../../components/ScanFrame.js';
+import { SegmentedFilter } from '../../components/SegmentedFilter.js';
 import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
+import { EmptyState } from '../../components/EmptyState.js';
+import { LoadingView } from '../../components/LoadingView.js';
 import { formatPrecio, formatFecha } from '../../utils/formato.js';
+import { leerPayloadQR } from '../../utils/qr.js';
+
+const TABS = [
+  { id: 'CAMARA', label: '📷 CÁMARA' },
+  { id: 'MANUAL', label: '⌨️ INGRESO MANUAL' },
+];
 
 export function ValidarEntradaScreen({ navigation }) {
   const { usuario, logout } = useAuth();
+  const isFocused = useIsFocused();
+
+  // Modo activo: 'CAMARA' (por defecto) o 'MANUAL'
+  const [modo, setModo] = useState('CAMARA');
   const [codigoInput, setCodigoInput] = useState('');
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [qrInvalidoMsg, setQrInvalidoMsg] = useState(null);
+
+  // Permisos de cámara
+  const [permission, requestPermission] = useCameraPermissions();
+
+  // Bloqueo anti doble lectura
+  const isScanningLocked = useRef(false);
 
   const {
     compra,
@@ -37,7 +59,39 @@ export function ValidarEntradaScreen({ navigation }) {
     reset,
   } = useValidarEntrada();
 
-  const handleBuscar = () => {
+  // Desbloquear el escáner si no hay compra ni error bloqueante
+  useEffect(() => {
+    if (!compra && !loading) {
+      isScanningLocked.current = false;
+    }
+  }, [compra, loading]);
+
+  const handleSelectModo = (nuevoModo) => {
+    setModo(nuevoModo);
+    reset();
+    setQrInvalidoMsg(null);
+    isScanningLocked.current = false;
+  };
+
+  const handleBarcodeScanned = ({ data }) => {
+    if (isScanningLocked.current || !isFocused || compra || loading) return;
+    isScanningLocked.current = true;
+
+    const compraId = leerPayloadQR(data);
+    if (!compraId) {
+      setQrInvalidoMsg('Código QR no reconocido (no pertenece a AI Ticket It)');
+      setTimeout(() => {
+        setQrInvalidoMsg(null);
+        isScanningLocked.current = false;
+      }, 2000);
+      return;
+    }
+
+    setQrInvalidoMsg(null);
+    verificar(compraId);
+  };
+
+  const handleBuscarManual = () => {
     verificar(codigoInput);
   };
 
@@ -46,9 +100,11 @@ export function ValidarEntradaScreen({ navigation }) {
     setConfirmModalVisible(false);
   };
 
-  const handleNuevaBusqueda = () => {
+  const handleReset = () => {
     setCodigoInput('');
+    setQrInvalidoMsg(null);
     reset();
+    isScanningLocked.current = false;
   };
 
   const compradorNombre = compra?.comprador?.nombre
@@ -73,6 +129,13 @@ export function ValidarEntradaScreen({ navigation }) {
     <Screen>
       <Header usuario={usuario} onLogout={logout} />
 
+      {/* Selector de modo: CÁMARA vs INGRESO MANUAL */}
+      <SegmentedFilter
+        selectedTab={modo}
+        onSelect={handleSelectModo}
+        options={TABS}
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -82,52 +145,139 @@ export function ValidarEntradaScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Marco decorativo de escaneo Pop Art */}
-          <ScanFrame />
+          {/* MODO CÁMARA */}
+          {modo === 'CAMARA' && !compra && (
+            <View style={styles.cameraSection}>
+              {!permission ? (
+                <LoadingView message="Verificando acceso a cámara..." />
+              ) : !permission.granted ? (
+                <HardShadow offset={4} borderRadius={12} style={styles.cardShadow}>
+                  <View style={styles.permissionCard}>
+                    <Text style={styles.permissionEmoji}>📷</Text>
+                    <Text style={styles.permissionTitle}>PERMISO DE CÁMARA REQUERIDO</Text>
+                    <Text style={styles.permissionDesc}>
+                      AI Ticket It necesita acceder a la cámara para escanear y validar las entradas con código QR en los accesos.
+                    </Text>
 
-          {/* Formulario de ingreso manual de código */}
-          <HardShadow offset={4} borderRadius={12} style={styles.cardShadow}>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>VALIDAR ENTRADA (CONTROL DE ACCESO)</Text>
-              <Text style={styles.cardSubtitle}>
-                Ingresá o pegá el identificador único del ticket para verificar su autenticidad y estado de pago.
-              </Text>
+                    {permission.canAskAgain ? (
+                      <PopButton
+                        title="ACTIVAR CÁMARA"
+                        variant="primary"
+                        size="md"
+                        onPress={requestPermission}
+                        style={{ width: '100%', marginTop: 8 }}
+                      />
+                    ) : (
+                      <PopButton
+                        title="USAR INGRESO MANUAL"
+                        variant="secondary"
+                        size="md"
+                        onPress={() => handleSelectModo('MANUAL')}
+                        style={{ width: '100%', marginTop: 8 }}
+                      />
+                    )}
+                  </View>
+                </HardShadow>
+              ) : (
+                <View style={styles.cameraContainer}>
+                  {/* Visor de cámara con ScanFrame superpuesto */}
+                  <HardShadow offset={4} borderRadius={16} style={styles.cameraShadow}>
+                    <View style={styles.cameraWrapper}>
+                      {isFocused && (
+                        <CameraView
+                          style={StyleSheet.absoluteFillObject}
+                          facing="back"
+                          barcodeScannerSettings={{
+                            barcodeTypes: ['qr'],
+                          }}
+                          onBarcodeScanned={
+                            isScanningLocked.current ? undefined : handleBarcodeScanned
+                          }
+                        />
+                      )}
 
-              <PopInput
-                label="CÓDIGO O ID DE COMPRA *"
-                placeholder="Ej: cmp_confirmada_1"
-                value={codigoInput}
-                onChangeText={setCodigoInput}
-                autoCapitalize="none"
-              />
+                      {/* ScanFrame superpuesto */}
+                      <View style={styles.overlayFrameWrapper}>
+                        <ScanFrame
+                          overlay={true}
+                          label={loading ? 'VERIFICANDO...' : 'APUNTÁ AL QR'}
+                        />
+                      </View>
 
-              <PopButton
-                title="VERIFICAR ENTRADA"
-                variant="primary"
-                size="md"
-                loading={loading}
-                disabled={loading || !codigoInput.trim()}
-                onPress={handleBuscar}
-                style={styles.buscarBtn}
-              />
+                      {/* Notificación flotante de QR no reconocido */}
+                      {qrInvalidoMsg && (
+                        <View style={styles.toastContainer}>
+                          <Text style={styles.toastText}>⚠️ {qrInvalidoMsg}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </HardShadow>
+
+                  <Text style={styles.cameraHint}>
+                    Apuntá el marco al código QR que te muestre el comprador en su celular.
+                  </Text>
+                </View>
+              )}
             </View>
-          </HardShadow>
+          )}
 
-          {/* Reporte de Error del Back (403, 404, etc.) */}
-          {error && (
+          {/* MODO MANUAL */}
+          {modo === 'MANUAL' && !compra && (
+            <>
+              {/* Marco decorativo Pop Art para modo manual */}
+              <ScanFrame label="INGRESO MANUAL" />
+
+              {/* Formulario de ingreso manual de código */}
+              <HardShadow offset={4} borderRadius={12} style={styles.cardShadow}>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>VALIDAR ENTRADA (CONTROL DE ACCESO)</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Ingresá o pegá el identificador único del ticket para verificar su autenticidad y estado de pago.
+                  </Text>
+
+                  <PopInput
+                    label="CÓDIGO O ID DE COMPRA *"
+                    placeholder="Ej: cmp_confirmada_1"
+                    value={codigoInput}
+                    onChangeText={setCodigoInput}
+                    autoCapitalize="none"
+                  />
+
+                  <PopButton
+                    title="VERIFICAR ENTRADA"
+                    variant="primary"
+                    size="md"
+                    loading={loading}
+                    disabled={loading || !codigoInput.trim()}
+                    onPress={handleBuscarManual}
+                    style={styles.buscarBtn}
+                  />
+                </View>
+              </HardShadow>
+            </>
+          )}
+
+          {/* Banner de error si falló la búsqueda / validación */}
+          {error && !compra && (
             <ErrorBanner
               message={error}
-              onRetry={codigoInput.trim() ? handleBuscar : null}
+              onRetry={modo === 'MANUAL' && codigoInput.trim() ? handleBuscarManual : handleReset}
             />
           )}
 
-          {/* Comprobante de resultado */}
+          {/* TARJETA DE RESULTADO DE VERIFICACIÓN (Común a Cámara y Manual) */}
           {compra && (
             <HardShadow offset={4} borderRadius={12} style={styles.resultShadow}>
               <View style={styles.resultCard}>
                 <View style={styles.resultHeader}>
                   <Text style={styles.resultTitle}>RESULTADO DE VERIFICACIÓN</Text>
                   <StateBadge estado={compra.estado} />
+                </View>
+
+                {/* ID de la compra */}
+                <View style={styles.infoGroup}>
+                  <Text style={styles.infoLabel}>TICKET ID:</Text>
+                  <Text style={styles.infoValueBold}>{compra.id}</Text>
                 </View>
 
                 {/* Evento y fecha */}
@@ -185,13 +335,13 @@ export function ValidarEntradaScreen({ navigation }) {
                   </View>
                 )}
 
-                {/* Botón para verificar otra entrada */}
+                {/* Botón para volver a escanear o buscar otra */}
                 <View style={styles.resetSlot}>
                   <PopButton
-                    title="VERIFICAR OTRA ENTRADA"
+                    title={modo === 'CAMARA' ? '📷 ESCANEAR OTRA ENTRADA' : '⌨️ VERIFICAR OTRA ENTRADA'}
                     variant="secondary"
                     size="sm"
-                    onPress={handleNuevaBusqueda}
+                    onPress={handleReset}
                   />
                 </View>
               </View>
@@ -220,6 +370,84 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 40,
+  },
+  cameraSection: {
+    marginBottom: 16,
+  },
+  cameraContainer: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  cameraShadow: {
+    width: '100%',
+    maxWidth: 360,
+  },
+  cameraWrapper: {
+    width: '100%',
+    height: 320,
+    backgroundColor: '#000000',
+    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: Colors.inkBlack,
+    overflow: 'hidden',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayFrameWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastContainer: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(239, 68, 68, 0.95)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    alignItems: 'center',
+  },
+  toastText: {
+    ...Typography.bodySm,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  cameraHint: {
+    ...Typography.bodySm,
+    color: '#666666',
+    textAlign: 'center',
+    marginTop: 10,
+    maxWidth: 300,
+  },
+  permissionCard: {
+    backgroundColor: Colors.canvasTint,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  permissionEmoji: {
+    fontSize: 40,
+    marginBottom: 8,
+  },
+  permissionTitle: {
+    ...Typography.titleLg,
+    color: Colors.inkBlack,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  permissionDesc: {
+    ...Typography.bodySm,
+    color: '#555555',
+    textAlign: 'center',
+    marginBottom: 14,
   },
   cardShadow: {
     marginBottom: 16,
@@ -301,38 +529,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
+    paddingTop: 10,
     borderTopWidth: 1.5,
     borderTopColor: '#EBE6DE',
-    paddingTop: 10,
-    marginTop: 4,
     marginBottom: 12,
   },
   totalLabel: {
-    ...Typography.labelMd,
+    ...Typography.labelSm,
     color: Colors.inkBlack,
+    fontWeight: '700',
   },
   totalValue: {
-    ...Typography.headingSm,
+    ...Typography.labelLg,
     color: Colors.electricCobalt,
+    fontWeight: '900',
   },
   warningBox: {
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#FFF4E5',
     borderWidth: 1.5,
-    borderColor: Colors.crimsonPunch,
+    borderColor: Colors.popVermilion,
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
   },
   warningText: {
     ...Typography.bodySm,
-    color: Colors.crimsonPunch,
+    color: Colors.popVermilion,
     fontWeight: '700',
+    textAlign: 'center',
   },
   actionSlot: {
-    marginTop: 4,
+    marginTop: 6,
     marginBottom: 8,
   },
   resetSlot: {
-    marginTop: 6,
+    marginTop: 4,
   },
 });

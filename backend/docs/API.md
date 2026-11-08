@@ -135,3 +135,19 @@ A continuación se lista la totalidad de las 25 rutas registradas en el router d
 | 23 | `GET` | `/organizadores/:id/reputacion` | Sí | Cualquier rol | *Alias de `/organizadores/:id`* mantenido para retrocompatibilidad | 200, 401, 404 |
 | 24 | `GET` | `/organizadores/:id/resenas` | Sí | Cualquier rol | **Contrato original Etapa 6**: Reseñas acumuladas de los eventos del organizador | 200, 401, 404 |
 | 25 | `POST` | `/dev/reset` | No | Entorno Dev | Restaura la persistencia en memoria al seed original (`ENABLE_DEV_ENDPOINTS=true`) | 200, 404 |
+
+---
+
+## Actualizaciones de Contrato (Ajustes Fase 4 / 4b)
+
+1. **Identificadores aleatorios de Tipos de Entrada (`POST /eventos`)**:
+   - Al crear un nuevo evento, los tipos de entrada que no especifiquen un identificador propio reciben un id único no predecible generado con formato `tipo_<8_hex>` (mediante `crypto.randomUUID().slice(0, 8)`), garantizando unicidad global entre eventos sin colisiones. Los identificadores del seed original (`tipo_quilmes_campo`, etc.) se preservan intactos.
+
+2. **Alineación de Cupo (`cupoDisponible` y `cupoRestante`)**:
+   - En todas las consultas de eventos (`GET /eventos`, `GET /eventos/mios`, `GET /eventos/:id`) y en el desglose de tipos de entrada en compras (`compra.evento.tiposEntrada`), `cupoDisponible` y `cupoRestante` se calculan a través de una única función de dominio compartida (`calcularDisponibilidadTipos`), actuando como sinónimos exactos. Las compras canceladas o reembolsadas liberan el cupo inmediatamente.
+
+3. **Protección de Privacidad de Correo Electrónico**:
+   - El atributo `email` no se expone en ninguna respuesta pública o autenticada (`GET /usuarios`, `GET /usuarios/:id`, `GET /eventos`, `GET /eventos/:id`, `GET /eventos/:id/compras`, `GET /compras/:id`, etc.). Únicamente el usuario autenticado puede consultar su propio correo mediante `GET /usuarios/me`.
+
+4. **Banderas de Permisos en Ventas del Organizador (`GET /eventos/:id/compras`)**:
+   - Cada objeto compra dentro del arreglo devuelto por `GET /eventos/:id/compras` incluye las banderas de permisos calculadas con la misma lógica de dominio que `GET /compras/:id` (`puedePagar`, `puedeCancelar`, `puedeUtilizar`, `puedeResenar`, `resenada`, `diasRestantes`), permitiendo al cliente móvil decidir acciones directamente a partir de las banderas sin reglas locales de fallback.

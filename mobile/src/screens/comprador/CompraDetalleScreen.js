@@ -5,13 +5,17 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
+  Modal,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
+import { useAuth } from '../../context/AuthContext.js';
 import { useCompra } from '../../hooks/useCompra.js';
 import { useUtilizarCompra } from '../../hooks/useUtilizarCompra.js';
 import { pagarCompra, cancelarCompra } from '../../api/compras.js';
+import { armarPayloadQR } from '../../utils/qr.js';
 import { Screen } from '../../components/Screen.js';
 import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
@@ -25,6 +29,7 @@ import { formatFechaCompleta, formatPrecio } from '../../utils/formato.js';
 
 export function CompraDetalleScreen({ route, navigation }) {
   const { id, origen } = route.params || {};
+  const { usuario } = useAuth();
   const { data: compra, loading, error, reload } = useCompra(id);
 
   // Recargar al recibir foco
@@ -34,11 +39,12 @@ export function CompraDetalleScreen({ route, navigation }) {
     }, [reload])
   );
 
-  // Estados de operaciones de pago y cancelación
+  // Estados de operaciones de pago, cancelación y QR
   const [pagando, setPagando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [utilizarModalVisible, setUtilizarModalVisible] = useState(false);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [accionError, setAccionError] = useState(null);
 
   // Hook para utilización por parte del organizador
@@ -262,12 +268,87 @@ export function CompraDetalleScreen({ route, navigation }) {
               )}
             </View>
 
-            {/* Bloque informativo de estado UTILIZADA */}
-            {compra.estado === 'UTILIZADA' && (
-              <View style={styles.utilizadaBox}>
-                <Text style={styles.utilizadaText}>
-                  Entrada utilizada en el acceso: ya no se puede cancelar ni reembolsar.
-                </Text>
+            {/* Sección de QR / Estado de Acceso exclusiva para el Comprador */}
+            {esComprador && (
+              <View style={styles.qrSectionWrapper}>
+                <View style={styles.divider} />
+
+                {compra.estado === 'CONFIRMADA' && (
+                  <View style={styles.qrBlock}>
+                    <Text style={styles.qrHeaderTitle}>CÓDIGO DE ACCESO</Text>
+                    <Text style={styles.qrHeaderSub}>Presentá este código QR en el acceso al evento</Text>
+
+                    <HardShadow offset={3} borderRadius={12} style={styles.qrCardShadow}>
+                      <View style={styles.qrBox}>
+                        <QRCode
+                          value={armarPayloadQR(compra.id)}
+                          size={180}
+                          color={Colors.inkBlack}
+                          backgroundColor={Colors.white}
+                        />
+                      </View>
+                    </HardShadow>
+
+                    <Text style={styles.qrTicketId}>{compra.id}</Text>
+
+                    <PopButton
+                      title="🔍 VER QR GRANDE"
+                      variant="secondary"
+                      size="sm"
+                      onPress={() => setQrModalVisible(true)}
+                      style={styles.btnQrGrande}
+                    />
+                  </View>
+                )}
+
+                {compra.estado === 'UTILIZADA' && (
+                  <View style={styles.qrBlock}>
+                    <HardShadow offset={4} borderRadius={12} style={styles.selloCardShadow}>
+                      <View style={styles.selloUtilizada}>
+                        <View style={styles.selloBadge}>
+                          <Text style={styles.selloBadgeText}>✓ CANJEADO EN PUERTA</Text>
+                        </View>
+                        <Text style={styles.selloTitle}>ENTRADA UTILIZADA</Text>
+                        <Text style={styles.selloDesc}>
+                          Esta entrada ya fue validada en el acceso y su código QR quedó consumido.
+                        </Text>
+                        {ultimoHistorial && (
+                          <Text style={styles.selloFecha}>
+                            Fecha de ingreso: {formatFechaCompleta(ultimoHistorial.fecha)}
+                          </Text>
+                        )}
+                      </View>
+                    </HardShadow>
+                  </View>
+                )}
+
+                {compra.estado === 'PENDIENTE' && (
+                  <View style={styles.qrBlock}>
+                    <HardShadow offset={3} borderRadius={12} style={styles.qrPlaceholderShadow}>
+                      <View style={styles.qrPlaceholderBox}>
+                        <Text style={styles.placeholderEmoji}>🔒</Text>
+                        <Text style={styles.placeholderTitle}>QR BLOQUEADO</Text>
+                        <Text style={styles.placeholderText}>
+                          El QR se habilita cuando pagues tu entrada.
+                        </Text>
+                      </View>
+                    </HardShadow>
+                  </View>
+                )}
+
+                {(compra.estado === 'CANCELADA' || compra.estado === 'REEMBOLSADA') && (
+                  <View style={styles.qrBlock}>
+                    <HardShadow offset={3} borderRadius={12} style={styles.qrPlaceholderShadow}>
+                      <View style={[styles.qrPlaceholderBox, styles.qrInvalidoBox]}>
+                        <Text style={styles.placeholderEmoji}>🚫</Text>
+                        <Text style={[styles.placeholderTitle, styles.qrInvalidoTitle]}>ENTRADA NO VÁLIDA</Text>
+                        <Text style={styles.placeholderText}>
+                          Esta compra se encuentra {compra.estado.toLowerCase()} y ya no da derecho de acceso.
+                        </Text>
+                      </View>
+                    </HardShadow>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -352,6 +433,47 @@ export function CompraDetalleScreen({ route, navigation }) {
         onConfirm={handleConfirmarCancelar}
         onCancel={() => setCancelModalVisible(false)}
       />
+
+      {/* Modal de QR Grande a Pantalla Completa para Escaneo Fácil */}
+      <Modal
+        visible={qrModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setQrModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <HardShadow offset={6} borderRadius={16} style={styles.modalQrCardShadow}>
+            <View style={styles.modalQrCard}>
+              <View style={styles.modalQrHeader}>
+                <Text style={styles.modalQrTitle}>{eventoNombre}</Text>
+                <Text style={styles.modalQrSub}>{tipoNombre} · {cantidad} {cantidad === 1 ? 'entrada' : 'entradas'}</Text>
+              </View>
+
+              <View style={styles.modalQrBox}>
+                {compra?.id ? (
+                  <QRCode
+                    value={armarPayloadQR(compra.id)}
+                    size={260}
+                    color={Colors.inkBlack}
+                    backgroundColor={Colors.white}
+                  />
+                ) : null}
+              </View>
+
+              <Text style={styles.modalQrId}>{compra?.id}</Text>
+              <Text style={styles.modalQrHint}>Aumentá el brillo del celular para facilitar el escaneo en el acceso</Text>
+
+              <PopButton
+                title="CERRAR"
+                variant="primary"
+                size="md"
+                onPress={() => setQrModalVisible(false)}
+                style={styles.modalCerrarBtn}
+              />
+            </View>
+          </HardShadow>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -539,5 +661,177 @@ const styles = StyleSheet.create({
   backBtnWrapper: {
     alignSelf: 'center',
     marginTop: 16,
+  },
+  qrSectionWrapper: {
+    marginTop: 4,
+  },
+  qrBlock: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  qrHeaderTitle: {
+    ...Typography.titleLg,
+    color: Colors.inkBlack,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  qrHeaderSub: {
+    ...Typography.bodySm,
+    color: '#666666',
+    marginBottom: 14,
+    textAlign: 'center',
+  },
+  qrCardShadow: {
+    marginBottom: 10,
+  },
+  qrBox: {
+    backgroundColor: Colors.white,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrTicketId: {
+    ...Typography.bodySm,
+    fontWeight: '700',
+    color: Colors.outline,
+    marginBottom: 8,
+  },
+  btnQrGrande: {
+    marginTop: 4,
+  },
+  selloCardShadow: {
+    width: '100%',
+  },
+  selloUtilizada: {
+    backgroundColor: '#FFF4E5',
+    borderWidth: 2.5,
+    borderColor: Colors.popVermilion,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  selloBadge: {
+    backgroundColor: Colors.popVermilion,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  selloBadgeText: {
+    ...Typography.labelSm,
+    color: Colors.white,
+    fontWeight: '900',
+  },
+  selloTitle: {
+    ...Typography.headlineSm,
+    color: Colors.inkBlack,
+    marginBottom: 6,
+  },
+  selloDesc: {
+    ...Typography.bodySm,
+    color: '#444444',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  selloFecha: {
+    ...Typography.bodySm,
+    fontWeight: '700',
+    color: Colors.inkBlack,
+  },
+  qrPlaceholderShadow: {
+    width: '100%',
+  },
+  qrPlaceholderBox: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 2,
+    borderColor: Colors.outline,
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+  },
+  placeholderEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  placeholderTitle: {
+    ...Typography.titleMd,
+    color: Colors.inkBlack,
+    marginBottom: 4,
+  },
+  placeholderText: {
+    ...Typography.bodySm,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  qrInvalidoBox: {
+    borderColor: Colors.popVermilion,
+    backgroundColor: '#FFF5F5',
+  },
+  qrInvalidoTitle: {
+    color: Colors.popVermilion,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalQrCardShadow: {
+    width: '100%',
+    maxWidth: 360,
+  },
+  modalQrCard: {
+    backgroundColor: Colors.canvasTint,
+    borderWidth: 3,
+    borderColor: Colors.inkBlack,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalQrHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalQrTitle: {
+    ...Typography.titleLg,
+    color: Colors.inkBlack,
+    textAlign: 'center',
+  },
+  modalQrSub: {
+    ...Typography.bodySm,
+    color: Colors.electricCobalt,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  modalQrBox: {
+    backgroundColor: Colors.white,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  modalQrId: {
+    ...Typography.bodySm,
+    fontWeight: '800',
+    color: Colors.inkBlack,
+    marginBottom: 4,
+  },
+  modalQrHint: {
+    ...Typography.bodySm,
+    color: '#666666',
+    textAlign: 'center',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  modalCerrarBtn: {
+    width: '100%',
+    marginTop: 10,
   },
 });

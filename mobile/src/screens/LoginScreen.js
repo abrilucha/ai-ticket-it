@@ -54,7 +54,6 @@ export function LoginScreen() {
             <Text style={styles.userName}>
               {item.nombre} {item.apellido ? item.apellido : ''}
             </Text>
-            <Text style={styles.userEmail}>ID: {item.id}</Text>
           </View>
           <View
             style={[

@@ -21,7 +21,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AI Ticket It usa la cámara para leer los QR de las entradas"
+        }
+      ]
     ]
   }
 }

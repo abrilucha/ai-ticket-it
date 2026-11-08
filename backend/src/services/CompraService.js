@@ -58,11 +58,55 @@ export class CompraService {
         ? this.calcularDiasRestantes(fechaEvento)
         : null;
 
+    // Garantizar que no se expone email en comprador ni en organizador
+    let compradorSanitizado = compra.comprador;
+    if (compradorSanitizado) {
+      const { email: _emailComp, ...restoComp } = compradorSanitizado;
+      compradorSanitizado = restoComp;
+    }
+
+    let eventoSanitizado = compra.evento;
+    if (eventoSanitizado?.organizador) {
+      const { email: _emailOrg, ...restoOrg } = eventoSanitizado.organizador;
+      eventoSanitizado = {
+        ...eventoSanitizado,
+        organizador: restoOrg,
+      };
+    }
+
+    // A2: Garantizar que cupoDisponible y cupoRestante en tiposEntrada del evento reflejan la realidad
+    if (eventoSanitizado && Array.isArray(eventoSanitizado.tiposEntrada)) {
+      const comprasEvt = await this.compraRepository.findByEvento(eventoSanitizado.id);
+      const tiposActualizados = eventoSanitizado.tiposEntrada.map((t) => {
+        const tId = t.id;
+        const vendidas = comprasEvt
+          .filter(
+            (c) =>
+              (c.tipoEntrada?.tipoEntradaId === tId || c.tipoEntrada?.id === tId) &&
+              c.estado !== EstadoCompra.CANCELADA &&
+              c.estado !== EstadoCompra.REEMBOLSADA
+          )
+          .reduce((sum, c) => sum + (c.cantidad || 0), 0);
+        const restante = Math.max(0, t.cupo - vendidas);
+        return {
+          ...t,
+          cupoDisponible: restante,
+          cupoRestante: restante,
+        };
+      });
+      eventoSanitizado = {
+        ...eventoSanitizado,
+        tiposEntrada: tiposActualizados,
+      };
+    }
+
     // A2: Garantizar que los mensajes NO se devuelven en la compra
     const { mensajes: _omitted, ...compraSinMensajes } = compra;
 
     return {
       ...compraSinMensajes,
+      comprador: compradorSanitizado,
+      evento: eventoSanitizado,
       diasRestantes,
       puedePagar,
       puedeCancelar,
@@ -136,13 +180,12 @@ export class CompraService {
         id: comprador.id,
         nombre: comprador.nombre,
         apellido: comprador.apellido,
-        email: comprador.email,
       },
       evento: {
         id: evento.id,
         nombre: evento.nombre,
         fecha: evento.fecha,
-        organizador: evento.organizador,
+        organizador: evento.organizador ? (({ email, ...o }) => o)(evento.organizador) : evento.organizador,
       },
       tipoEntrada: {
         tipoEntradaId: tipoEntrada.id,

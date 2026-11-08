@@ -8,58 +8,48 @@ import { HardShadow } from './HardShadow.js';
  * SegmentedFilter
  * Selector de pestañas segmentadas Pop Art para filtrar entre "Activas" e "Historial".
  */
-export function SegmentedFilter({ selectedTab = 'ACTIVAS', onSelect, counts = {}, style }) {
-  const isActivas = selectedTab === 'ACTIVAS';
+export function SegmentedFilter({
+  selectedTab = 'ACTIVAS',
+  onSelect,
+  options,
+  counts = {},
+  style,
+}) {
+  const tabs = options || [
+    { id: 'ACTIVAS', label: `ACTIVAS ${counts.activas !== undefined ? `(${counts.activas})` : ''}`.trim() },
+    { id: 'HISTORIAL', label: `HISTORIAL ${counts.historial !== undefined ? `(${counts.historial})` : ''}`.trim() },
+  ];
 
   return (
     <View style={[styles.container, style]}>
-      {/* Botón ACTIVAS */}
-      <View style={styles.segmentWrapper}>
-        <HardShadow offset={isActivas ? 1 : 2} borderRadius={8}>
-          <Pressable
-            onPress={() => onSelect('ACTIVAS')}
-            style={[
-              styles.segmentBtn,
-              {
-                backgroundColor: isActivas ? Colors.electricCobalt : Colors.white,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                { color: isActivas ? Colors.white : Colors.inkBlack },
-              ]}
-            >
-              ACTIVAS {counts.activas !== undefined ? `(${counts.activas})` : ''}
-            </Text>
-          </Pressable>
-        </HardShadow>
-      </View>
-
-      {/* Botón HISTORIAL */}
-      <View style={styles.segmentWrapper}>
-        <HardShadow offset={!isActivas ? 1 : 2} borderRadius={8}>
-          <Pressable
-            onPress={() => onSelect('HISTORIAL')}
-            style={[
-              styles.segmentBtn,
-              {
-                backgroundColor: !isActivas ? Colors.electricCobalt : Colors.white,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                { color: !isActivas ? Colors.white : Colors.inkBlack },
-              ]}
-            >
-              HISTORIAL {counts.historial !== undefined ? `(${counts.historial})` : ''}
-            </Text>
-          </Pressable>
-        </HardShadow>
-      </View>
+      {tabs.map((tab) => {
+        const isSelected = selectedTab === tab.id;
+        const countText = counts[tab.id.toLowerCase()] !== undefined ? ` (${counts[tab.id.toLowerCase()]})` : '';
+        return (
+          <View key={tab.id} style={styles.segmentWrapper}>
+            <HardShadow offset={isSelected ? 1 : 2} borderRadius={8}>
+              <Pressable
+                onPress={() => onSelect(tab.id)}
+                style={[
+                  styles.segmentBtn,
+                  {
+                    backgroundColor: isSelected ? Colors.electricCobalt : Colors.white,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    { color: isSelected ? Colors.white : Colors.inkBlack },
+                  ]}
+                >
+                  {tab.label || tab.id}{countText}
+                </Text>
+              </Pressable>
+            </HardShadow>
+          </View>
+        );
+      })}
     </View>
   );
 }
