@@ -165,6 +165,11 @@ export function CompraDetalleScreen({ route, navigation }) {
     ? `${compra.comprador.nombre} ${compra.comprador.apellido || ''}`.trim()
     : null;
 
+  const esComprador = usuario?.rol !== 'ORGANIZADOR';
+  const ultimoHistorial = Array.isArray(compra.historialEstados) && compra.historialEstados.length > 0
+    ? compra.historialEstados[compra.historialEstados.length - 1]
+    : null;
+
   // Contador de días para compras CONFIRMADAS
   let countdownText = null;
   if (compra.estado === 'CONFIRMADA' && compra.diasRestantes !== null && compra.diasRestantes !== undefined) {
