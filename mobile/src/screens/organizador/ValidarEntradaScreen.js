@@ -181,37 +181,35 @@ export function ValidarEntradaScreen({ navigation }) {
               ) : (
                 <View style={styles.cameraContainer}>
                   {/* Visor de cámara con ScanFrame superpuesto */}
-                  <HardShadow offset={4} borderRadius={16} style={styles.cameraShadow}>
-                    <View style={styles.cameraWrapper}>
-                      {isFocused && (
-                        <CameraView
-                          style={StyleSheet.absoluteFillObject}
-                          facing="back"
-                          barcodeScannerSettings={{
-                            barcodeTypes: ['qr'],
-                          }}
-                          onBarcodeScanned={
-                            isScanningLocked.current ? undefined : handleBarcodeScanned
-                          }
-                        />
-                      )}
+                  <View style={styles.cameraWrapper}>
+                    {isFocused && (
+                      <CameraView
+                        style={styles.camera}
+                        facing="back"
+                        barcodeScannerSettings={{
+                          barcodeTypes: ['qr'],
+                        }}
+                        onBarcodeScanned={
+                          isScanningLocked.current ? undefined : handleBarcodeScanned
+                        }
+                      />
+                    )}
 
-                      {/* ScanFrame superpuesto */}
-                      <View style={styles.overlayFrameWrapper}>
-                        <ScanFrame
-                          overlay={true}
-                          label={loading ? 'VERIFICANDO...' : 'APUNTÁ AL QR'}
-                        />
-                      </View>
-
-                      {/* Notificación flotante de QR no reconocido */}
-                      {qrInvalidoMsg && (
-                        <View style={styles.toastContainer}>
-                          <Text style={styles.toastText}>⚠️ {qrInvalidoMsg}</Text>
-                        </View>
-                      )}
+                    {/* ScanFrame superpuesto */}
+                    <View style={styles.overlayFrameWrapper} pointerEvents="none">
+                      <ScanFrame
+                        overlay={true}
+                        label={loading ? 'VERIFICANDO...' : 'APUNTÁ AL QR'}
+                      />
                     </View>
-                  </HardShadow>
+
+                    {/* Notificación flotante de QR no reconocido */}
+                    {qrInvalidoMsg && (
+                      <View style={styles.toastContainer}>
+                        <Text style={styles.toastText}>⚠️ {qrInvalidoMsg}</Text>
+                      </View>
+                    )}
+                  </View>
 
                   <Text style={styles.cameraHint}>
                     Apuntá el marco al código QR que te muestre el comprador en su celular.
@@ -377,27 +375,27 @@ const styles = StyleSheet.create({
   cameraContainer: {
     alignItems: 'center',
     marginVertical: 8,
-  },
-  cameraShadow: {
     width: '100%',
-    maxWidth: 360,
   },
   cameraWrapper: {
     width: '100%',
-    height: 320,
+    height: 340,
     backgroundColor: '#000000',
-    borderRadius: 16,
-    borderWidth: 2.5,
+    borderWidth: 3,
     borderColor: Colors.inkBlack,
-    overflow: 'hidden',
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  camera: {
+    width: '100%',
+    height: '100%',
   },
   overlayFrameWrapper: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   toastContainer: {
     position: 'absolute',

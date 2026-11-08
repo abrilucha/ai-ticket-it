@@ -29,9 +29,11 @@ export function ScanFrame({ children, overlay = false, label, style }) {
           children
         ) : (
           <>
-            <View style={styles.centerTarget}>
-              <Text style={styles.centerIcon}>🎯</Text>
-            </View>
+            {!overlay && (
+              <View style={styles.centerTarget}>
+                <Text style={styles.centerIcon}>🎯</Text>
+              </View>
+            )}
 
             {/* Leyenda explicativa */}
             <View style={styles.labelContainer}>
