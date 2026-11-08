@@ -1,8 +1,15 @@
 export class Resenia {
-  constructor({ comprador, evento, detalle, puntuacion }) {
-    this.comprador = comprador;
-    this.evento = evento;
-    this.detalle = detalle;
-    this.puntuacion = puntuacion;
+  constructor({
+    id,
+    compraId,
+    puntaje,
+    comentario,
+    fecha = new Date().toISOString(),
+  }) {
+    this.id = id;
+    this.compraId = compraId;
+    this.puntaje = puntaje;
+    this.comentario = comentario;
+    this.fecha = fecha;
   }
 }

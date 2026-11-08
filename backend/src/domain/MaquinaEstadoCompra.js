@@ -2,10 +2,20 @@ import { EstadoCompra } from "./EstadoCompra.js";
 import { ConflictError } from "../errors/ConflictError.js";
 
 export class MaquinaEstadoCompra {
-  static transicionar(compra, accion) {
-    const estadoActual = compra.estado;
+  static transicionar(compraOEstado, accion) {
+    const estadoActual =
+      typeof compraOEstado === "object" && compraOEstado !== null
+        ? compraOEstado.estado
+        : compraOEstado;
 
-    switch (accion) {
+    let accionNormalizada = accion;
+    if (accion === EstadoCompra.CONFIRMADA) accionNormalizada = "PAGAR";
+    if (accion === EstadoCompra.UTILIZADA) accionNormalizada = "UTILIZAR";
+    if (accion === EstadoCompra.CANCELADA || accion === EstadoCompra.REEMBOLSADA) {
+      accionNormalizada = "CANCELAR";
+    }
+
+    switch (accionNormalizada) {
       case "PAGAR":
         if (estadoActual === EstadoCompra.CONFIRMADA) {
           throw new ConflictError("La compra ya se encuentra confirmada y pagada");

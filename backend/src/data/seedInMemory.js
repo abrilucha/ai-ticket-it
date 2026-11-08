@@ -5,6 +5,7 @@ import { eventoRepository } from "../repositories/EventoRepository.js";
 import { compraRepository } from "../repositories/CompraRepository.js";
 import { reseniaRepository } from "../repositories/ReseniaRepository.js";
 import { cambioEstadoCompraRepository } from "../repositories/CambioEstadoCompraRepository.js";
+import { mensajeRepository } from "../repositories/MensajeRepository.js";
 
 const codigo = (titulo) => slugify(titulo, { lower: true, replacement: "_" });
 
@@ -16,6 +17,7 @@ export async function inicializarSeedInMemory() {
     compraRepository.clear(),
     reseniaRepository.clear(),
     cambioEstadoCompraRepository.clear(),
+    mensajeRepository.clear(),
   ]);
 
   // 1. Categorías
@@ -44,14 +46,14 @@ export async function inicializarSeedInMemory() {
     id: "cat_deportes",
     nombre: "Deportes",
     codigo: codigo("Deportes"),
-    descripcion: "Partidos y competencias en vivo",
+    descripcion: "Partidos, torneos y competencias deportivas",
   });
 
   const catConferencias = await categoriaRepository.save({
     id: "cat_conferencias",
-    nombre: "Conferencias",
-    codigo: codigo("Conferencias"),
-    descripcion: "Charlas, tecnología y networking",
+    nombre: "Conferencias y Charlas",
+    codigo: codigo("Conferencias y Charlas"),
+    descripcion: "Congresos, charlas y workshops presenciales",
   });
 
   // 2. Usuarios
@@ -59,52 +61,57 @@ export async function inicializarSeedInMemory() {
     id: "usr_comprador_1",
     nombre: "Lucas",
     apellido: "García",
-    email: "lucas.garcia@example.com",
+    email: "lucas.garcia@gmail.com",
     rol: "COMPRADOR",
+    favoritos: [],
   });
 
   const comprador2 = await usuarioRepository.save({
     id: "usr_comprador_2",
     nombre: "Mariana",
     apellido: "López",
-    email: "mariana.lopez@example.com",
+    email: "mariana.lopez@hotmail.com",
     rol: "COMPRADOR",
+    favoritos: [],
   });
 
-  const comprador3 = await usuarioRepository.save({
+  await usuarioRepository.save({
     id: "usr_comprador_3",
     nombre: "Sofía",
     apellido: "Martínez",
-    email: "sofia.martinez@example.com",
+    email: "sofia.martinez@yahoo.com",
     rol: "COMPRADOR",
+    favoritos: [],
   });
 
   const organizadorRock = await usuarioRepository.save({
     id: "usr_org_rock",
     nombre: "Productora",
     apellido: "Rock Nacional",
-    email: "contacto@rocknacional.com",
+    email: "contacto@rocknacional.com.ar",
     rol: "ORGANIZADOR",
+    favoritos: [],
   });
 
   const organizadorTeatro = await usuarioRepository.save({
     id: "usr_org_teatro",
     nombre: "Teatro",
-    apellido: "Gran Rex Producciones",
-    email: "produccion@granrex.com",
+    apellido: "Gran Rex",
+    email: "entradas@granrex.com.ar",
     rol: "ORGANIZADOR",
+    favoritos: [],
   });
 
   // 3. Eventos
-  const fechaFutura1 = new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString(); // en 15 días
-  const fechaFutura2 = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(); // en 30 días
-  const fechaFutura3 = new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(); // en 90 días
-  const fechaPasada = new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(); // hace 5 días
+  const fechaFutura1 = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  const fechaFutura2 = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString();
+  const fechaFutura3 = new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString();
+  const fechaPasada = new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString();
 
   const eventoRock = await eventoRepository.save({
     id: "evt_cosquin",
     nombre: "Cosquín Rock 2027",
-    descripcion: "El festival de rock más grande del país con bandas consagradas y nuevas tendencias.",
+    descripcion: "El festival de rock más grande del país con más de 100 bandas en escena.",
     categoria: catFestivales,
     fecha: fechaFutura1,
     organizador: organizadorRock,
@@ -116,16 +123,14 @@ export async function inicializarSeedInMemory() {
       {
         id: "tipo_rock_1",
         nombre: "Campo General",
-        descripcion: "Acceso a todos los escenarios principales de pie",
         precio: 25000,
         cupo: 500,
-        cupoDisponible: 498,
+        cupoDisponible: 500,
       },
       {
         id: "tipo_rock_2",
-        nombre: "Fanatic VIP",
-        descripcion: "Sector exclusivo con vista preferencial y barra libre",
-        precio: 65000,
+        nombre: "Espacio VIP",
+        precio: 60000,
         cupo: 100,
         cupoDisponible: 100,
       },
@@ -133,9 +138,9 @@ export async function inicializarSeedInMemory() {
   });
 
   const eventoTeatro = await eventoRepository.save({
-    id: "evt_carroza",
-    nombre: "Esperando la Carroza - Versión Teatral",
-    descripcion: "El clásico rioplatense vuelve a los escenarios con elenco estelar.",
+    id: "evt_teatro",
+    nombre: "Toc Toc",
+    descripcion: "La comedia más exitosa de la calle Corrientes sobre seis personajes con TOC.",
     categoria: catTeatro,
     fecha: fechaFutura2,
     organizador: organizadorTeatro,
@@ -144,35 +149,32 @@ export async function inicializarSeedInMemory() {
       {
         id: "tipo_teatro_1",
         nombre: "Platea Baja",
-        descripcion: "Ubicación preferencial central",
         precio: 18000,
-        cupo: 150,
-        cupoDisponible: 148,
+        cupo: 200,
+        cupoDisponible: 200,
       },
       {
         id: "tipo_teatro_2",
         nombre: "Pullman",
-        descripcion: "Vista panorámica superior",
         precio: 12000,
-        cupo: 200,
-        cupoDisponible: 200,
+        cupo: 150,
+        cupoDisponible: 150,
       },
     ],
   });
 
   const eventoPasado = await eventoRepository.save({
     id: "evt_divididos",
-    nombre: "Divididos en Vivo - Obras Sanitarias",
-    descripcion: "La aplanadora del rock en el mítico estadio porteño.",
+    nombre: "Divididos en vivo",
+    descripcion: "La aplanadora del rock festejó sus 35 años de trayectoria con un show demoledor.",
     categoria: catRecitales,
     fecha: fechaPasada,
     organizador: organizadorRock,
-    multimedia: ["https://images.unsplash.com/photo-1459749411175-04bf5292ceea"],
+    multimedia: ["https://images.unsplash.com/photo-1465847899084-d164df4dedc6"],
     tiposEntrada: [
       {
         id: "tipo_divididos_1",
         nombre: "General",
-        descripcion: "Campo",
         precio: 20000,
         cupo: 300,
         cupoDisponible: 0,
@@ -180,19 +182,19 @@ export async function inicializarSeedInMemory() {
     ],
   });
 
-  const eventoLolla = await eventoRepository.save({
-    id: "evt_lolla",
-    nombre: "Festival Lollapalooza 2027",
-    descripcion: "Tres días de música internacional, gastronomía y arte al aire libre.",
+  await eventoRepository.save({
+    id: "evt_lollapalooza",
+    nombre: "Lollapalooza Argentina",
+    descripcion: "Tres días de música internacional, arte y gastronomía en el Hipódromo de San Isidro.",
     categoria: catFestivales,
     fecha: fechaFutura3,
     organizador: organizadorRock,
-    multimedia: ["https://images.unsplash.com/photo-1470225620780-dba8ba36b745"],
+    multimedia: ["https://images.unsplash.com/photo-1459749411175-04bf5292ceea"],
     tiposEntrada: [
       {
         id: "tipo_lolla_1",
-        nombre: "Abono General",
-        precio: 80000,
+        nombre: "Abono General 3 Días",
+        precio: 95000,
         cupo: 1000,
         cupoDisponible: 1000,
       },
@@ -223,22 +225,23 @@ export async function inicializarSeedInMemory() {
     cantidad: 2,
     total: 50000,
     estado: "CONFIRMADA",
-    mensajes: [
-      {
-        id: "msg_seed_1",
-        compraId: "cmp_confirmada_1",
-        autorId: comprador1.id,
-        texto: "¡Hola! ¿A qué hora abren las puertas?",
-        fecha: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      },
-      {
-        id: "msg_seed_2",
-        compraId: "cmp_confirmada_1",
-        autorId: organizadorRock.id,
-        texto: "Buenas tardes Lucas, abren a las 16:00 hs.",
-        fecha: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-      },
-    ],
+  });
+
+  // Mensajes de chat en el MensajeRepository propio
+  await mensajeRepository.save({
+    id: "msg_seed_1",
+    compraId: "cmp_confirmada_1",
+    autorId: comprador1.id,
+    texto: "¡Hola! ¿A qué hora abren las puertas?",
+    fecha: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  });
+
+  await mensajeRepository.save({
+    id: "msg_seed_2",
+    compraId: "cmp_confirmada_1",
+    autorId: organizadorRock.id,
+    texto: "Buenas tardes Lucas, abren a las 16:00 hs.",
+    fecha: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
   });
 
   await compraRepository.save({
@@ -253,10 +256,9 @@ export async function inicializarSeedInMemory() {
     cantidad: 2,
     total: 36000,
     estado: "PENDIENTE",
-    mensajes: [],
   });
 
-  const compraUtilizada = await compraRepository.save({
+  const compraUtilizada1 = await compraRepository.save({
     id: "cmp_utilizada_1",
     comprador: comprador1,
     evento: eventoPasado,
@@ -268,7 +270,34 @@ export async function inicializarSeedInMemory() {
     cantidad: 1,
     total: 20000,
     estado: "UTILIZADA",
-    mensajes: [],
+  });
+
+  const compraUtilizada2 = await compraRepository.save({
+    id: "cmp_utilizada_2",
+    comprador: comprador2,
+    evento: eventoPasado,
+    tipoEntrada: {
+      tipoEntradaId: "tipo_divididos_1",
+      nombre: "General",
+      precio: 20000,
+    },
+    cantidad: 1,
+    total: 20000,
+    estado: "UTILIZADA",
+  });
+
+  await compraRepository.save({
+    id: "cmp_utilizada_sin_resena",
+    comprador: comprador1,
+    evento: eventoPasado,
+    tipoEntrada: {
+      tipoEntradaId: "tipo_divididos_1",
+      nombre: "General",
+      precio: 20000,
+    },
+    cantidad: 1,
+    total: 20000,
+    estado: "UTILIZADA",
   });
 
   // 5. Historial de cambios
@@ -280,27 +309,42 @@ export async function inicializarSeedInMemory() {
   });
 
   await cambioEstadoCompraRepository.save({
-    compra: compraUtilizada,
+    compra: compraUtilizada1,
     estado: "UTILIZADA",
     quien: organizadorRock,
     fechaHora: new Date(fechaPasada),
   });
 
-  // 6. Reseña
+  await cambioEstadoCompraRepository.save({
+    compra: compraUtilizada2,
+    estado: "UTILIZADA",
+    quien: organizadorRock,
+    fechaHora: new Date(fechaPasada),
+  });
+
+  // 6. Reseñas iniciales
+  // Reseña 1: puntaje 5 (Comprador 1)
   await reseniaRepository.save({
     id: "res_1",
-    comprador: comprador1,
-    evento: eventoPasado,
-    compra: compraUtilizada,
-    detalle: "¡Increíble show y excelente organización del acceso!",
-    puntuacion: 5,
-    fecha: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4),
+    compraId: "cmp_utilizada_1",
+    puntaje: 5,
+    comentario: "¡Increíble show y excelente organización del acceso!",
+    fecha: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
+  });
+
+  // Reseña 2: puntaje 3 (Comprador 2) -> promedio de Productora Rock Nacional = (5 + 3)/2 = 4.0
+  await reseniaRepository.save({
+    id: "res_2",
+    compraId: "cmp_utilizada_2",
+    puntaje: 3,
+    comentario: "El sonido en el campo trasero estuvo regular, pero buena onda.",
+    fecha: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
   });
 
   console.log(" Seed en memoria cargado exitosamente:");
   console.log("   - 5 Categorías");
   console.log("   - 3 Compradores y 2 Organizadores");
   console.log("   - 4 Eventos con tipos de entrada");
-  console.log("   - 3 Compras con historial de estados y chat");
-  console.log("   - 1 Reseña de 5 estrellas");
+  console.log("   - 4 Compras con historial de estados");
+  console.log("   - 2 Reseñas (promedio 4.0 para Productora Rock, 0 para Teatro Rex)");
 }
