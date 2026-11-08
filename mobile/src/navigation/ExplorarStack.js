@@ -4,13 +4,14 @@ import { CatalogoScreen } from '../screens/comprador/CatalogoScreen.js';
 import { EventoDetalleScreen } from '../screens/comprador/EventoDetalleScreen.js';
 import { OrganizadorPerfilScreen } from '../screens/comprador/OrganizadorPerfilScreen.js';
 import { CompraDetalleScreen } from '../screens/comprador/CompraDetalleScreen.js';
+import { ChatCompraScreen } from '../screens/ChatCompraScreen.js';
 
 const Stack = createNativeStackNavigator();
 
 /**
  * ExplorarStack
  * Stack de navegación para el flujo de exploración y compra:
- * Catálogo -> Detalle de evento -> Perfil del organizador -> Detalle de compra recién creada
+ * Catálogo -> Detalle de evento -> Perfil del organizador -> Detalle de compra recién creada -> Chat
  */
 export function ExplorarStack() {
   return (
@@ -24,6 +25,7 @@ export function ExplorarStack() {
       <Stack.Screen name="EventoDetalle" component={EventoDetalleScreen} />
       <Stack.Screen name="OrganizadorPerfil" component={OrganizadorPerfilScreen} />
       <Stack.Screen name="CompraDetalle" component={CompraDetalleScreen} />
+      <Stack.Screen name="ChatCompra" component={ChatCompraScreen} />
     </Stack.Navigator>
   );
 }

@@ -66,7 +66,7 @@ export class EventoService {
     const tiposEntradaArmados = (nuevo.tiposEntrada || []).map((tipo) => {
       const suffix = crypto.randomUUID().slice(0, 8);
       return {
-        id: tipo.id || `tipo_${suffix}`,
+        id: `tipo_${suffix}`,
         nombre: tipo.nombre.trim(),
         descripcion: tipo.descripcion || "",
         precio: tipo.precio,

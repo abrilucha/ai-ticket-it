@@ -51,6 +51,16 @@ export function TicketCard({ compra, onPress, style }) {
                   <Text style={styles.countdownText}>⏳ {countdownText}</Text>
                 </View>
               )}
+              {compra.puedeResenar && (
+                <View style={styles.calificaPill}>
+                  <Text style={styles.calificaText}>⭐ CALIFICÁ</Text>
+                </View>
+              )}
+              {compra.resenada && (
+                <View style={styles.resenadaPill}>
+                  <Text style={styles.resenadaText}>✓ RESEÑADA</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -143,6 +153,36 @@ const styles = StyleSheet.create({
     ...Typography.labelSm,
     color: Colors.inkBlack,
     fontWeight: '700',
+  },
+  calificaPill: {
+    backgroundColor: Colors.canaryYellow,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    marginTop: 6,
+  },
+  calificaText: {
+    ...Typography.labelSm,
+    color: Colors.inkBlack,
+    fontWeight: '800',
+    fontSize: 10,
+  },
+  resenadaPill: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    marginTop: 6,
+  },
+  resenadaText: {
+    ...Typography.labelSm,
+    color: '#065F46',
+    fontWeight: '800',
+    fontSize: 10,
   },
   perforationContainer: {
     flexDirection: 'row',

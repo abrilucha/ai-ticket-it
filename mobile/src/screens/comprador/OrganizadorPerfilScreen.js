@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
 import { obtenerResenasOrganizador } from '../../api/organizadores.js';
@@ -40,6 +41,13 @@ export function OrganizadorPerfilScreen({ route, navigation }) {
   useEffect(() => {
     cargarResenas();
   }, [cargarResenas]);
+
+  // Recargar reseñas al recibir foco
+  useFocusEffect(
+    useCallback(() => {
+      cargarResenas();
+    }, [cargarResenas])
+  );
 
   const resenas = Array.isArray(data?.resenas) ? data.resenas : [];
 

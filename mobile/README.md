@@ -119,3 +119,53 @@ Tenés dos opciones muy sencillas para probar el escaneo en vivo:
 - **Entrada con pago pendiente:** Muestra *"⏳ El pago de esta compra aún está pendiente"*, impidiendo el canje hasta que se abone.
 - **Entrada cancelada o reembolsada:** Muestra *"🚫 Esta compra fue cancelada o reembolsada"*.
 - **Falta de permisos o cámara deshabilitada:** Muestra la pantalla explicativa Pop Art para solicitar permisos o pasar al modo de **INGRESO MANUAL** sin interrumpir la operación.
+
+---
+
+## 8. Chat de la Compra y Reseñas (Fase 5)
+
+Esta fase completa el ciclo de vida de la compra con soporte de mensajería bidireccional entre comprador y organizador, y sistema de reputación con calificación por estrellas y comentarios verificados.
+
+### 8.1 Cómo Probar el Chat con un Solo Celular Físico
+
+El chat funciona de forma completamente reactiva con polling silencioso cada 5 segundos y persistencia en memoria del backend:
+
+1. **Iniciar como Comprador:**
+   - En la pantalla de login, tocá la cuenta de **Lucas García**.
+   - Andá a la pestaña **"MIS COMPRAS"** y abrí cualquier compra (ej. *Cosquín Rock 2027*).
+   - Tocá el botón **"💬 CHAT CON EL ORGANIZADOR"** (disponible en cualquier estado, incluso canceladas).
+   - Escribí un mensaje: *"Hola, ¿a qué hora abren las puertas?"* y tocá **ENVIAR**.
+   - Verás tu mensaje a la derecha en color azul cobalto con el rótulo *"Vos"* y el chip *"COMPRADOR"*.
+2. **Cambiar al Organizador:**
+   - Volvé atrás y tocá **"SALIR"** en la barra superior.
+   - En la lista de cuentas, seleccioná el organizador del evento: **Productora Rock**.
+   - En la pestaña **"MIS EVENTOS"**, abrí *Cosquín Rock 2027* y tocá **"VENTAS Y ACCESOS"**.
+   - En la fila de la compra de Lucas, tocá el botón **"💬 CHAT"** (o abrí la compra y tocá **"💬 CHAT CON EL COMPRADOR"**).
+   - Verás el mensaje de Lucas a la izquierda en burbuja blanca con el autor *"Lucas García"*.
+   - Respondé: *"¡Hola Lucas! El ingreso comienza a las 17:00 hs."* y tocá **ENVIAR**.
+   - El mensaje se ubicará a la derecha para el organizador.
+3. **Comprobar la Reactividad:**
+   - Cerrá sesión e ingresá de nuevo como **Lucas García**.
+   - Al volver al chat de esa compra, verás el hilo completo con las respuestas actualizadas.
+
+### 8.2 Cómo Probar las Reseñas con un Solo Celular Físico
+
+El backend garantiza que **únicamente** se pueden reseñar compras en estado `UTILIZADA` que no hayan sido calificadas previamente:
+
+1. **Identificar la Compra Habilitada:**
+   - En el seed inicial limpio, la compra `cmp_utilizada_sin_resena` de Lucas pertenece a *Cosquín Rock 2027*, está `UTILIZADA` y tiene `puedeResenar: true`.
+   - En **"MIS COMPRAS"**, dicha tarjeta exhibe el badge amarillo **"⭐ CALIFICÁ"**.
+   - En cambio, las compras en estado `CONFIRMADA` o `PENDIENTE` no tienen este badge.
+2. **Completar la Calificación:**
+   - Abrí el detalle de esa compra. Verás el botón destacado **"⭐ CALIFICAR EVENTO"**.
+   - Tocá el botón para abrir el modal Pop Art de reseña.
+   - Seleccioná la puntuación (1 a 5 estrellas) tocando las estrellas grandes.
+   - Escribí tu opinión (ej. *"Excelente festival, la acreditación fue súper rápida"*). El contador indicará los caracteres utilizados sobre el límite de 500.
+   - Presioná **"PUBLICAR RESEÑA"**.
+3. **Verificación de Impacto Inmediato:**
+   - Al confirmarse, el modal se cierra y la pantalla se actualiza automáticamente:
+     - El botón *"⭐ CALIFICAR EVENTO"* desaparece porque `puedeResenar` pasa a `false`.
+     - Aparece el bloque **"TU RESEÑA DEL EVENTO"** con las estrellas, la fecha y tu comentario entre comillas.
+     - Al volver a **"MIS COMPRAS"**, la tarjeta cambia su badge a **"✓ RESEÑADA"**.
+   - Andá a la pestaña **"EXPLORAR"**, entrá al evento *Cosquín Rock 2027* y tocá **"Ver perfil del organizador"**:
+     - *Productora Rock* ahora muestra 3 reseñas (antes 2), el promedio recalculado y tu reseña visible al tope de la lista.

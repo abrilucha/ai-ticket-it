@@ -4,6 +4,7 @@ import { MisComprasScreen } from '../screens/comprador/MisComprasScreen.js';
 import { CompraDetalleScreen } from '../screens/comprador/CompraDetalleScreen.js';
 import { EventoDetalleScreen } from '../screens/comprador/EventoDetalleScreen.js';
 import { OrganizadorPerfilScreen } from '../screens/comprador/OrganizadorPerfilScreen.js';
+import { ChatCompraScreen } from '../screens/ChatCompraScreen.js';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ export function ComprasStack() {
       <Stack.Screen name="CompraDetalle" component={CompraDetalleScreen} />
       <Stack.Screen name="EventoDetalle" component={EventoDetalleScreen} />
       <Stack.Screen name="OrganizadorPerfil" component={OrganizadorPerfilScreen} />
+      <Stack.Screen name="ChatCompra" component={ChatCompraScreen} />
     </Stack.Navigator>
   );
 }

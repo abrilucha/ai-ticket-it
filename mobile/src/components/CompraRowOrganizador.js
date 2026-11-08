@@ -17,6 +17,7 @@ export function CompraRowOrganizador({
   compra,
   onPress,
   onSolicitarUtilizar,
+  onAbrirChat,
   isProcessing = false,
   style,
 }) {
@@ -69,9 +70,18 @@ export function CompraRowOrganizador({
           </Text>
         </View>
 
-        {/* Botón de acción si puede utilizarse */}
-        {puedeUtilizar && (
-          <View style={styles.actionRow}>
+        {/* Botones de acción */}
+        <View style={styles.actionRow}>
+          {onAbrirChat && (
+            <PopButton
+              title="💬 CHAT"
+              variant="secondary"
+              size="sm"
+              onPress={() => onAbrirChat(compra)}
+              style={styles.chatBtn}
+            />
+          )}
+          {puedeUtilizar && (
             <PopButton
               title="✓ MARCAR COMO UTILIZADA"
               variant="canary"
@@ -79,9 +89,10 @@ export function CompraRowOrganizador({
               loading={isProcessing}
               disabled={isProcessing}
               onPress={() => onSolicitarUtilizar(compra)}
+              style={styles.utilizarBtn}
             />
-          </View>
-        )}
+          )}
+        </View>
       </Pressable>
     </HardShadow>
   );
@@ -146,5 +157,15 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#EBE6DE',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  chatBtn: {
+    flexGrow: 1,
+  },
+  utilizarBtn: {
+    flexGrow: 2,
   },
 });

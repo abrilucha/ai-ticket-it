@@ -6,6 +6,9 @@ import {
   StyleSheet,
   Pressable,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,13 +17,17 @@ import { Typography } from '../../theme/typography.js';
 import { useAuth } from '../../context/AuthContext.js';
 import { useCompra } from '../../hooks/useCompra.js';
 import { useUtilizarCompra } from '../../hooks/useUtilizarCompra.js';
+import { useResenaDeCompra } from '../../hooks/useResenaDeCompra.js';
 import { pagarCompra, cancelarCompra } from '../../api/compras.js';
+import { crearResena } from '../../api/resenas.js';
 import { armarPayloadQR } from '../../utils/qr.js';
 import { Screen } from '../../components/Screen.js';
 import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
 import { StateBadge } from '../../components/StateBadge.js';
 import { StatusTimeline } from '../../components/StatusTimeline.js';
+import { RatingStars } from '../../components/RatingStars.js';
+import { RatingInput } from '../../components/RatingInput.js';
 import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { LoadingView } from '../../components/LoadingView.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
@@ -31,12 +38,14 @@ export function CompraDetalleScreen({ route, navigation }) {
   const { id, origen } = route.params || {};
   const { usuario } = useAuth();
   const { data: compra, loading, error, reload } = useCompra(id);
+  const { resena, reload: reloadResena } = useResenaDeCompra(id);
 
   // Recargar al recibir foco
   useFocusEffect(
     useCallback(() => {
       reload();
-    }, [reload])
+      reloadResena();
+    }, [reload, reloadResena])
   );
 
   // Estados de operaciones de pago, cancelación y QR
@@ -47,8 +56,61 @@ export function CompraDetalleScreen({ route, navigation }) {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [accionError, setAccionError] = useState(null);
 
+  // Estados de reseña
+  const [resenaModalVisible, setResenaModalVisible] = useState(false);
+  const [resenaPuntaje, setResenaPuntaje] = useState(5);
+  const [resenaComentario, setResenaComentario] = useState('');
+  const [enviandoResena, setEnviandoResena] = useState(false);
+  const [resenaError, setResenaError] = useState(null);
+
   // Hook para utilización por parte del organizador
   const { loading: utilizando, marcarUtilizada } = useUtilizarCompra();
+
+  // Abrir chat
+  const handleAbrirChat = () => {
+    if (!compra?.id) return;
+    navigation.navigate('ChatCompra', {
+      compraId: compra.id,
+      compra,
+    });
+  };
+
+  // Enviar reseña
+  const handleEnviarResena = async () => {
+    if (enviandoResena || !compra?.puedeResenar) return;
+
+    const comentarioLimpio = resenaComentario.trim();
+    if (!resenaPuntaje || resenaPuntaje < 1 || resenaPuntaje > 5) {
+      setResenaError('Seleccioná una calificación de 1 a 5 estrellas.');
+      return;
+    }
+    if (!comentarioLimpio) {
+      setResenaError('Escribí un comentario contando tu experiencia.');
+      return;
+    }
+    if (comentarioLimpio.length > 500) {
+      setResenaError('El comentario no puede superar los 500 caracteres.');
+      return;
+    }
+
+    setEnviandoResena(true);
+    setResenaError(null);
+
+    try {
+      await crearResena(compra.id, {
+        puntaje: resenaPuntaje,
+        comentario: comentarioLimpio,
+      });
+      setResenaModalVisible(false);
+      setResenaComentario('');
+      await reload();
+      await reloadResena();
+    } catch (err) {
+      setResenaError(err.message || 'Error al enviar la reseña.');
+    } finally {
+      setEnviandoResena(false);
+    }
+  };
 
   // Acción Pagar (simulado) con protección contra doble toque
   const handlePagar = async () => {
@@ -359,8 +421,18 @@ export function CompraDetalleScreen({ route, navigation }) {
           </View>
         </HardShadow>
 
-        {/* Acciones principales: Pagar y Cancelar */}
+        {/* Acciones principales: Pagar, Cancelar, Chat y Calificar */}
         <View style={styles.actionsBlock}>
+          {/* Botón CHAT disponible en cualquier estado de la compra */}
+          <View style={styles.actionBtnSlot}>
+            <PopButton
+              title={esComprador ? '💬 CHAT CON EL ORGANIZADOR' : '💬 CHAT CON EL COMPRADOR'}
+              variant="secondary"
+              size="md"
+              onPress={handleAbrirChat}
+            />
+          </View>
+
           {/* Botón MARCAR COMO UTILIZADA si puedeUtilizar es true */}
           {compra.puedeUtilizar ? (
             <View style={styles.actionBtnSlot}>
@@ -371,6 +443,21 @@ export function CompraDetalleScreen({ route, navigation }) {
                 loading={utilizando}
                 disabled={utilizando}
                 onPress={() => setUtilizarModalVisible(true)}
+              />
+            </View>
+          ) : null}
+
+          {/* Botón CALIFICAR EVENTO si puedeResenar es true */}
+          {compra.puedeResenar ? (
+            <View style={styles.actionBtnSlot}>
+              <PopButton
+                title="⭐ CALIFICAR EVENTO"
+                variant="canary"
+                size="lg"
+                onPress={() => {
+                  setResenaError(null);
+                  setResenaModalVisible(true);
+                }}
               />
             </View>
           ) : null}
@@ -405,6 +492,41 @@ export function CompraDetalleScreen({ route, navigation }) {
             </View>
           ) : null}
         </View>
+
+        {/* Sección Tu Reseña si la compra ya fue reseñada */}
+        {compra.resenada && (
+          <View style={styles.resenaBlock}>
+            <HardShadow offset={4} borderRadius={12} style={styles.resenaCardShadow}>
+              <View style={styles.resenaCard}>
+                <View style={styles.resenaHeaderRow}>
+                  <Text style={styles.resenaHeaderTitle}>TU RESEÑA DEL EVENTO</Text>
+                  <View style={styles.resenaBadge}>
+                    <Text style={styles.resenaBadgeText}>✓ PUBLICADA</Text>
+                  </View>
+                </View>
+
+                {resena ? (
+                  <View style={styles.resenaContent}>
+                    <View style={styles.resenaScoreRow}>
+                      <RatingStars puntaje={resena.puntaje} showCount={false} size="md" />
+                      {resena.fecha ? (
+                        <Text style={styles.resenaDateText}>
+                          {formatFechaCompleta(resena.fecha)}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.resenaComentarioText}>"{resena.comentario}"</Text>
+                    <Text style={styles.resenaAgradecimiento}>
+                      ¡Gracias por compartir tu opinión! Ayuda a otros compradores y a la reputación del organizador.
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.resenaCargando}>Cargando tu reseña...</Text>
+                )}
+              </View>
+            </HardShadow>
+          </View>
+        )}
 
         {/* Historial de estados (Línea de tiempo) */}
         <View style={styles.timelineBlock}>
@@ -478,6 +600,86 @@ export function CompraDetalleScreen({ route, navigation }) {
             </View>
           </HardShadow>
         </View>
+      </Modal>
+
+      {/* Modal de Calificar Evento */}
+      <Modal
+        visible={resenaModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => !enviandoResena && setResenaModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <HardShadow offset={6} borderRadius={16} style={styles.modalReviewCardShadow}>
+            <View style={styles.modalReviewCard}>
+              <View style={styles.modalReviewHeader}>
+                <Text style={styles.modalReviewTitle}>CALIFICAR EVENTO</Text>
+                <Text style={styles.modalReviewSubtitle} numberOfLines={1}>
+                  {eventoNombre}
+                </Text>
+              </View>
+
+              {resenaError && (
+                <View style={styles.reviewErrorWrapper}>
+                  <ErrorBanner message={resenaError} onRetry={() => setResenaError(null)} />
+                </View>
+              )}
+
+              <Text style={styles.inputSectionLabel}>TU PUNTUACIÓN</Text>
+              <RatingInput
+                value={resenaPuntaje}
+                onChange={setResenaPuntaje}
+                disabled={enviandoResena}
+              />
+
+              <View style={styles.comentarioHeaderRow}>
+                <Text style={styles.inputSectionLabel}>TU OPINIÓN</Text>
+                <Text
+                  style={[
+                    styles.commentCounter,
+                    500 - resenaComentario.length < 50 && styles.commentCounterWarn,
+                  ]}
+                >
+                  {resenaComentario.length}/500
+                </Text>
+              </View>
+
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Contanos qué te pareció la organización, la puntualidad, el sonido..."
+                placeholderTextColor={Colors.outline}
+                value={resenaComentario}
+                onChangeText={setResenaComentario}
+                multiline
+                maxLength={500}
+                editable={!enviandoResena}
+              />
+
+              <View style={styles.reviewModalActions}>
+                <PopButton
+                  title="PUBLICAR RESEÑA"
+                  variant="canary"
+                  size="md"
+                  loading={enviandoResena}
+                  disabled={enviandoResena || !resenaComentario.trim()}
+                  onPress={handleEnviarResena}
+                  style={styles.reviewModalBtn}
+                />
+                <PopButton
+                  title="CANCELAR"
+                  variant="secondary"
+                  size="sm"
+                  disabled={enviandoResena}
+                  onPress={() => setResenaModalVisible(false)}
+                  style={styles.reviewModalBtn}
+                />
+              </View>
+            </View>
+          </HardShadow>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   );
@@ -838,5 +1040,147 @@ const styles = StyleSheet.create({
   modalCerrarBtn: {
     width: '100%',
     marginTop: 10,
+  },
+  resenaBlock: {
+    marginBottom: 20,
+  },
+  resenaCardShadow: {
+    width: '100%',
+  },
+  resenaCard: {
+    backgroundColor: Colors.canvasTint,
+    borderWidth: 2.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 12,
+    padding: 16,
+  },
+  resenaHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  resenaHeaderTitle: {
+    ...Typography.titleMd,
+    color: Colors.inkBlack,
+    fontWeight: '800',
+  },
+  resenaBadge: {
+    backgroundColor: '#D1FAE5',
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  resenaBadgeText: {
+    ...Typography.labelSm,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  resenaContent: {
+    gap: 8,
+  },
+  resenaScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  resenaDateText: {
+    ...Typography.bodySm,
+    color: Colors.onSurfaceVariant,
+    fontSize: 11,
+  },
+  resenaComentarioText: {
+    ...Typography.bodyMd,
+    fontStyle: 'italic',
+    color: Colors.inkBlack,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  resenaAgradecimiento: {
+    ...Typography.bodySm,
+    fontSize: 11,
+    color: '#666666',
+    marginTop: 4,
+  },
+  resenaCargando: {
+    ...Typography.bodyMd,
+    color: Colors.outline,
+    fontStyle: 'italic',
+  },
+  modalReviewCardShadow: {
+    width: '100%',
+    maxWidth: 380,
+  },
+  modalReviewCard: {
+    backgroundColor: Colors.canvasTint,
+    borderWidth: 3,
+    borderColor: Colors.inkBlack,
+    borderRadius: 16,
+    padding: 18,
+  },
+  modalReviewHeader: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalReviewTitle: {
+    ...Typography.titleLg,
+    color: Colors.inkBlack,
+    fontWeight: '900',
+  },
+  modalReviewSubtitle: {
+    ...Typography.bodySm,
+    color: Colors.electricCobalt,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  reviewErrorWrapper: {
+    marginBottom: 10,
+  },
+  inputSectionLabel: {
+    ...Typography.labelSm,
+    fontSize: 11,
+    color: Colors.inkBlack,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  comentarioHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  commentCounter: {
+    ...Typography.labelSm,
+    fontSize: 11,
+    color: Colors.outline,
+  },
+  commentCounterWarn: {
+    color: Colors.popVermilion,
+    fontWeight: '700',
+  },
+  commentInput: {
+    backgroundColor: Colors.white,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 110,
+    maxHeight: 160,
+    ...Typography.bodyMd,
+    color: Colors.inkBlack,
+    textAlignVertical: 'top',
+  },
+  reviewModalActions: {
+    marginTop: 14,
+    gap: 8,
+  },
+  reviewModalBtn: {
+    width: '100%',
   },
 });

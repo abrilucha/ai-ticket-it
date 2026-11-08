@@ -33,8 +33,8 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
     });
   });
 
-  // CU2: organizador ve las compras de un evento con estado y entradas restantes de cada tipo
-  test("CU2: organizador ve las compras de un evento con estado y entradas restantes de cada tipo", async () => {
+  // CU2: organizador ve las compras de un evento con estado y entradas restantes por tipo
+  test("CU2: organizador ve las compras de un evento con estado y entradas restantes por tipo", async () => {
     const res = await request(app)
       .get("/eventos/evt_cosquin/compras")
       .set("x-user-id", ORG_ROCK);
@@ -89,8 +89,8 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
     });
   });
 
-  // CU4: organizador crea un evento con varios tipos de entrada, cada uno con precio y cupo
-  test("CU4: organizador crea un evento con varios tipos de entrada, cada uno con precio y cupo", async () => {
+  // CU4: organizador crea un evento con varios tipos de entrada
+  test("CU4: organizador crea un evento con varios tipos de entrada", async () => {
     const nuevoEvento = {
       nombre: "Quilmes Rock 2027",
       descripcion: "El histórico festival de rock argentino regresa con tres jornadas épicas.",
@@ -136,8 +136,8 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
     expect(res.body.esPropio).toBe(true);
   });
 
-  // CU6: organizador responde mensajes en una compra
-  test("CU6: organizador responde mensajes en una compra", async () => {
+  // CU6: organizador responde mensajes
+  test("CU6: organizador responde mensajes", async () => {
     const res = await request(app)
       .post("/compras/cmp_confirmada_1/mensajes")
       .set("x-user-id", ORG_ROCK)
@@ -184,8 +184,8 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
     expect(cupoDespues).toBe(cupoAntes + 2);
   });
 
-  // CU8: la cancelación solo se permite si la compra no está UTILIZADA y el evento aún no se realizó (ambos bloqueos)
-  test("CU8: la cancelación solo se permite si la compra no está UTILIZADA y el evento aún no se realizó (ambos bloqueos)", async () => {
+  // CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó
+  test("CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó", async () => {
     // Bloqueo 1: compra ya UTILIZADA
     const resUtilizada = await request(app)
       .post("/compras/cmp_utilizada_1/cancelar")
@@ -259,8 +259,8 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
     expect(resOrgResenas.body.resenas[0].autor.id).toBeDefined();
   });
 
-  // CU11: comprador ordena eventos por precio, fecha y puntaje del organizador
-  test("CU11: comprador ordena eventos por precio, fecha y puntaje del organizador", async () => {
+  // CU11: comprador ordena por precio, fecha y puntaje del organizador
+  test("CU11: comprador ordena por precio, fecha y puntaje del organizador", async () => {
     // 1. Orden por precio asc
     const resPrecio = await request(app)
       .get("/eventos?orden=precio&direccion=asc")

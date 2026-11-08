@@ -174,4 +174,28 @@ describe('Ajustes Autorizados Fase 4 (A1, A2, A3, A4)', () => {
     expect(compraUtil).toBeDefined();
     expect(compraUtil.puedeUtilizar).toBe(false);
   });
+
+  test('A4 (seguridad): POST /eventos ignora cualquier id de tipo enviado por el cliente y genera uno propio', async () => {
+    const res = await request(app)
+      .post('/eventos')
+      .set('x-user-id', ORG_ROCK)
+      .send({
+        nombre: 'Evento Con ID Malicioso',
+        descripcion: 'Intenta inyectar id existente',
+        categoria: 'cat_recitales',
+        fecha: '2027-08-20T21:00:00.000Z',
+        tiposEntrada: [
+          { id: 'tipo_rock_1', nombre: 'Campo Clonado', precio: 10000, cupo: 50 },
+        ],
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tiposEntrada[0].id).not.toBe('tipo_rock_1');
+    expect(res.body.tiposEntrada[0].id).toMatch(/^tipo_[a-f0-9]{8}$/);
+
+    // Verificar que el cupo del tipo_rock_1 original de Cosquín sigue intacto en 498
+    const cosquin = await request(app).get('/eventos/evt_cosquin').set('x-user-id', COMPRADOR_1);
+    const tipoCosquin = cosquin.body.tiposEntrada.find((t) => t.id === 'tipo_rock_1');
+    expect(tipoCosquin.cupoDisponible).toBe(498);
+    expect(tipoCosquin.cupoRestante).toBe(498);
+  });
 });

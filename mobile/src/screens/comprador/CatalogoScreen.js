@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Pressable,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
 import { listarCategorias } from '../../api/categorias.js';
@@ -66,6 +67,13 @@ export function CatalogoScreen({ navigation }) {
   }), [searchQuery, categoriaSeleccionada, orden, direccion, incluirRealizados]);
 
   const { data: eventos, loading: eventosLoading, error, reload } = useEventos(filtros);
+
+  // Recargar catálogo al recibir foco (mantiene reputación y cupos sincronizados)
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload])
+  );
 
   const [refreshing, setRefreshing] = useState(false);
 

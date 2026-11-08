@@ -1,8 +1,8 @@
-# Plan de Auditoría y Diseño Front-End (Fases 0, 1, 2, 3 y 4)
+# Plan de Auditoría y Diseño Front-End (Fases 0 a 5)
 ## AI Ticket It — Pop Kinetic Mobile (React Native + Expo)
 
 > **Documento de Auditoría y Planificación Visual / Técnica**  
-> **Estado:** Fases 4 y 4b completadas (Lado del organizador: Mis eventos, Crear evento, Ventas por evento, Validación de entradas con Cámara física y QR offline)  
+> **Estado:** Fases 1 a 5 completadas (Front-end 100% implementado: Catálogo, Compras, Panel de Organizador, Validación QR/Cámara, Chat de Compra y Reseñas)  
 > **Referencia Visual:** Exportación Stitch en `temp/`  
 > **Fuente de Verdad Técnica:** `backend/docs/API.md` (25 endpoints montados, 5 estados canónicos)
 
@@ -185,11 +185,11 @@ Se compone de dos familias de fuentes de Google Fonts:
 | **Organizador ve compras de un evento con disponibilidad** | Comprobado (Fase 4: `VentasEventoScreen`) | Desde la pestaña *"Mis eventos"*, se accede a la vista de ventas por evento con disponibilidad por tipo de entrada (`GET /eventos/:id/compras`), barras de ocupación y canje de accesos. |
 | **Comprador busca y explora por categoría** | Comprobado (Fases 1 y 2: `ExplorarScreen`) | Llama a `GET /categorias` con filtro de categoría en `GET /eventos?categoria=...`, búsqueda en vivo por texto `q` y orden. |
 | **Organizador crea evento con tipos de entrada** | Comprobado (Fase 4: `CrearEventoScreen`) | Formulario para `POST /eventos` con agregado dinámico de tipos de entrada (nombre, precio, cupo inicial), validación de fecha local y chips de categoría. |
-| **Comprador envía mensajes** | Preparado (Fase 5) | Chat asociado a la compra consumiendo `POST /compras/:id/mensajes`. |
-| **Organizador responde mensajes** | Preparado (Fase 5) | Misma pantalla de chat reutilizada para el organizador de la compra. |
+| **Comprador envía mensajes** | Comprobado (Fase 5: `ChatCompraScreen`) | Chat accesible desde `CompraDetalleScreen` consumiendo `POST /compras/:id/mensajes` y `GET /compras/:id/mensajes`, con autoscroll, burbujas Pop Art, contador de 1000 caracteres y polling cada 5s en primer plano. |
+| **Organizador responde mensajes** | Comprobado (Fase 5: `ChatCompraScreen` y `VentasEventoScreen`) | Misma pantalla de chat reutilizada para el organizador, con acceso directo desde cada fila en `VentasEventoScreen` o desde el detalle de la compra. Permite conversar en cualquier estado (incluso canceladas/reembolsadas). |
 | **Comprador cancela compra** | Comprobado (Fase 3: `CompraDetalleScreen`) | Botón de cancelación en el detalle de la compra invocando `POST /compras/:id/cancelar` con confirmación Pop Art. |
 | **Cancelación permitida solo si no está utilizada y el evento no se realizó** | Comprobado (Fase 3: `puedeCancelar` del back) | Regla regida por el backend: el botón de cancelar solo se muestra si `puedeCancelar === true`, mostrando mensaje descriptivo cuando está `UTILIZADA`. |
-| **Comprador puntúa y comenta** | Preparado (Fase 5) | Formulario de calificación accesible en compras `UTILIZADA` para `POST /compras/:id/resena`. |
+| **Comprador puntúa y comenta** | Comprobado (Fase 5: `CompraDetalleScreen` y `RatingInput`) | Formulario modal de reseña disponible exclusivamente cuando `puedeResenar === true` (`POST /compras/:id/resena`), con selector táctil de 1 a 5 estrellas, comentario de hasta 500 caracteres, recarga de estado a `resenada: true`, visualización de "Tu reseña" y badge `CALIFICÁ`/`RESEÑADA` en `TicketCard`. |
 | **Reseñas previas visibles en eventos del organizador** | Comprobado (Fase 2: `OrganizadorPerfilScreen`) | Pantalla de perfil de organizador accesible desde el detalle del evento para ver su puntaje promedio y opiniones. |
 | **Ordenar por precio, fecha y puntaje** | Comprobado (Fase 2: `ExplorarScreen`) | Selector de orden en la cabecera del catálogo (`orden=precio_asc`, `fecha_asc`, `puntaje_desc`). |
 | **Comprar eligiendo tipo y cantidad sin superar el cupo** | Comprobado (Fase 3: `EventoDetalleScreen`) | Selector de tipo de entrada y `QuantityStepper` limitado al `cupoRestante` en el detalle del evento (`POST /compras`). |

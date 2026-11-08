@@ -6,6 +6,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
@@ -42,6 +43,7 @@ export function ValidarEntradaScreen({ navigation }) {
   const [codigoInput, setCodigoInput] = useState('');
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [qrInvalidoMsg, setQrInvalidoMsg] = useState(null);
+  const [cameraError, setCameraError] = useState(null);
 
   // Permisos de cámara
   const [permission, requestPermission] = useCameraPermissions();
@@ -70,6 +72,7 @@ export function ValidarEntradaScreen({ navigation }) {
     setModo(nuevoModo);
     reset();
     setQrInvalidoMsg(null);
+    setCameraError(null);
     isScanningLocked.current = false;
   };
 
@@ -160,24 +163,52 @@ export function ValidarEntradaScreen({ navigation }) {
                     </Text>
 
                     {permission.canAskAgain ? (
-                      <PopButton
-                        title="ACTIVAR CÁMARA"
-                        variant="primary"
-                        size="md"
-                        onPress={requestPermission}
-                        style={{ width: '100%', marginTop: 8 }}
-                      />
+                      <View style={{ width: '100%', gap: 8, marginTop: 8 }}>
+                        <PopButton
+                          title="ACTIVAR CÁMARA"
+                          variant="primary"
+                          size="md"
+                          onPress={requestPermission}
+                        />
+                        <PopButton
+                          title="USAR INGRESO MANUAL"
+                          variant="secondary"
+                          size="md"
+                          onPress={() => handleSelectModo('MANUAL')}
+                        />
+                      </View>
                     ) : (
-                      <PopButton
-                        title="USAR INGRESO MANUAL"
-                        variant="secondary"
-                        size="md"
-                        onPress={() => handleSelectModo('MANUAL')}
-                        style={{ width: '100%', marginTop: 8 }}
-                      />
+                      <View style={{ width: '100%', gap: 8, marginTop: 8 }}>
+                        <PopButton
+                          title="⚙️ ABRIR AJUSTES"
+                          variant="primary"
+                          size="md"
+                          onPress={() => Linking.openSettings()}
+                        />
+                        <PopButton
+                          title="USAR INGRESO MANUAL"
+                          variant="secondary"
+                          size="md"
+                          onPress={() => handleSelectModo('MANUAL')}
+                        />
+                      </View>
                     )}
                   </View>
                 </HardShadow>
+              ) : cameraError ? (
+                <View style={styles.cameraErrorContainer}>
+                  <ErrorBanner
+                    message={cameraError}
+                    onRetry={() => setCameraError(null)}
+                  />
+                  <PopButton
+                    title="USAR INGRESO MANUAL"
+                    variant="secondary"
+                    size="md"
+                    onPress={() => handleSelectModo('MANUAL')}
+                    style={{ marginTop: 12 }}
+                  />
+                </View>
               ) : (
                 <View style={styles.cameraContainer}>
                   {/* Visor de cámara con ScanFrame superpuesto como hijo directo */}
@@ -189,6 +220,9 @@ export function ValidarEntradaScreen({ navigation }) {
                         barcodeScannerSettings={{
                           barcodeTypes: ['qr'],
                         }}
+                        onMountError={(err) =>
+                          setCameraError(err?.message || 'Error al iniciar el hardware de la cámara.')
+                        }
                         onBarcodeScanned={
                           isScanningLocked.current ? undefined : handleBarcodeScanned
                         }

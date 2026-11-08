@@ -182,6 +182,12 @@ export function VentasEventoScreen({ route, navigation }) {
             isProcessing={utilizando && compraAUtilizar?.id === item.id}
             onPress={() => navigation.navigate('CompraDetalle', { id: item.id })}
             onSolicitarUtilizar={handleSolicitarUtilizar}
+            onAbrirChat={(compra) =>
+              navigation.navigate('ChatCompra', {
+                compraId: compra.id,
+                compra,
+              })
+            }
           />
         )}
         ListEmptyComponent={
