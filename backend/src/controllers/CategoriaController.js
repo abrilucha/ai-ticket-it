@@ -1,7 +1,7 @@
-import { CategoriaService } from "../services/CategoriaService.js";
+import { CategoriaService, categoriaService as defaultCatService } from "../services/CategoriaService.js";
 
 export class CategoriaController {
-  constructor(categoriaService = new CategoriaService()) {
+  constructor(categoriaService = defaultCatService || new CategoriaService()) {
     this.categoriaService = categoriaService;
   }
 

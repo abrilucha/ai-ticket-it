@@ -1,7 +1,7 @@
-import { EventoService } from "../services/EventoService.js";
+import { EventoService, eventoService as defaultEventoService } from "../services/EventoService.js";
 
 export class EventoController {
-  constructor(eventoService = new EventoService()) {
+  constructor(eventoService = defaultEventoService || new EventoService()) {
     this.eventoService = eventoService;
   }
 
@@ -15,38 +15,20 @@ export class EventoController {
     }
   };
 
-  obtenerPorId = async (req, res, next) => {
+  getById = async (req, res, next) => {
     try {
-      const evento = await this.eventoService.obtenerPorId(req.params.id);
+      const evento = await this.eventoService.getById(req.params.id);
       res.status(200).json(evento);
     } catch (e) {
       next(e);
     }
   };
 
-  crear = async (req, res, next) => {
+  create = async (req, res, next) => {
     try {
-      const organizadorId = req.user?.id || req.headers["x-user-id"];
-      const nuevoEvento = await this.eventoService.crear(req.body, organizadorId);
+      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
+      const nuevoEvento = await this.eventoService.create(req.body, organizadorId);
       res.status(201).json(nuevoEvento);
-    } catch (e) {
-      next(e);
-    }
-  };
-
-  actualizar = async (req, res, next) => {
-    try {
-      const eventoActualizado = await this.eventoService.actualizar(req.params.id, req.body);
-      res.status(200).json(eventoActualizado);
-    } catch (e) {
-      next(e);
-    }
-  };
-
-  eliminar = async (req, res, next) => {
-    try {
-      await this.eventoService.eliminar(req.params.id);
-      res.status(204).send();
     } catch (e) {
       next(e);
     }
@@ -54,9 +36,29 @@ export class EventoController {
 
   listarMios = async (req, res, next) => {
     try {
-      const organizadorId = req.user?.id || req.headers["x-user-id"];
+      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
       const misEventos = await this.eventoService.listarMios(organizadorId);
       res.status(200).json(misEventos);
+    } catch (e) {
+      next(e);
+    }
+  };
+
+  update = async (req, res, next) => {
+    try {
+      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
+      const eventoActualizado = await this.eventoService.actualizar(req.params.id, req.body, organizadorId);
+      res.status(200).json(eventoActualizado);
+    } catch (e) {
+      next(e);
+    }
+  };
+
+  delete = async (req, res, next) => {
+    try {
+      const organizadorId = req.user?._id || req.user?.id || req.headers["x-user-id"];
+      await this.eventoService.eliminar(req.params.id, organizadorId);
+      res.status(204).send();
     } catch (e) {
       next(e);
     }

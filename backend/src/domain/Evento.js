@@ -12,4 +12,8 @@ export class Evento {
   tuPrecioEstaEntre(min, max) {
     return this.tiposEntrada.some(tipo => tipo.precio >= min && tipo.precio <= max);
   }
+
+  estaRealizado() {
+    return new Date(this.fecha) <= new Date();
+  }
 }
