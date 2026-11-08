@@ -1,5 +1,8 @@
 import { Router } from "express";
 import { EventoController } from "../src/controllers/EventoController.js";
+import { validarSchema } from "../src/middlewares/validarSchema.js";
+import { requireRole } from "../src/middlewares/requireRole.js";
+import { EventoSchema, EventoUpdateSchema } from "../src/schemas/EventoSchema.js";
 
 const router = Router({ mergeParams: true });
 const eventoController = new EventoController();
@@ -10,6 +13,23 @@ const eventoController = new EventoController();
  *   name: Eventos
  *   description: Búsqueda, creación y gestión de eventos
  */
+
+/**
+ * @swagger
+ * /eventos/mios:
+ *   get:
+ *     summary: Lista los eventos creados por el organizador logueado
+ *     tags: [Eventos]
+ *     responses:
+ *       200:
+ *         description: Eventos del organizador obtenidos exitosamente
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Requiere rol ORGANIZADOR
+ */
+router.route("/mios")
+  .get(requireRole("ORGANIZADOR"), (req, res, next) => eventoController.listarMios(req, res, next));
 
 /**
  * @swagger
@@ -27,12 +47,12 @@ const eventoController = new EventoController();
  *         name: categoria
  *         schema:
  *           type: string
- *         description: Filtrar por categoría
+ *         description: Filtrar por categoría (ID o código)
  *       - in: query
  *         name: orden
  *         schema:
  *           type: string
- *           enum: [precio, fecha, puntaje]
+ *           enum: [precio, fecha]
  *         description: Campo de ordenamiento
  *       - in: query
  *         name: direccion
@@ -58,53 +78,17 @@ const eventoController = new EventoController();
  *               - categoria
  *               - fecha
  *               - tiposEntrada
- *             properties:
- *               nombre:
- *                 type: string
- *               descripcion:
- *                 type: string
- *               categoria:
- *                 type: string
- *               fecha:
- *                 type: string
- *                 format: date-time
- *               tiposEntrada:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     nombre:
- *                       type: string
- *                     descripcion:
- *                       type: string
- *                     precio:
- *                       type: number
- *                     cupo:
- *                       type: integer
- *               multimedia:
- *                 type: array
- *                 items:
- *                   type: string
  *     responses:
  *       201:
  *         description: Evento creado exitosamente
+ *       400:
+ *         description: Datos inválidos o fecha pasada (Regla S11)
+ *       403:
+ *         description: Requiere rol ORGANIZADOR
  */
 router.route("/")
   .get((req, res, next) => eventoController.buscar(req, res, next))
-  .post((req, res, next) => eventoController.crear(req, res, next));
-
-/**
- * @swagger
- * /eventos/mios:
- *   get:
- *     summary: Lista los eventos creados por el organizador logueado
- *     tags: [Eventos]
- *     responses:
- *       200:
- *         description: Eventos del organizador obtenidos exitosamente
- */
-router.route("/mios")
-  .get((req, res, next) => eventoController.listarMios(req, res, next));
+  .post(requireRole("ORGANIZADOR"), validarSchema(EventoSchema), (req, res, next) => eventoController.create(req, res, next));
 
 /**
  * @swagger
@@ -118,7 +102,6 @@ router.route("/mios")
  *         required: true
  *         schema:
  *           type: string
- *         description: ID del evento
  *     responses:
  *       200:
  *         description: Evento obtenido exitosamente
@@ -127,64 +110,31 @@ router.route("/mios")
  *   put:
  *     summary: Actualiza un evento completamente
  *     tags: [Eventos]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Evento actualizado exitosamente
- *   patch:
- *     summary: Actualiza parcialmente un evento
- *     tags: [Eventos]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: Evento actualizado exitosamente
  *   delete:
  *     summary: Elimina un evento
  *     tags: [Eventos]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       204:
  *         description: Evento eliminado exitosamente
  */
 router.route("/:id")
-  .get((req, res, next) => eventoController.obtenerPorId(req, res, next))
-  .put((req, res, next) => eventoController.actualizar(req, res, next))
-  .patch((req, res, next) => eventoController.actualizar(req, res, next))
-  .delete((req, res, next) => eventoController.eliminar(req, res, next));
+  .get((req, res, next) => eventoController.getById(req, res, next))
+  .put(requireRole("ORGANIZADOR"), validarSchema(EventoUpdateSchema), (req, res, next) => eventoController.update(req, res, next))
+  .patch(requireRole("ORGANIZADOR"), validarSchema(EventoUpdateSchema), (req, res, next) => eventoController.update(req, res, next))
+  .delete(requireRole("ORGANIZADOR"), (req, res, next) => eventoController.delete(req, res, next));
 
 /**
  * @swagger
  * /eventos/{id}/compras:
  *   get:
- *     summary: Lista las compras asociadas al evento y la disponibilidad restante por tipo de entrada
+ *     summary: Lista las compras asociadas al evento y la disponibilidad por tipo de entrada
  *     tags: [Eventos]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del evento
  *     responses:
  *       200:
  *         description: Compras y disponibilidad obtenidas exitosamente
- *       404:
- *         description: Evento no encontrado
  */
 router.route("/:id/compras")
   .get((req, res, next) => eventoController.listarCompras(req, res, next));
@@ -195,13 +145,6 @@ router.route("/:id/compras")
  *   get:
  *     summary: Lista todas las reseñas del evento
  *     tags: [Eventos]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del evento
  *     responses:
  *       200:
  *         description: Reseñas obtenidas exitosamente
