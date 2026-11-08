@@ -1,5 +1,6 @@
 import { compraRepository } from "../repositories/CompraRepository.js";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
+import { mensajeRepository } from "../repositories/MensajeRepository.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { ForbiddenError } from "../errors/ForbiddenError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
@@ -8,9 +9,14 @@ import { MensajeSchema } from "../schemas/MensajeSchema.js";
 import { Mensaje } from "../domain/Mensaje.js";
 
 export class MensajeService {
-  constructor(compRepo = compraRepository, usrRepo = usuarioRepository) {
+  constructor(
+    compRepo = compraRepository,
+    usrRepo = usuarioRepository,
+    msgRepo = mensajeRepository
+  ) {
     this.compraRepository = compRepo;
     this.usuarioRepository = usrRepo;
+    this.mensajeRepository = msgRepo;
   }
 
   // 1. Autenticación (401)
@@ -93,7 +99,8 @@ export class MensajeService {
       fechaFiltro = new Date(timestamp);
     }
 
-    let mensajes = Array.isArray(compra.mensajes) ? [...compra.mensajes] : [];
+    // Obtener del repositorio propio de mensajes
+    let mensajes = await this.mensajeRepository.findByCompraId(compraId);
 
     // Filtrar estrictamente posterior si se proveyó `desde`
     if (fechaFiltro) {
@@ -130,6 +137,10 @@ export class MensajeService {
     this.validarParticipacion(compra, usuarioActual.id);
 
     // 4. Validación del body (400)
+    if (!body || typeof body !== "object") {
+      throw new BadRequestError("El cuerpo de la solicitud es obligatorio");
+    }
+
     const parsed = MensajeSchema.safeParse(body);
     if (!parsed.success) {
       const detalle = parsed.error.issues.map((i) => i.message).join(", ");
@@ -148,10 +159,8 @@ export class MensajeService {
       fecha: new Date().toISOString(),
     });
 
-    compra.mensajes = compra.mensajes || [];
-    compra.mensajes.push(nuevoMensaje);
-
-    await this.compraRepository.save(compra);
+    // Guardar en el MensajeRepository propio
+    await this.mensajeRepository.save(nuevoMensaje);
 
     const usuariosMap = { [usuarioActual.id]: usuarioActual };
     return this.formatearMensaje(nuevoMensaje, usuarioActual.id, compra, usuariosMap);

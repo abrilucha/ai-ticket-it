@@ -13,6 +13,7 @@ import favoritoRoutes from "../routes/FavoritoRoutes.js";
 
 // Middlewares
 import { authSimulada } from "./middlewares/authSimulada.js";
+import { requireAuth } from "./middlewares/requireAuth.js";
 import { errorLogger } from "./middlewares/errorLogger.js";
 import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -26,6 +27,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(authSimulada);
+app.use(requireAuth);
 
 // 2. Registro de rutas
 app.use("/health", healthRoutes);

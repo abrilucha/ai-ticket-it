@@ -26,6 +26,7 @@ export class ReseniaRepository {
     return (
       this.resenias.find(
         (r) =>
+          r.compraId === compraId ||
           r.compra?.id === compraId ||
           r.compra?._id === compraId ||
           r.compra === compraId

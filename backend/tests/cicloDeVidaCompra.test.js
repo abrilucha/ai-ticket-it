@@ -12,7 +12,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
 
   test("1. Demostración con números: Cupo baja en PENDIENTE, se mantiene en CONFIRMADA y sube al CANCELAR/REEMBOLSAR", async () => {
     // Paso 1: Consultar cupo inicial de 'Campo General' en Cosquín Rock
-    const resInicial = await request(app).get("/eventos/evt_cosquin");
+    const resInicial = await request(app).get("/eventos/evt_cosquin").set("x-user-id", "usr_comprador_1");
     expect(resInicial.status).toBe(200);
     const tipoInicial = resInicial.body.tiposEntrada.find((t) => t.id === "tipo_rock_1");
     const cupoInicial = tipoInicial.cupoRestante;
@@ -32,7 +32,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
     expect(resCrear.body.puedePagar).toBe(true);
     expect(resCrear.body.puedeCancelar).toBe(true);
 
-    const resDespuesCrear = await request(app).get("/eventos/evt_cosquin");
+    const resDespuesCrear = await request(app).get("/eventos/evt_cosquin").set("x-user-id", "usr_comprador_1");
     const tipoDespuesCrear = resDespuesCrear.body.tiposEntrada.find((t) => t.id === "tipo_rock_1");
     expect(tipoDespuesCrear.cupoRestante).toBe(496); // 498 - 2 = 496
 
@@ -45,7 +45,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
     expect(resPagar.body.puedeCancelar).toBe(true);
     expect(resPagar.body.diasRestantes).toBeGreaterThan(0);
 
-    const resDespuesPagar = await request(app).get("/eventos/evt_cosquin");
+    const resDespuesPagar = await request(app).get("/eventos/evt_cosquin").set("x-user-id", "usr_comprador_1");
     const tipoDespuesPagar = resDespuesPagar.body.tiposEntrada.find((t) => t.id === "tipo_rock_1");
     expect(tipoDespuesPagar.cupoRestante).toBe(496); // Sigue en 496
 
@@ -58,7 +58,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
     expect(resCancelar.body.montoReembolsado).toBe(50000);
     expect(resCancelar.body.fechaCancelacion).toBeDefined();
 
-    const resDespuesCancelar = await request(app).get("/eventos/evt_cosquin");
+    const resDespuesCancelar = await request(app).get("/eventos/evt_cosquin").set("x-user-id", "usr_comprador_1");
     const tipoDespuesCancelar = resDespuesCancelar.body.tiposEntrada.find((t) => t.id === "tipo_rock_1");
     expect(tipoDespuesCancelar.cupoRestante).toBe(498); // Liberado nuevamente a 498
   });

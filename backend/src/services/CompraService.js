@@ -2,6 +2,7 @@ import { compraRepository } from "../repositories/CompraRepository.js";
 import { eventoRepository } from "../repositories/EventoRepository.js";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
 import { cambioEstadoCompraRepository } from "../repositories/CambioEstadoCompraRepository.js";
+import { reseniaRepository } from "../repositories/ReseniaRepository.js";
 import { EstadoCompra } from "../domain/EstadoCompra.js";
 import { Compra } from "../domain/Compra.js";
 import { MaquinaEstadoCompra } from "../domain/MaquinaEstadoCompra.js";
@@ -15,12 +16,14 @@ export class CompraService {
     compRepo = compraRepository,
     evRepo = eventoRepository,
     usrRepo = usuarioRepository,
-    histRepo = cambioEstadoCompraRepository
+    histRepo = cambioEstadoCompraRepository,
+    resRepo = reseniaRepository
   ) {
     this.compraRepository = compRepo;
     this.eventoRepository = evRepo;
     this.usuarioRepository = usrRepo;
     this.cambioEstadoCompraRepository = histRepo;
+    this.reseniaRepository = resRepo;
   }
 
   calcularDiasRestantes(fechaEvento) {
@@ -29,15 +32,21 @@ export class CompraService {
     return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
   }
 
-  enriquecerCompra(compra, usuarioId, usuarioRol) {
+  async enriquecerCompra(compra, usuarioId, usuarioRol) {
     const fechaEvento = compra.evento?.fecha;
     const eventoPasado = fechaEvento ? new Date(fechaEvento) <= new Date() : false;
-    
-    const compradorId = compra.comprador?.id || compra.comprador?._id;
-    const orgEventoId = compra.evento?.organizador?.id || compra.evento?.organizador?._id || compra.evento?.organizador;
 
-    const esComprador = !usuarioId || compradorId === usuarioId;
-    const esOrganizadorEvento = usuarioId ? orgEventoId === usuarioId : false;
+    const compradorId = compra.comprador?.id || compra.comprador?._id;
+    const orgEventoId =
+      compra.evento?.organizador?.id ||
+      compra.evento?.organizador?._id ||
+      compra.evento?.organizador;
+
+    const esComprador = Boolean(usuarioId && compradorId === usuarioId);
+    const esOrganizadorEvento = Boolean(usuarioId && orgEventoId === usuarioId);
+
+    const resenia = await this.reseniaRepository.findByCompra(compra.id || compra._id);
+    const resenada = Boolean(resenia);
 
     const puedePagar = compra.estado === EstadoCompra.PENDIENTE && esComprador;
     const puedeCancelar =
@@ -45,22 +54,28 @@ export class CompraService {
       !eventoPasado &&
       esComprador;
     const puedeUtilizar = compra.estado === EstadoCompra.CONFIRMADA && esOrganizadorEvento;
-    const puedeResenar = compra.estado === EstadoCompra.UTILIZADA && esComprador;
+    const puedeResenar = compra.estado === EstadoCompra.UTILIZADA && !resenada && esComprador;
 
     const diasRestantes =
       compra.estado === EstadoCompra.CONFIRMADA
         ? this.calcularDiasRestantes(fechaEvento)
         : null;
 
+    // A2: Garantizar que los mensajes NO se devuelven en la compra
+    const { mensajes: _omitted, ...compraSinMensajes } = compra;
+
     return {
-      ...compra,
+      ...compraSinMensajes,
       diasRestantes,
       puedePagar,
       puedeCancelar,
       puedeUtilizar,
       puedeResenar,
+      resenada,
       fechaCancelacion: compra.fechaCancelacion || null,
-      montoReembolsado: compra.montoReembolsado ?? (compra.estado === EstadoCompra.REEMBOLSADA ? compra.total : 0),
+      montoReembolsado:
+        compra.montoReembolsado ??
+        (compra.estado === EstadoCompra.REEMBOLSADA ? compra.total : 0),
     };
   }
 
@@ -131,28 +146,27 @@ export class CompraService {
         organizador: evento.organizador,
       },
       tipoEntrada: {
-        tipoEntradaId: tipoEntrada.id,
-        id: tipoEntrada.id,
-        _id: tipoEntrada.id,
+        tipoEntradaId: tipoEntrada.id || tipoEntrada._id,
         nombre: tipoEntrada.nombre,
         precio: tipoEntrada.precio,
       },
       cantidad,
       total,
       estado: EstadoCompra.PENDIENTE,
-      mensajes: [],
     });
 
     const compraGuardada = await this.compraRepository.save(compraDominio);
 
+    // Registro en historial
     await this.cambioEstadoCompraRepository.save({
-      compra: compraGuardada,
-      estado: EstadoCompra.PENDIENTE,
-      quien: comprador,
-      fechaHora: new Date(),
+      compraId: compraGuardada.id,
+      estadoAnterior: null,
+      estadoNuevo: EstadoCompra.PENDIENTE,
+      fecha: new Date().toISOString(),
+      motivo: "Creación de compra inicial",
     });
 
-    return this.enriquecerCompra(compraGuardada, compradorId, "COMPRADOR");
+    return await this.enriquecerCompra(compraGuardada, compradorId, "COMPRADOR");
   };
 
   pagar = async (compraId, usuarioId) => {
@@ -161,28 +175,28 @@ export class CompraService {
       throw new NotFoundError("Compra no encontrada");
     }
 
-    if (usuarioId) {
-      const compradorId = compra.comprador?.id || compra.comprador?._id;
-      if (compradorId !== usuarioId) {
-        throw new ForbiddenError("Acceso denegado: solo el comprador titular puede pagar esta compra");
-      }
+    const compradorId = compra.comprador?.id || compra.comprador?._id;
+    if (usuarioId && compradorId !== usuarioId) {
+      throw new ForbiddenError("Acceso denegado: solo el comprador titular puede pagar esta compra");
     }
 
-    // Transición centralizada mediante MaquinaEstadoCompra
+    const estadoAnterior = compra.estado;
+
+    // Delegación estricta a la máquina de estados centralizada
     const nuevoEstado = MaquinaEstadoCompra.transicionar(compra, "PAGAR");
     compra.estado = nuevoEstado;
 
     const compraActualizada = await this.compraRepository.save(compra);
 
-    const quien = usuarioId ? await this.usuarioRepository.findById(usuarioId) : compra.comprador;
     await this.cambioEstadoCompraRepository.save({
-      compra: compraActualizada,
-      estado: nuevoEstado,
-      quien: quien || compra.comprador,
-      fechaHora: new Date(),
+      compraId: compraActualizada.id,
+      estadoAnterior,
+      estadoNuevo: EstadoCompra.CONFIRMADA,
+      fecha: new Date().toISOString(),
+      motivo: "Pago confirmado exitosamente",
     });
 
-    return this.enriquecerCompra(compraActualizada, usuarioId, "COMPRADOR");
+    return await this.enriquecerCompra(compraActualizada, usuarioId, "COMPRADOR");
   };
 
   utilizar = async (compraId, usuarioId) => {
@@ -191,33 +205,32 @@ export class CompraService {
       throw new NotFoundError("Compra no encontrada");
     }
 
-    // Validación de propiedad y rol de Organizador
-    if (usuarioId) {
-      const usuario = await this.usuarioRepository.findById(usuarioId);
-      if (!usuario || usuario.rol !== "ORGANIZADOR") {
-        throw new ForbiddenError("Solo un usuario con rol ORGANIZADOR puede marcar entradas como utilizadas");
-      }
-      const orgEventoId = compra.evento?.organizador?.id || compra.evento?.organizador?._id || compra.evento?.organizador;
-      if (orgEventoId !== usuarioId) {
-        throw new ForbiddenError("Acceso denegado: solo el organizador dueño del evento puede validar y utilizar esta entrada");
-      }
+    const orgEventoId =
+      compra.evento?.organizador?.id ||
+      compra.evento?.organizador?._id ||
+      compra.evento?.organizador;
+
+    if (usuarioId && orgEventoId !== usuarioId) {
+      throw new ForbiddenError(
+        "Acceso denegado: solo el organizador dueño del evento puede validar y utilizar esta entrada"
+      );
     }
 
-    // Transición centralizada mediante MaquinaEstadoCompra
+    const estadoAnterior = compra.estado;
     const nuevoEstado = MaquinaEstadoCompra.transicionar(compra, "UTILIZAR");
     compra.estado = nuevoEstado;
 
     const compraActualizada = await this.compraRepository.save(compra);
 
-    const quien = usuarioId ? await this.usuarioRepository.findById(usuarioId) : compra.comprador;
     await this.cambioEstadoCompraRepository.save({
-      compra: compraActualizada,
-      estado: nuevoEstado,
-      quien: quien || compra.comprador,
-      fechaHora: new Date(),
+      compraId: compraActualizada.id,
+      estadoAnterior,
+      estadoNuevo: EstadoCompra.UTILIZADA,
+      fecha: new Date().toISOString(),
+      motivo: "Entrada utilizada en el evento",
     });
 
-    return this.enriquecerCompra(compraActualizada, usuarioId, "ORGANIZADOR");
+    return await this.enriquecerCompra(compraActualizada, usuarioId, "ORGANIZADOR");
   };
 
   cancelar = async (compraId, usuarioId) => {
@@ -226,61 +239,66 @@ export class CompraService {
       throw new NotFoundError("Compra no encontrada");
     }
 
-    // Validación de permisos: Solo el comprador titular puede cancelar (caso de uso C10)
-    if (usuarioId) {
-      const usuario = await this.usuarioRepository.findById(usuarioId);
-      if (usuario && usuario.rol === "ORGANIZADOR") {
-        throw new ForbiddenError("Los organizadores no pueden cancelar compras de los usuarios");
-      }
-      const compradorId = compra.comprador?.id || compra.comprador?._id;
-      if (compradorId !== usuarioId) {
-        throw new ForbiddenError("Acceso denegado: solo el comprador titular puede cancelar su propia compra");
-      }
+    const compradorId = compra.comprador?.id || compra.comprador?._id;
+    const orgEventoId =
+      compra.evento?.organizador?.id ||
+      compra.evento?.organizador?._id ||
+      compra.evento?.organizador;
+
+    if (usuarioId && usuarioId === orgEventoId) {
+      throw new ForbiddenError("Los organizadores no pueden cancelar compras de sus clientes (Regla Caso de Uso 8)");
     }
 
-    // Regla S8: Orden determinístico de validación
-    // 1. Bloqueo si ya está utilizada
+    if (usuarioId && compradorId !== usuarioId) {
+      throw new ForbiddenError("Acceso denegado: solo el comprador titular puede solicitar la cancelación de su compra");
+    }
+
+    // Regla S8: Bloqueo si la entrada ya fue utilizada
     if (compra.estado === EstadoCompra.UTILIZADA) {
       throw new ConflictError("No se puede cancelar una compra cuya entrada ya fue utilizada (Regla S8)");
     }
 
-    // 2. Bloqueo si ya está cancelada o reembolsada
-    if (compra.estado === EstadoCompra.CANCELADA || compra.estado === EstadoCompra.REEMBOLSADA) {
-      throw new ConflictError(`La compra ya se encuentra ${compra.estado.toLowerCase()}`);
-    }
-
-    // 3. Bloqueo si el evento ya se realizó
-    if (compra.evento?.fecha && new Date(compra.evento.fecha) <= new Date()) {
+    // Regla S8 / S11: Bloqueo si el evento ya se realizó
+    const fechaEvento = compra.evento?.fecha;
+    if (fechaEvento && new Date(fechaEvento) <= new Date()) {
       throw new ConflictError("No se puede cancelar una compra de un evento que ya se realizó (Regla S8)");
     }
 
-    // Transición centralizada mediante MaquinaEstadoCompra
+    const estadoAnterior = compra.estado;
+    const estadoDestino =
+      estadoAnterior === EstadoCompra.CONFIRMADA
+        ? EstadoCompra.REEMBOLSADA
+        : EstadoCompra.CANCELADA;
+
     const nuevoEstado = MaquinaEstadoCompra.transicionar(compra, "CANCELAR");
     compra.estado = nuevoEstado;
     compra.fechaCancelacion = new Date().toISOString();
-    compra.montoReembolsado = nuevoEstado === EstadoCompra.REEMBOLSADA ? compra.total : 0;
+    compra.montoReembolsado = estadoDestino === EstadoCompra.REEMBOLSADA ? compra.total : 0;
 
     const compraActualizada = await this.compraRepository.save(compra);
 
-    const quien = usuarioId ? await this.usuarioRepository.findById(usuarioId) : compra.comprador;
     await this.cambioEstadoCompraRepository.save({
-      compra: compraActualizada,
-      estado: nuevoEstado,
-      quien: quien || compra.comprador,
-      fechaHora: new Date(),
+      compraId: compraActualizada.id,
+      estadoAnterior,
+      estadoNuevo: estadoDestino,
+      fecha: compra.fechaCancelacion,
+      motivo:
+        estadoDestino === EstadoCompra.REEMBOLSADA
+          ? "Cancelación con reembolso de compra confirmada"
+          : "Cancelación de reserva pendiente",
     });
 
-    return this.enriquecerCompra(compraActualizada, usuarioId, "COMPRADOR");
+    return await this.enriquecerCompra(compraActualizada, usuarioId, "COMPRADOR");
   };
 
   listarMias = async (compradorId) => {
     if (!compradorId) {
-      throw new BadRequestError("Se requiere la identificación del comprador");
+      throw new BadRequestError("Se requiere identificación del comprador");
     }
-
     const compras = await this.compraRepository.findByComprador(compradorId);
-
-    return compras.map((compra) => this.enriquecerCompra(compra, compradorId, "COMPRADOR"));
+    return await Promise.all(
+      compras.map((compra) => this.enriquecerCompra(compra, compradorId, "COMPRADOR"))
+    );
   };
 
   obtenerPorId = async (compraId, usuarioId) => {
@@ -289,12 +307,12 @@ export class CompraService {
       throw new NotFoundError("Compra no encontrada");
     }
 
+    const enriquecida = await this.enriquecerCompra(compra, usuarioId);
     const historial = await this.cambioEstadoCompraRepository.findByCompra(compraId);
 
-    const enriquecida = this.enriquecerCompra(compra, usuarioId);
     return {
       ...enriquecida,
-      historial,
+      historialEstados: historial,
     };
   };
 }
