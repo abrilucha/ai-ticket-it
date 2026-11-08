@@ -397,7 +397,7 @@ export function CrearEventoScreen({ navigation }) {
       <ConfirmModal
         visible={descartarModalVisible}
         title="¿DESCARTAR CAMBIOS?"
-        message="Si salís ahora, perderás la información cargada para este evento."
+        message="Si salís ahora, vas a perder la información que cargaste para este evento."
         confirmText="SÍ, SALIR"
         cancelText="SEGUIR EDITANDO"
         variant="danger"

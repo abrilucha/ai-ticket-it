@@ -306,12 +306,6 @@ export function ValidarEntradaScreen({ navigation }) {
                   <StateBadge estado={compra.estado} />
                 </View>
 
-                {/* ID de la compra */}
-                <View style={styles.infoGroup}>
-                  <Text style={styles.infoLabel}>TICKET ID:</Text>
-                  <Text style={styles.infoValueBold}>{compra.id}</Text>
-                </View>
-
                 {/* Evento y fecha */}
                 <View style={styles.infoGroup}>
                   <Text style={styles.infoLabel}>EVENTO:</Text>

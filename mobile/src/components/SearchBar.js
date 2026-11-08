@@ -23,6 +23,13 @@ export function SearchBar({
     setInputText(value || '');
   }, [value]);
 
+  // Limpiar timer de debounce al desmontar
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const handleChange = (text) => {
     setInputText(text);
     if (timerRef.current) clearTimeout(timerRef.current);

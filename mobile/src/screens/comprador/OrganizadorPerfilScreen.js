@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
@@ -18,6 +18,7 @@ export function OrganizadorPerfilScreen({ route, navigation }) {
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   const cargarResenas = useCallback(async () => {
@@ -26,7 +27,6 @@ export function OrganizadorPerfilScreen({ route, navigation }) {
       setError('Identificador de organizador no proporcionado');
       return;
     }
-    setLoading(true);
     setError(null);
     try {
       const res = await obtenerResenasOrganizador(orgId);
@@ -35,12 +35,18 @@ export function OrganizadorPerfilScreen({ route, navigation }) {
       setError(err.message || 'Error al obtener reseñas del organizador');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [orgId]);
 
   useEffect(() => {
     cargarResenas();
   }, [cargarResenas]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    cargarResenas();
+  };
 
   // Recargar reseñas al recibir foco
   useFocusEffect(
@@ -68,6 +74,13 @@ export function OrganizadorPerfilScreen({ route, navigation }) {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.electricCobalt]}
+          />
+        }
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             {/* Tarjeta de Reputación */}

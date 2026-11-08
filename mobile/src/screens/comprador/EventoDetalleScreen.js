@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  RefreshControl,
   StyleSheet,
   Pressable,
 } from 'react-native';
@@ -43,6 +44,13 @@ export function EventoDetalleScreen({ route, navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [comprando, setComprando] = useState(false);
   const [compraError, setCompraError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await reload();
+    setRefreshing(false);
+  };
 
   const tiposEntrada = Array.isArray(evento?.tiposEntrada) ? evento.tiposEntrada : [];
 
@@ -175,7 +183,17 @@ export function EventoDetalleScreen({ route, navigation }) {
         <Text style={styles.screenTag}>DETALLE DEL EVENTO</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.electricCobalt]}
+          />
+        }
+      >
         {/* Banner de error de compra si ocurrió */}
         {compraError ? (
           <ErrorBanner message={compraError} onRetry={() => setCompraError(null)} />
@@ -357,7 +375,7 @@ export function EventoDetalleScreen({ route, navigation }) {
       <ConfirmModal
         visible={modalVisible}
         title="CONFIRMAR COMPRA"
-        message={`¿Deseas reservar ${cantidad}x entrada(s) '${tipoSeleccionado?.nombre}' para ${evento.nombre}?`}
+        message={`¿Querés reservar ${cantidad} ${cantidad === 1 ? 'entrada' : 'entradas'} '${tipoSeleccionado?.nombre}' para ${evento.nombre}?`}
         confirmText="CONFIRMAR Y RESERVAR"
         cancelText="CANCELAR"
         variant="primary"

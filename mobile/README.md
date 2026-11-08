@@ -169,3 +169,14 @@ El backend garantiza que **únicamente** se pueden reseñar compras en estado `U
      - Al volver a **"MIS COMPRAS"**, la tarjeta cambia su badge a **"✓ RESEÑADA"**.
    - Andá a la pestaña **"EXPLORAR"**, entrá al evento *Cosquín Rock 2027* y tocá **"Ver perfil del organizador"**:
      - *Productora Rock* ahora muestra 3 reseñas (antes 2), el promedio recalculado y tu reseña visible al tope de la lista.
+
+
+---
+
+## 9. Tips Útiles para la Grabación del Video Demostrativo
+
+- **Reinicio limpio del backend:** Antes de encender la cámara, detené el backend con `Ctrl+C` y volvé a levantarlo con `npm start` en `backend/` para tener el seed inicial canónico con cupos e historiales limpios.
+- **Ocultar el botón o menú de desarrollo de Expo:**
+  - El botón circular flotante de Expo Go con el engranaje de ajustes puede molestarte visualmente durante la demo. Podés arrastrarlo hacia los bordes o, si abrís el menú de desarrollo de Expo (sacudiendo el celular o manteniendo presionado con 3 dedos en la pantalla), tocar **"Hide menu"** o desactivar opciones de inspección para una pantalla limpia de producción.
+- **Brillo de pantalla para escaneo de QR:** Si grabás usando la cámara de un celular apuntando a la pantalla de la PC o de otro teléfono, aumentá el brillo de la pantalla que exhibe el código QR para evitar reflejos o parpadeos de frecuencia (moiré).
+- **Consistencia de datos:** Los 12 casos de uso cuentan con una guía paso a paso y datos canónicos del seed en [`docs/CHECKLIST_CASOS_DE_USO.md`](../docs/CHECKLIST_CASOS_DE_USO.md) y [`docs/FLUJO_VIDEO.md`](../docs/FLUJO_VIDEO.md).

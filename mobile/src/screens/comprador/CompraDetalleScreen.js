@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  RefreshControl,
   StyleSheet,
   Pressable,
   Modal,
@@ -55,6 +56,13 @@ export function CompraDetalleScreen({ route, navigation }) {
   const [utilizarModalVisible, setUtilizarModalVisible] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [accionError, setAccionError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([reload(), reloadResena()]);
+    setRefreshing(false);
+  };
 
   // Estados de reseña
   const [resenaModalVisible, setResenaModalVisible] = useState(false);
@@ -81,7 +89,7 @@ export function CompraDetalleScreen({ route, navigation }) {
 
     const comentarioLimpio = resenaComentario.trim();
     if (!resenaPuntaje || resenaPuntaje < 1 || resenaPuntaje > 5) {
-      setResenaError('Seleccioná una calificación de 1 a 5 estrellas.');
+      setResenaError('Elegí un puntaje de 1 a 5 estrellas.');
       return;
     }
     if (!comentarioLimpio) {
@@ -255,7 +263,17 @@ export function CompraDetalleScreen({ route, navigation }) {
         <Text style={styles.screenTag}>DETALLE DE COMPRA</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.electricCobalt]}
+          />
+        }
+      >
         {/* Banner de error si falló pago o cancelación */}
         {accionError ? (
           <ErrorBanner message={accionError} onRetry={() => setAccionError(null)} />
@@ -355,8 +373,6 @@ export function CompraDetalleScreen({ route, navigation }) {
                         />
                       </View>
                     </HardShadow>
-
-                    <Text style={styles.qrTicketId}>{compra.id}</Text>
 
                     <PopButton
                       title="🔍 VER QR GRANDE"
@@ -587,7 +603,6 @@ export function CompraDetalleScreen({ route, navigation }) {
                 ) : null}
               </View>
 
-              <Text style={styles.modalQrId}>{compra?.id}</Text>
               <Text style={styles.modalQrHint}>Aumentá el brillo del celular para facilitar el escaneo en el acceso</Text>
 
               <PopButton
@@ -900,12 +915,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qrTicketId: {
-    ...Typography.bodySm,
-    fontWeight: '700',
-    color: Colors.outline,
-    marginBottom: 8,
-  },
   btnQrGrande: {
     marginTop: 4,
   },
@@ -1023,12 +1032,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-  },
-  modalQrId: {
-    ...Typography.bodySm,
-    fontWeight: '800',
-    color: Colors.inkBlack,
-    marginBottom: 4,
   },
   modalQrHint: {
     ...Typography.bodySm,

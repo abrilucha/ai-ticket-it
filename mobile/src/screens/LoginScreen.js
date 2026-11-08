@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native';
 import { Colors } from '../theme/colors.js';
 import { Typography } from '../theme/typography.js';
 import { apiClient } from '../api/client.js';
@@ -14,10 +14,10 @@ export function LoginScreen() {
   const { login } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   const cargarUsuarios = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
       const data = await apiClient('/usuarios');
@@ -26,12 +26,18 @@ export function LoginScreen() {
       setError(err.message || 'No se pudo conectar con el servidor.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     cargarUsuarios();
   }, [cargarUsuarios]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    cargarUsuarios();
+  };
 
   const compradores = usuarios.filter((u) => u.rol === 'COMPRADOR');
   const organizadores = usuarios.filter((u) => u.rol === 'ORGANIZADOR');
@@ -79,7 +85,16 @@ export function LoginScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.electricCobalt]}
+          />
+        }
+      >
         {/* Banner de Bienvenida Pop Art */}
         <View style={styles.heroSection}>
           <View style={styles.logoRow}>
@@ -235,10 +250,6 @@ const styles = StyleSheet.create({
   userName: {
     ...Typography.titleMd,
     color: Colors.inkBlack,
-  },
-  userEmail: {
-    ...Typography.bodyMd,
-    color: Colors.onSurfaceVariant,
   },
   roleBadge: {
     paddingHorizontal: 8,
