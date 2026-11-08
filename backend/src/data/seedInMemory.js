@@ -225,16 +225,18 @@ export async function inicializarSeedInMemory() {
     estado: "CONFIRMADA",
     mensajes: [
       {
-        id: "msg_1",
-        usuario: comprador1,
-        mensaje: "¡Hola! ¿A qué hora abren las puertas?",
-        enviado: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+        id: "msg_seed_1",
+        compraId: "cmp_confirmada_1",
+        autorId: comprador1.id,
+        texto: "¡Hola! ¿A qué hora abren las puertas?",
+        fecha: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
       },
       {
-        id: "msg_2",
-        usuario: organizadorRock,
-        mensaje: "Buenas tardes Lucas, abren a las 16:00 hs.",
-        enviado: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+        id: "msg_seed_2",
+        compraId: "cmp_confirmada_1",
+        autorId: organizadorRock.id,
+        texto: "Buenas tardes Lucas, abren a las 16:00 hs.",
+        fecha: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
       },
     ],
   });

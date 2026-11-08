@@ -137,7 +137,7 @@ router.route("/:id")
  *         description: Compras y disponibilidad obtenidas exitosamente
  */
 router.route("/:id/compras")
-  .get((req, res, next) => eventoController.listarCompras(req, res, next));
+  .get(requireRole("ORGANIZADOR"), (req, res, next) => eventoController.listarCompras(req, res, next));
 
 /**
  * @swagger

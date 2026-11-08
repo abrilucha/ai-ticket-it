@@ -8,11 +8,13 @@ export const authSimulada = async (req, res, next) => {
       if (usuario) {
         req.user = usuario;
       } else {
-        req.user = { id: userId, _id: userId };
+        req.user = null;
       }
     } catch {
-      req.user = { id: userId, _id: userId };
+      req.user = null;
     }
+  } else {
+    req.user = null;
   }
   next();
 };

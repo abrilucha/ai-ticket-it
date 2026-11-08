@@ -165,7 +165,8 @@ export class EventoService {
         .filter(
           (c) =>
             (c.tipoEntrada?.tipoEntradaId === tId || c.tipoEntrada?.id === tId) &&
-            c.estado !== "CANCELADA"
+            c.estado !== "CANCELADA" &&
+            c.estado !== "REEMBOLSADA"
         )
         .reduce((sum, c) => sum + (c.cantidad || 0), 0);
 
@@ -228,7 +229,8 @@ export class EventoService {
         .filter(
           (c) =>
             (c.tipoEntrada?.tipoEntradaId === tId || c.tipoEntrada?.id === tId) &&
-            c.estado !== "CANCELADA"
+            c.estado !== "CANCELADA" &&
+            c.estado !== "REEMBOLSADA"
         )
         .reduce((acc, c) => acc + (c.cantidad || 0), 0);
 

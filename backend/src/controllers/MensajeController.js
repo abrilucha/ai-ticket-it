@@ -7,7 +7,13 @@ export class MensajeController {
 
   listarPorCompra = async (req, res, next) => {
     try {
-      const mensajes = await this.mensajeService.listarPorCompra(req.params.id);
+      const usuarioActual = req.user;
+      const { desde } = req.query;
+      const mensajes = await this.mensajeService.listarPorCompra(
+        req.params.id,
+        usuarioActual,
+        { desde }
+      );
       res.status(200).json(mensajes);
     } catch (e) {
       next(e);
@@ -16,8 +22,12 @@ export class MensajeController {
 
   enviar = async (req, res, next) => {
     try {
-      const usuarioId = req.user?.id || req.headers["x-user-id"];
-      const nuevoMensaje = await this.mensajeService.enviar(req.params.id, req.body, usuarioId);
+      const usuarioActual = req.user;
+      const nuevoMensaje = await this.mensajeService.enviar(
+        req.params.id,
+        req.body,
+        usuarioActual
+      );
       res.status(201).json(nuevoMensaje);
     } catch (e) {
       next(e);

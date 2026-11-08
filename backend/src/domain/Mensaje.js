@@ -1,7 +1,9 @@
 export class Mensaje {
-  constructor({ usuario, mensaje, enviado = new Date() }) {
-    this.usuario = usuario;
-    this.mensaje = mensaje;
-    this.enviado = enviado;
+  constructor({ id, compraId, autorId, texto, fecha = new Date().toISOString() }) {
+    this.id = id;
+    this.compraId = compraId;
+    this.autorId = autorId;
+    this.texto = texto;
+    this.fecha = fecha;
   }
 }
