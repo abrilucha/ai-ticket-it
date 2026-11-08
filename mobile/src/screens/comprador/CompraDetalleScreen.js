@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
 import { useCompra } from '../../hooks/useCompra.js';
+import { useUtilizarCompra } from '../../hooks/useUtilizarCompra.js';
 import { pagarCompra, cancelarCompra } from '../../api/compras.js';
 import { Screen } from '../../components/Screen.js';
 import { HardShadow } from '../../components/HardShadow.js';
@@ -37,7 +38,11 @@ export function CompraDetalleScreen({ route, navigation }) {
   const [pagando, setPagando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [utilizarModalVisible, setUtilizarModalVisible] = useState(false);
   const [accionError, setAccionError] = useState(null);
+
+  // Hook para utilización por parte del organizador
+  const { loading: utilizando, marcarUtilizada } = useUtilizarCompra();
 
   // Acción Pagar (simulado) con protección contra doble toque
   const handlePagar = async () => {
@@ -71,6 +76,21 @@ export function CompraDetalleScreen({ route, navigation }) {
       reload();
     } finally {
       setCancelando(false);
+    }
+  };
+
+  // Acción Marcar como Utilizada (Organizador)
+  const handleConfirmarUtilizar = async () => {
+    if (utilizando || !compra || !compra.puedeUtilizar) return;
+    setAccionError(null);
+
+    try {
+      await marcarUtilizada(compra.id);
+      setUtilizarModalVisible(false);
+      await reload();
+    } catch (err) {
+      setAccionError(err.message || 'Error al canjear la entrada.');
+      reload();
     }
   };
 
@@ -135,6 +155,9 @@ export function CompraDetalleScreen({ route, navigation }) {
   const tipoNombre = compra.tipoEntrada?.nombre || 'General';
   const cantidad = compra.cantidad || 1;
   const total = compra.total || 0;
+  const compradorNombre = compra.comprador?.nombre
+    ? `${compra.comprador.nombre} ${compra.comprador.apellido || ''}`.trim()
+    : null;
 
   // Contador de días para compras CONFIRMADAS
   let countdownText = null;
@@ -199,6 +222,13 @@ export function CompraDetalleScreen({ route, navigation }) {
 
             {/* Desglose de entradas */}
             <View style={styles.ticketBody}>
+              {compradorNombre && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>ASISTENTE / COMPRADOR:</Text>
+                  <Text style={styles.infoVal}>👤 {compradorNombre}</Text>
+                </View>
+              )}
+
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>TIPO DE ENTRADA:</Text>
                 <Text style={styles.infoVal}>{tipoNombre}</Text>
@@ -245,6 +275,20 @@ export function CompraDetalleScreen({ route, navigation }) {
 
         {/* Acciones principales: Pagar y Cancelar */}
         <View style={styles.actionsBlock}>
+          {/* Botón MARCAR COMO UTILIZADA si puedeUtilizar es true */}
+          {compra.puedeUtilizar ? (
+            <View style={styles.actionBtnSlot}>
+              <PopButton
+                title="✓ MARCAR COMO UTILIZADA"
+                variant="canary"
+                size="lg"
+                loading={utilizando}
+                disabled={utilizando}
+                onPress={() => setUtilizarModalVisible(true)}
+              />
+            </View>
+          ) : null}
+
           {/* Botón PAGAR si puedePagar es true */}
           {compra.puedePagar ? (
             <View style={styles.actionBtnSlot}>
@@ -282,6 +326,19 @@ export function CompraDetalleScreen({ route, navigation }) {
           <StatusTimeline historial={compra.historialEstados} />
         </View>
       </ScrollView>
+
+      {/* Modal de confirmación de Utilización (Organizador) */}
+      <ConfirmModal
+        visible={utilizarModalVisible}
+        title="¿MARCAR COMO UTILIZADA?"
+        message="Esta acción registrará el ingreso del asistente y liberará la validación. La entrada ya no podrá volver a utilizarse ni cancelarse."
+        confirmText="SÍ, MARCAR UTILIZADA"
+        cancelText="NO, CANCELAR"
+        variant="primary"
+        loading={utilizando}
+        onConfirm={handleConfirmarUtilizar}
+        onCancel={() => setUtilizarModalVisible(false)}
+      />
 
       {/* Modal de confirmación de Cancelación */}
       <ConfirmModal

@@ -38,3 +38,28 @@ export async function obtenerEvento(id) {
   if (!id) throw new Error('ID de evento requerido');
   return await apiClient(`/eventos/${encodeURIComponent(id)}`);
 }
+
+/**
+ * Publica un nuevo evento con sus tipos de entrada y multimedia (rol ORGANIZADOR).
+ */
+export async function crearEvento(datos) {
+  return await apiClient('/eventos', {
+    method: 'POST',
+    body: JSON.stringify(datos),
+  });
+}
+
+/**
+ * Lista los eventos pertenecientes al organizador autenticado.
+ */
+export async function listarMisEventos() {
+  return await apiClient('/eventos/mios');
+}
+
+/**
+ * Obtiene las compras registradas y la disponibilidad por tipo de un evento (rol ORGANIZADOR).
+ */
+export async function listarComprasDeEvento(eventoId) {
+  if (!eventoId) throw new Error('ID de evento requerido');
+  return await apiClient(`/eventos/${encodeURIComponent(eventoId)}/compras`);
+}

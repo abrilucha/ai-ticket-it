@@ -12,25 +12,30 @@ import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { EmptyState } from '../../components/EmptyState.js';
 
 export function OrganizadorPerfilScreen({ route, navigation }) {
-  const { organizadorId, organizadorNombre } = route.params || {};
+  const { organizadorId, id, organizadorNombre } = route.params || {};
+  const orgId = organizadorId || id;
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const cargarResenas = useCallback(async () => {
-    if (!organizadorId) return;
+    if (!orgId) {
+      setLoading(false);
+      setError('Identificador de organizador no proporcionado');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const res = await obtenerResenasOrganizador(organizadorId);
+      const res = await obtenerResenasOrganizador(orgId);
       setData(res);
     } catch (err) {
       setError(err.message || 'Error al obtener reseñas del organizador');
     } finally {
       setLoading(false);
     }
-  }, [organizadorId]);
+  }, [orgId]);
 
   useEffect(() => {
     cargarResenas();

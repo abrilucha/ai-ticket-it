@@ -48,3 +48,13 @@ export async function cancelarCompra(id) {
     method: 'POST',
   });
 }
+
+/**
+ * Marca una entrada de compra CONFIRMADA como UTILIZADA (rol ORGANIZADOR dueño del evento).
+ */
+export async function utilizarCompra(id) {
+  if (!id) throw new Error('ID de compra requerido');
+  return await apiClient(`/compras/${encodeURIComponent(id)}/utilizar`, {
+    method: 'POST',
+  });
+}

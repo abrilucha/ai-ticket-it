@@ -51,8 +51,10 @@ export function LoginScreen() {
             <Text style={styles.avatarEmoji}>{isOrg ? '🎙️' : '🎟️'}</Text>
           </View>
           <View style={styles.userTextCol}>
-            <Text style={styles.userName}>{item.nombre}</Text>
-            <Text style={styles.userEmail}>{item.email || item.id}</Text>
+            <Text style={styles.userName}>
+              {item.nombre} {item.apellido ? item.apellido : ''}
+            </Text>
+            <Text style={styles.userEmail}>ID: {item.id}</Text>
           </View>
           <View
             style={[

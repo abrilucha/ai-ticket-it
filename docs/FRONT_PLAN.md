@@ -1,8 +1,8 @@
-# Plan de Auditoría y Diseño Front-End (Fases 0, 1, 2 y 3)
+# Plan de Auditoría y Diseño Front-End (Fases 0, 1, 2, 3 y 4)
 ## AI Ticket It — Pop Kinetic Mobile (React Native + Expo)
 
 > **Documento de Auditoría y Planificación Visual / Técnica**  
-> **Estado:** Fase 3 completada (Comprar, pagar, mis compras, detalle de compra y cancelar)  
+> **Estado:** Fase 4 completada (Lado del organizador: Mis eventos, Crear evento, Ventas por evento, Marcar como utilizada)  
 > **Referencia Visual:** Exportación Stitch en `temp/`  
 > **Fuente de Verdad Técnica:** `backend/docs/API.md` (25 endpoints montados, 5 estados canónicos)
 
@@ -182,9 +182,9 @@ Se compone de dos familias de fuentes de Google Fonts:
 | Historia del TP | Estado en Front-End | Estrategia de Resolución |
 |---|---|---|
 | **Comprador ve sus compras con estado y días restantes** | Comprobado (Fase 3: `MisComprasScreen` y `CompraDetalleScreen`) | En la pestaña *"Mis compras"* se muestran las compras de `GET /compras/mias`, los 5 badges de estado, el cupón troquelado `TicketCard` y el indicador `"Faltan N días"`. |
-| **Organizador ve compras de un evento con disponibilidad** | Preparado (Fase 4) | Desde la pestaña *"Mis eventos"*, se accederá a la vista de ventas por evento con disponibilidad por tipo de entrada (`GET /eventos/:id/compras`). |
+| **Organizador ve compras de un evento con disponibilidad** | Comprobado (Fase 4: `VentasEventoScreen`) | Desde la pestaña *"Mis eventos"*, se accede a la vista de ventas por evento con disponibilidad por tipo de entrada (`GET /eventos/:id/compras`), barras de ocupación y canje de accesos. |
 | **Comprador busca y explora por categoría** | Comprobado (Fases 1 y 2: `ExplorarScreen`) | Llama a `GET /categorias` con filtro de categoría en `GET /eventos?categoria=...`, búsqueda en vivo por texto `q` y orden. |
-| **Organizador crea evento con tipos de entrada** | Preparado (Fase 4) | Formulario para `POST /eventos` con agregado dinámico de tipos de entrada (nombre, precio, cupo inicial). |
+| **Organizador crea evento con tipos de entrada** | Comprobado (Fase 4: `CrearEventoScreen`) | Formulario para `POST /eventos` con agregado dinámico de tipos de entrada (nombre, precio, cupo inicial), validación de fecha local y chips de categoría. |
 | **Comprador envía mensajes** | Preparado (Fase 5) | Chat asociado a la compra consumiendo `POST /compras/:id/mensajes`. |
 | **Organizador responde mensajes** | Preparado (Fase 5) | Misma pantalla de chat reutilizada para el organizador de la compra. |
 | **Comprador cancela compra** | Comprobado (Fase 3: `CompraDetalleScreen`) | Botón de cancelación en el detalle de la compra invocando `POST /compras/:id/cancelar` con confirmación Pop Art. |

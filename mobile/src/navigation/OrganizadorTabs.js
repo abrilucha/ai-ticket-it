@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors.js';
 import { Typography } from '../theme/typography.js';
-import { MisEventosScreen } from '../screens/organizador/MisEventosScreen.js';
+import { EventosStack } from './EventosStack.js';
 import { ValidarEntradaScreen } from '../screens/organizador/ValidarEntradaScreen.js';
 
 const Tab = createBottomTabNavigator();
@@ -29,8 +29,8 @@ export function OrganizadorTabs() {
       }}
     >
       <Tab.Screen
-        name="MisEventos"
-        component={MisEventosScreen}
+        name="MisEventosTab"
+        component={EventosStack}
         options={{
           tabBarLabel: 'MIS EVENTOS',
           tabBarIcon: ({ color, size }) => (
