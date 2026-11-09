@@ -307,7 +307,7 @@ export function CrearEventoScreen({ navigation }) {
                 onChangeText={setDescripcion}
                 multiline
                 numberOfLines={4}
-                style={styles.textArea}
+                inputStyle={styles.textAreaInput}
               />
             </View>
           </HardShadow>
@@ -335,7 +335,7 @@ export function CrearEventoScreen({ navigation }) {
                 onChangeText={setCategoriaDescripcion}
                 multiline
                 numberOfLines={3}
-                style={styles.textAreaSmall}
+                inputStyle={styles.textAreaSmallInput}
               />
             </View>
           </HardShadow>
@@ -343,7 +343,7 @@ export function CrearEventoScreen({ navigation }) {
           {/* 3. Tarjeta de Fecha y Hora con máscara automática */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionHeading}>FECHA Y HORA (HORA LOCAL)</Text>
+              <Text style={styles.sectionHeading}>FECHA Y HORA</Text>
 
               <View style={styles.dateTimeRow}>
                 <View style={styles.dateTimeCol}>
@@ -557,12 +557,12 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 14,
   },
-  textArea: {
-    height: 90,
+  textAreaInput: {
+    minHeight: 80,
     textAlignVertical: 'top',
   },
-  textAreaSmall: {
-    height: 70,
+  textAreaSmallInput: {
+    minHeight: 60,
     textAlignVertical: 'top',
   },
   dateTimeRow: {
