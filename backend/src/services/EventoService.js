@@ -45,12 +45,26 @@ export class EventoService {
       throw new ForbiddenError("Acceso denegado: solo un ORGANIZADOR puede crear eventos");
     }
 
-    let categoria = await this.categoriaRepository.findById(nuevo.categoria);
-    if (!categoria) {
-      categoria = await this.categoriaRepository.findByCodigo(nuevo.categoria);
-    }
-    if (!categoria) {
-      throw new BadRequestError("Categoría no encontrada");
+    let categoria;
+    if (typeof nuevo.categoria === "object" && nuevo.categoria !== null) {
+      const nombreCat = (nuevo.categoria.nombre || "").trim();
+      const descCat = (nuevo.categoria.descripcion || "").trim();
+      if (!nombreCat) {
+        throw new BadRequestError("El nombre de la categoría es obligatorio");
+      }
+      categoria = await this.categoriaRepository.save({
+        nombre: nombreCat,
+        descripcion: descCat,
+        codigo: nombreCat.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
+      });
+    } else {
+      categoria = await this.categoriaRepository.findById(nuevo.categoria);
+      if (!categoria) {
+        categoria = await this.categoriaRepository.findByCodigo(nuevo.categoria);
+      }
+      if (!categoria) {
+        throw new BadRequestError("Categoría no encontrada");
+      }
     }
 
     const fechaEvento = new Date(nuevo.fecha);

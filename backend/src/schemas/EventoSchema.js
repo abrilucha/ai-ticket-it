@@ -21,7 +21,13 @@ export const EventoSchema = z.object({
   descripcion: z
     .string({ required_error: "La descripción es obligatoria" })
     .min(5, "La descripción debe tener al menos 5 caracteres"),
-  categoria: z.string({ required_error: "La categoría es obligatoria" }),
+  categoria: z.union([
+    z.string({ required_error: "La categoría es obligatoria" }).min(1),
+    z.object({
+      nombre: z.string({ required_error: "El nombre de la categoría es obligatorio" }).min(1),
+      descripcion: z.string().optional().default(""),
+    }),
+  ]),
   fecha: z
     .string({ required_error: "La fecha del evento es obligatoria" })
     .refine((val) => !isNaN(Date.parse(val)), {
@@ -43,7 +49,7 @@ export const EventoSchema = z.object({
       }
     ),
   multimedia: z
-    .array(z.string().url("Cada elemento multimedia debe ser una URL válida"))
+    .array(z.string())
     .optional()
     .default([]),
 });

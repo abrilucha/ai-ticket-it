@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,74 +8,125 @@ import {
   StyleSheet,
   Pressable,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
 import { Screen } from '../../components/Screen.js';
 import { HardShadow } from '../../components/HardShadow.js';
 import { PopInput } from '../../components/PopInput.js';
 import { PopButton } from '../../components/PopButton.js';
-import { FilterChip } from '../../components/FilterChip.js';
 import { EventImage } from '../../components/EventImage.js';
 import { TicketTypeRow } from '../../components/TicketTypeRow.js';
 import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
-import { listarCategorias } from '../../api/categorias.js';
 import { crearEvento } from '../../api/eventos.js';
 import { parsearFechaHora, formatFecha } from '../../utils/formato.js';
 
 export function CrearEventoScreen({ navigation }) {
-  // Datos del evento
+  // Datos del evento (Strings libres obligatorios)
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [categoriaId, setCategoriaId] = useState('');
+
+  // Categoría (Clase Categoria del diagrama UML: nombre y descripción libres obligatorios)
+  const [categoriaNombre, setCategoriaNombre] = useState('');
+  const [categoriaDescripcion, setCategoriaDescripcion] = useState('');
+
+  // Fecha y hora
   const [fechaInput, setFechaInput] = useState('');
   const [horaInput, setHoraInput] = useState('');
   const [imagenUrl, setImagenUrl] = useState('');
 
-  // Tipos de entrada (inicia con 1 fila por defecto)
+  // Tipos de entrada (inicia con 1 fila por defecto, sin límite)
   const [tiposEntrada, setTiposEntrada] = useState([
     { nombre: 'General', descripcion: '', precio: '', cupo: '' },
   ]);
-
-  // Categorías desde el back
-  const [categorias, setCategorias] = useState([]);
-  const [loadingCategorias, setLoadingCategorias] = useState(true);
 
   // Estados de validación y publicación
   const [publicando, setPublicando] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [descartarModalVisible, setDescartarModalVisible] = useState(false);
 
-  // Carga de categorías canónicas
-  useEffect(() => {
-    let mounted = true;
-    listarCategorias()
-      .then((data) => {
-        if (mounted && Array.isArray(data)) {
-          setCategorias(data);
-          if (data.length > 0 && !categoriaId) {
-            setCategoriaId(data[0].id);
-          }
-        }
-      })
-      .catch((err) => {
-        if (mounted) setApiError('No se pudieron cargar las categorías: ' + err.message);
-      })
-      .finally(() => {
-        if (mounted) setLoadingCategorias(false);
-      });
+  // Formateador con máscara automática de fecha (DD/MM/AAAA)
+  const handleFechaChange = (text) => {
+    // Si el usuario borró sobre una barra '/', retroceder un caracter más
+    if (text.length < fechaInput.length && fechaInput.endsWith('/')) {
+      const sinBarra = fechaInput.slice(0, -1);
+      setFechaInput(sinBarra.slice(0, -1));
+      return;
+    }
+    const digits = text.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) {
+      setFechaInput(digits);
+    } else if (digits.length <= 4) {
+      setFechaInput(`${digits.slice(0, 2)}/${digits.slice(2)}`);
+    } else {
+      setFechaInput(`${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`);
+    }
+  };
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // Formateador con máscara automática de hora (HH:MM)
+  const handleHoraChange = (text) => {
+    // Si el usuario borró sobre ':', retroceder un caracter más
+    if (text.length < horaInput.length && horaInput.endsWith(':')) {
+      const sinPuntos = horaInput.slice(0, -1);
+      setHoraInput(sinPuntos.slice(0, -1));
+      return;
+    }
+    const digits = text.replace(/\D/g, '').slice(0, 4);
+    if (digits.length <= 2) {
+      setHoraInput(digits);
+    } else {
+      setHoraInput(`${digits.slice(0, 2)}:${digits.slice(2)}`);
+    }
+  };
 
   // Parseo y validación de fecha y hora local
   const { date: fechaParsed, error: fechaError } = parsearFechaHora(fechaInput, horaInput);
   const esFechaPasada = fechaParsed ? fechaParsed <= new Date() : false;
-  const fechaPreviewTexto = fechaParsed && !fechaError
-    ? formatFecha(fechaParsed.toISOString())
-    : null;
+  const fechaPreviewTexto =
+    fechaParsed && !fechaError ? formatFecha(fechaParsed.toISOString()) : null;
+
+  // Manejo de fotos con cámara y galería mediante expo-image-picker
+  const handleTomarFoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        setApiError('Se requiere permiso para usar la cámara y capturar la portada.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setImagenUrl(result.assets[0].uri);
+      }
+    } catch (err) {
+      setApiError('Error al abrir la cámara: ' + (err.message || 'Error desconocido'));
+    }
+  };
+
+  const handleElegirGaleria = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setApiError('Se requiere permiso para acceder a la galería de fotos.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setImagenUrl(result.assets[0].uri);
+      }
+    } catch (err) {
+      setApiError('Error al abrir la galería: ' + (err.message || 'Error desconocido'));
+    }
+  };
 
   // Detección de nombres duplicados en tipos de entrada
   const nombresLimpios = tiposEntrada.map((t) => (t.nombre || '').trim().toLowerCase());
@@ -92,9 +143,8 @@ export function CrearEventoScreen({ navigation }) {
     });
   };
 
-  // Agregar tipo de entrada (máx 6)
+  // Agregar nuevo tipo de entrada (ilimitado)
   const handleAgregarTipo = () => {
-    if (tiposEntrada.length >= 6) return;
     setTiposEntrada((prev) => [
       ...prev,
       { nombre: '', descripcion: '', precio: '', cupo: '' },
@@ -111,6 +161,8 @@ export function CrearEventoScreen({ navigation }) {
   const tieneDatosCargados =
     nombre.trim() !== '' ||
     descripcion.trim() !== '' ||
+    categoriaNombre.trim() !== '' ||
+    categoriaDescripcion.trim() !== '' ||
     fechaInput.trim() !== '' ||
     horaInput.trim() !== '' ||
     imagenUrl.trim() !== '' ||
@@ -135,11 +187,15 @@ export function CrearEventoScreen({ navigation }) {
       return;
     }
     if (!descripcion.trim() || descripcion.trim().length < 5) {
-      setApiError('La descripción debe tener al menos 5 caracteres.');
+      setApiError('La descripción del evento debe tener al menos 5 caracteres.');
       return;
     }
-    if (!categoriaId) {
-      setApiError('Debés seleccionar una categoría.');
+    if (!categoriaNombre.trim()) {
+      setApiError('Debés ingresar el nombre de la categoría.');
+      return;
+    }
+    if (!categoriaDescripcion.trim()) {
+      setApiError('Debés ingresar la descripción de la categoría.');
       return;
     }
     if (fechaError || !fechaParsed) {
@@ -183,7 +239,10 @@ export function CrearEventoScreen({ navigation }) {
       const datosParaEnviar = {
         nombre: nombre.trim(),
         descripcion: descripcion.trim(),
-        categoria: categoriaId,
+        categoria: {
+          nombre: categoriaNombre.trim(),
+          descripcion: categoriaDescripcion.trim(),
+        },
         fecha: fechaParsed.toISOString(),
         multimedia: imagenUrl.trim() ? [imagenUrl.trim()] : [],
         tiposEntrada: tiposEntrada.map((t) => ({
@@ -205,7 +264,7 @@ export function CrearEventoScreen({ navigation }) {
 
   return (
     <Screen>
-      {/* Barra superior con botón volver fijo */}
+      {/* Barra superior con botón volver */}
       <View style={styles.topFixedBar}>
         <HardShadow offset={2} borderRadius={8}>
           <Pressable onPress={handleVolver} style={styles.backButton} hitSlop={10}>
@@ -228,17 +287,17 @@ export function CrearEventoScreen({ navigation }) {
             <ErrorBanner message={apiError} onRetry={() => setApiError(null)} />
           )}
 
-          {/* Tarjeta de Datos Básicos */}
+          {/* 1. Tarjeta de Datos Básicos del Evento */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionHeading}>DATOS BÁSICOS</Text>
+              <Text style={styles.sectionHeading}>DATOS BÁSICOS DEL EVENTO</Text>
 
               <PopInput
                 label="NOMBRE DEL EVENTO *"
                 placeholder="Ej: Quilmes Rock 2027"
                 value={nombre}
                 onChangeText={setNombre}
-                maxLength={70}
+                maxLength={80}
               />
 
               <PopInput
@@ -250,23 +309,38 @@ export function CrearEventoScreen({ navigation }) {
                 numberOfLines={4}
                 style={styles.textArea}
               />
-
-              {/* Categorías (Chips de selección única) */}
-              <Text style={styles.fieldLabel}>CATEGORÍA *</Text>
-              <View style={styles.categoriesRow}>
-                {categorias.map((cat) => (
-                  <FilterChip
-                    key={cat.id}
-                    label={cat.nombre}
-                    selected={categoriaId === cat.id}
-                    onPress={() => setCategoriaId(cat.id)}
-                  />
-                ))}
-              </View>
             </View>
           </HardShadow>
 
-          {/* Tarjeta de Fecha y Hora */}
+          {/* 2. Tarjeta de Categoría (Entidad Categoria: nombre y descripción libres) */}
+          <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionHeading}>CATEGORÍA DEL EVENTO</Text>
+              <Text style={styles.sectionSub}>
+                Clase Categoría según el modelo UML (nombre y descripción libres).
+              </Text>
+
+              <PopInput
+                label="NOMBRE DE LA CATEGORÍA *"
+                placeholder="Ej: Recital de Rock, Teatro, Festival..."
+                value={categoriaNombre}
+                onChangeText={setCategoriaNombre}
+                maxLength={50}
+              />
+
+              <PopInput
+                label="DESCRIPCIÓN DE LA CATEGORÍA *"
+                placeholder="Describí las características de esta categoría..."
+                value={categoriaDescripcion}
+                onChangeText={setCategoriaDescripcion}
+                multiline
+                numberOfLines={3}
+                style={styles.textAreaSmall}
+              />
+            </View>
+          </HardShadow>
+
+          {/* 3. Tarjeta de Fecha y Hora con máscara automática */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
             <View style={styles.sectionCard}>
               <Text style={styles.sectionHeading}>FECHA Y HORA (HORA LOCAL)</Text>
@@ -277,7 +351,7 @@ export function CrearEventoScreen({ navigation }) {
                     label="FECHA (DD/MM/AAAA) *"
                     placeholder="15/04/2027"
                     value={fechaInput}
-                    onChangeText={setFechaInput}
+                    onChangeText={handleFechaChange}
                     keyboardType="numeric"
                     maxLength={10}
                   />
@@ -287,7 +361,7 @@ export function CrearEventoScreen({ navigation }) {
                     label="HORA (HH:MM) *"
                     placeholder="21:00"
                     value={horaInput}
-                    onChangeText={setHoraInput}
+                    onChangeText={handleHoraChange}
                     keyboardType="numeric"
                     maxLength={5}
                   />
@@ -297,7 +371,7 @@ export function CrearEventoScreen({ navigation }) {
               {/* Vista previa interpretada */}
               {fechaPreviewTexto && (
                 <View style={styles.previewBox}>
-                  <Text style={styles.previewLabel}>VISTA PREVIA DE FECHA:</Text>
+                  <Text style={styles.previewLabel}>VISTA PREVIA DE FECHA Y HORA:</Text>
                   <Text style={styles.previewText}>🗓️ {fechaPreviewTexto}</Text>
                 </View>
               )}
@@ -314,22 +388,41 @@ export function CrearEventoScreen({ navigation }) {
             </View>
           </HardShadow>
 
-          {/* Tarjeta de Imagen Multimedia */}
+          {/* 4. Tarjeta de Portada Multimedia (Galería o Cámara) */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
             <View style={styles.sectionCard}>
               <Text style={styles.sectionHeading}>PORTADA DEL EVENTO (OPCIONAL)</Text>
+              <Text style={styles.sectionSub}>
+                Cargá una foto real desde tu galería o sacá una foto con la cámara.
+              </Text>
 
-              <PopInput
-                label="URL DE LA IMAGEN"
-                placeholder="https://images.unsplash.com/..."
-                value={imagenUrl}
-                onChangeText={setImagenUrl}
-                autoCapitalize="none"
-              />
+              <View style={styles.mediaActionsRow}>
+                <View style={styles.mediaBtnSlot}>
+                  <PopButton
+                    title="🖼️ GALERÍA"
+                    variant="neutral"
+                    size="md"
+                    onPress={handleElegirGaleria}
+                  />
+                </View>
+                <View style={styles.mediaBtnSlot}>
+                  <PopButton
+                    title="📷 CÁMARA"
+                    variant="neutral"
+                    size="md"
+                    onPress={handleTomarFoto}
+                  />
+                </View>
+              </View>
 
               {imagenUrl.trim() !== '' && (
                 <View style={styles.imagePreviewWrap}>
-                  <Text style={styles.previewLabel}>VISTA PREVIA:</Text>
+                  <View style={styles.previewHeaderRow}>
+                    <Text style={styles.previewLabel}>FOTO SELECCIONADA:</Text>
+                    <Pressable onPress={() => setImagenUrl('')} hitSlop={8}>
+                      <Text style={styles.clearImgBtn}>✕ Quitar foto</Text>
+                    </Pressable>
+                  </View>
                   <View style={styles.imageBox}>
                     <EventImage uri={imagenUrl.trim()} style={styles.image} />
                   </View>
@@ -338,16 +431,18 @@ export function CrearEventoScreen({ navigation }) {
             </View>
           </HardShadow>
 
-          {/* Tarjeta de Tipos de Entrada */}
+          {/* 5. Tarjeta de Tipos de Entrada (sin límite de filas) */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
             <View style={styles.sectionCard}>
               <View style={styles.ticketsHeader}>
                 <Text style={styles.sectionHeading}>TIPOS DE ENTRADA</Text>
-                <Text style={styles.ticketsCountBadge}>{tiposEntrada.length} / 6</Text>
+                <Text style={styles.ticketsCountBadge}>
+                  {tiposEntrada.length} {tiposEntrada.length === 1 ? 'tipo' : 'tipos'}
+                </Text>
               </View>
 
               <Text style={styles.sectionSub}>
-                Definí al menos una categoría con precio y cupo inicial de tickets.
+                Definí al menos una categoría de ticket con su nombre, precio y cupo inicial.
               </Text>
 
               {tiposEntrada.map((tipo, idx) => {
@@ -367,15 +462,13 @@ export function CrearEventoScreen({ navigation }) {
                 );
               })}
 
-              {tiposEntrada.length < 6 && (
-                <PopButton
-                  title="+ AGREGAR OTRO TIPO DE ENTRADA"
-                  variant="canary"
-                  size="md"
-                  onPress={handleAgregarTipo}
-                  style={styles.addTypeBtn}
-                />
-              )}
+              <PopButton
+                title="+ AGREGAR OTRO TIPO DE ENTRADA"
+                variant="canary"
+                size="md"
+                onPress={handleAgregarTipo}
+                style={styles.addTypeBtn}
+              />
             </View>
           </HardShadow>
 
@@ -464,21 +557,13 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 14,
   },
-  fieldLabel: {
-    ...Typography.labelSm,
-    color: Colors.inkBlack,
-    marginBottom: 8,
-    marginTop: 6,
-  },
   textArea: {
     height: 90,
     textAlignVertical: 'top',
   },
-  categoriesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 6,
+  textAreaSmall: {
+    height: 70,
+    textAlignVertical: 'top',
   },
   dateTimeRow: {
     flexDirection: 'row',
@@ -511,11 +596,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 6,
   },
+  mediaActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  mediaBtnSlot: {
+    flex: 1,
+  },
+  previewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  clearImgBtn: {
+    ...Typography.labelSm,
+    color: Colors.crimsonPunch,
+    fontWeight: '700',
+  },
   imagePreviewWrap: {
-    marginTop: 10,
+    marginTop: 6,
   },
   imageBox: {
-    height: 140,
+    height: 180,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: Colors.inkBlack,
