@@ -10,12 +10,21 @@
       "supportsTablet": true
     },
     "android": {
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "androidNavigationBar": {
+        "backgroundColor": "#7DD3FC",
+        "barStyle": "dark-content"
       }
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#7DD3FC",
+      "barStyle": "dark-content"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -26,6 +35,13 @@
         "expo-camera",
         {
           "cameraPermission": "AI Ticket It usa la cámara para leer los QR de las entradas"
+        }
+      ],
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "light"
         }
       ]
     ]

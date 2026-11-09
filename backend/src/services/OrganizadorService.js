@@ -50,20 +50,27 @@ export class OrganizadorService {
     // Ordenar de la más nueva a la más vieja
     resenasRaw.sort((a, b) => new Date(b.resena.fecha) - new Date(a.resena.fecha));
 
-    const resenas = resenasRaw.map((item) => ({
-      id: item.resena.id,
-      puntaje: item.resena.puntaje,
-      comentario: item.resena.comentario,
-      fecha: item.resena.fecha,
-      evento: {
-        id: item.evento?.id || item.compra?.evento?.id,
-        nombre: item.evento?.nombre || item.compra?.evento?.nombre,
-      },
-      autor: {
-        id: item.compra?.comprador?.id,
-        nombre: item.compra?.comprador?.nombre,
-      },
-    }));
+    const resenas = resenasRaw.map((item) => {
+      const comp = item.compra || {};
+      const compComprador = comp.comprador || {};
+      const compEvento = item.evento || comp.evento || {};
+      const nombreCompleto = [compComprador.nombre, compComprador.apellido].filter(Boolean).join(" ") || compComprador.nombre || "Comprador";
+      return {
+        id: item.resena.id,
+        puntaje: item.resena.puntaje,
+        comentario: item.resena.comentario,
+        fecha: item.resena.fecha,
+        evento: {
+          id: compEvento.id || compEvento,
+          nombre: compEvento.nombre || "Evento",
+        },
+        autor: {
+          id: compComprador.id,
+          nombre: nombreCompleto,
+          fotoPerfil: compComprador.fotoPerfil || null,
+        },
+      };
+    });
 
     return {
       puntajePromedio,

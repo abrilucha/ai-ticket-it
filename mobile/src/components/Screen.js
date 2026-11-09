@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, ScrollView, StyleSheet, ImageBackground, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors.js';
+import { setAndroidBottomBar } from '../utils/systemBars.js';
 
 const authBg = require('../../assets/auth-bg.jpg');
 
@@ -9,7 +10,8 @@ const authBg = require('../../assets/auth-bg.jpg');
  * Screen
  * Contenedor base para todas las pantallas de la app.
  * Renderiza el fondo de puntos semitono Pop Art bajo el contenido de la pantalla,
- * unificando la barra de notificaciones superior con el celeste del encabezado (#7DD3FC).
+ * unificando la barra de notificaciones superior con el celeste del encabezado (#7DD3FC)
+ * y la barra inferior de botones del sistema en rojo (#EF4444).
  */
 export function Screen({
   children,
@@ -17,9 +19,12 @@ export function Screen({
   style,
   contentContainerStyle,
 }) {
+  useEffect(() => {
+    setAndroidBottomBar('main');
+  }, []);
   return (
     <SafeAreaView style={[styles.root, style]} edges={['top', 'left', 'right']}>
-      <StatusBar backgroundColor="#7DD3FC" barStyle="dark-content" />
+      <StatusBar backgroundColor={Colors.vibrantTurquoise} barStyle="dark-content" />
       <ImageBackground source={authBg} style={styles.bgImage} resizeMode="cover">
         {scroll ? (
           <ScrollView
@@ -40,7 +45,7 @@ export function Screen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#7DD3FC', // Mismo celeste de la barra superior para eliminar la franja rara
+    backgroundColor: Colors.vibrantTurquoise, // Mismo turquesa de la barra superior para eliminar la franja rara
   },
   bgImage: {
     flex: 1,

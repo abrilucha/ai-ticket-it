@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,11 +21,16 @@ import { PopButton } from '../../components/PopButton.js';
 import { PopInput } from '../../components/PopInput.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { FotoPerfilPicker } from '../../components/FotoPerfilPicker.js';
+import { setAndroidBottomBar } from '../../utils/systemBars.js';
 
 const authBg = require('../../../assets/auth-bg.jpg');
 
 export function RegisterScreen({ navigation }) {
   const { registrar } = useAuth();
+
+  useEffect(() => {
+    setAndroidBottomBar('auth');
+  }, []);
 
   const [rol, setRol] = useState('COMPRADOR');
   const [nombre, setNombre] = useState('');
@@ -47,6 +52,7 @@ export function RegisterScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      setAndroidBottomBar('auth');
       const onBackPress = () => {
         handleGoWelcome();
         return true;

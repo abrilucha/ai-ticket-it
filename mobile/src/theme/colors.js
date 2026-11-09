@@ -17,6 +17,7 @@ export const Colors = {
   electricCobalt: '#2563EB',   // CTA primario, estado CONFIRMADA, badges
   cobaltDark: '#004AC6',       // Variante oscura para interacción
   cobaltLight: '#DBE1FF',      // Contenedor tintado suave
+  vibrantTurquoise: '#06B6D4', // Celeste vibrante / turquesa Pop Art para barras de navegación
 
   popVermilion: '#F43F5E',     // Magenta / bermellón: alertas, sold out, REEMBOLSADA
   vermilionDark: '#B90538',

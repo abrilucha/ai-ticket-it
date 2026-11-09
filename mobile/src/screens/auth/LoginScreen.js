@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,11 +20,16 @@ import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
 import { PopInput } from '../../components/PopInput.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
+import { setAndroidBottomBar } from '../../utils/systemBars.js';
 
 const authBg = require('../../../assets/auth-bg.jpg');
 
 export function LoginScreen({ navigation }) {
   const { login } = useAuth();
+
+  useEffect(() => {
+    setAndroidBottomBar('auth');
+  }, []);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,6 +46,7 @@ export function LoginScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      setAndroidBottomBar('auth');
       const onBackPress = () => {
         handleGoWelcome();
         return true;

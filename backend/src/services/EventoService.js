@@ -202,7 +202,8 @@ export class EventoService {
         const realizado = new Date(ev.fecha) < ahora;
 
         const orgId = ev.organizador?.id || ev.organizador;
-        const reputacion = await this.reputacionService.calcularPuntajeOrganizador(orgId);
+        const reputacionOrg = await this.reputacionService.calcularPuntajeOrganizador(orgId);
+        const reputacionEvt = await this.reputacionService.calcularPuntajeEvento(ev.id);
         const tiposConDisponibilidad = await this.calcularDisponibilidadTipos(ev);
         const { email: _email, passwordHash: _hash, ...orgSinEmail } = ev.organizador || {};
 
@@ -210,10 +211,17 @@ export class EventoService {
           ...ev,
           precioMinimo,
           realizado,
-          puntajeOrganizador: reputacion.puntajePromedio, // number o null (nunca 0.0)
-          cantidadResenas: reputacion.cantidadResenas,
+          puntajeOrganizador: reputacionOrg.puntajePromedio, // number o null (nunca 0.0)
+          cantidadResenas: reputacionOrg.cantidadResenas,
+          // Puntuación y reseñas exclusivas del evento:
+          puntajeEvento: reputacionEvt.puntajePromedio,
+          cantidadResenasEvento: reputacionEvt.cantidadResenas,
           tiposEntrada: tiposConDisponibilidad,
-          organizador: orgSinEmail,
+          organizador: {
+            ...orgSinEmail,
+            puntajePromedio: reputacionOrg.puntajePromedio,
+            cantidadResenas: reputacionOrg.cantidadResenas,
+          },
         };
       })
     );
@@ -284,20 +292,27 @@ export class EventoService {
     // Ordenadas de más nueva a más vieja
     resenasOrgRaw.sort((a, b) => new Date(b.resena.fecha) - new Date(a.resena.fecha));
 
-    const resenasFormateadas = resenasOrgRaw.map((item) => ({
-      id: item.resena.id,
-      puntaje: item.resena.puntaje,
-      comentario: item.resena.comentario,
-      fecha: item.resena.fecha,
-      evento: {
-        id: item.evento?.id || item.compra?.evento?.id,
-        nombre: item.evento?.nombre || item.compra?.evento?.nombre,
-      },
-      autor: {
-        id: item.compra?.comprador?.id,
-        nombre: item.compra?.comprador?.nombre,
-      },
-    }));
+    const resenasFormateadas = resenasOrgRaw.map((item) => {
+      const comp = item.compra || {};
+      const compComprador = comp.comprador || {};
+      const compEvento = item.evento || comp.evento || {};
+      const nombreCompleto = [compComprador.nombre, compComprador.apellido].filter(Boolean).join(" ") || compComprador.nombre || "Comprador";
+      return {
+        id: item.resena.id,
+        puntaje: item.resena.puntaje,
+        comentario: item.resena.comentario,
+        fecha: item.resena.fecha,
+        evento: {
+          id: compEvento.id || compEvento,
+          nombre: compEvento.nombre || "Evento",
+        },
+        autor: {
+          id: compComprador.id,
+          nombre: nombreCompleto,
+          fotoPerfil: compComprador.fotoPerfil || null,
+        },
+      };
+    });
 
     const organizadorDetallado = {
       id: orgId,
@@ -306,6 +321,30 @@ export class EventoService {
       cantidadResenas: reputacionOrg.cantidadResenas,
       resenas: resenasFormateadas,
     };
+
+    // Calcular reputación y reseñas exclusivas de este evento
+    const reputacionEvento = await this.reputacionService.calcularPuntajeEvento(id);
+    const resenasEventoFormateadas = (reputacionEvento.resenasConDatos || []).map((item) => {
+      const comp = item.compra || {};
+      const compComprador = comp.comprador || {};
+      const compEvento = item.evento || comp.evento || {};
+      const nombreCompleto = [compComprador.nombre, compComprador.apellido].filter(Boolean).join(" ") || compComprador.nombre || "Comprador";
+      return {
+        id: item.resena.id,
+        puntaje: item.resena.puntaje,
+        comentario: item.resena.comentario,
+        fecha: item.resena.fecha,
+        evento: {
+          id: compEvento.id || compEvento,
+          nombre: compEvento.nombre || "Evento",
+        },
+        autor: {
+          id: compComprador.id,
+          nombre: nombreCompleto,
+          fotoPerfil: compComprador.fotoPerfil || null,
+        },
+      };
+    });
 
     const tiposEntradaConDisponibilidad = await this.calcularDisponibilidadTipos(evento);
 
@@ -319,6 +358,9 @@ export class EventoService {
       realizado,
       tiposEntrada: tiposEntradaConDisponibilidad,
       organizador: organizadorDetallado,
+      puntajeEvento: reputacionEvento.puntajePromedio,
+      cantidadResenasEvento: reputacionEvento.cantidadResenas,
+      resenasEvento: resenasEventoFormateadas,
     };
   };
 

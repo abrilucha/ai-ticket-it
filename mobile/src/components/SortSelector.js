@@ -35,7 +35,7 @@ export function SortSelector({ orden = 'fecha', direccion = 'asc', onChange, sty
 
   return (
     <View style={[styles.container, style]}>
-      <Text style={styles.label}>ORDENAR POR:</Text>
+      <Text style={styles.label}>ORDENAR POR</Text>
       <View style={styles.buttonsRow}>
         {OPCIONES.map((op) => {
           const isActive = orden === op.key;
@@ -82,7 +82,8 @@ const styles = StyleSheet.create({
   },
   label: {
     ...Typography.labelSm,
-    color: Colors.onSurfaceVariant,
+    color: Colors.inkBlack,
+    fontWeight: '800',
     marginBottom: 6,
   },
   buttonsRow: {

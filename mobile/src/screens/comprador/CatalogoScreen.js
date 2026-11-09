@@ -191,7 +191,7 @@ export function CatalogoScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   headerBlock: {
     paddingHorizontal: 16,
@@ -230,8 +230,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
-    borderBottomWidth: 1.5,
-    borderColor: Colors.surfaceDim,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.inkBlack,
     marginBottom: 12,
   },
   summaryCount: {

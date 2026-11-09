@@ -39,7 +39,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={styles.safeAreaProvider}>
       <StatusBar style="dark" />
       <AuthProvider>
         <AppNavigator />
@@ -49,6 +49,10 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  safeAreaProvider: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   loadingScreen: {
     flex: 1,
     backgroundColor: Colors.canvasBase,

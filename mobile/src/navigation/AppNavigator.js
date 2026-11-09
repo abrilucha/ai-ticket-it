@@ -1,6 +1,7 @@
 import React from 'react';
-import { ImageBackground, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { View, ImageBackground, StyleSheet } from 'react-native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { Colors } from '../theme/colors.js';
 import { useAuth } from '../context/AuthContext.js';
 import { UnsavedChangesProvider } from '../context/UnsavedChangesContext.js';
 import { AuthStack } from './AuthStack.js';
@@ -21,22 +22,37 @@ export function AppNavigator() {
     );
   }
 
+  const navTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: 'transparent',
+    },
+  };
+
   return (
     <UnsavedChangesProvider>
-      <NavigationContainer>
-        {!usuario ? (
-          <AuthStack />
-        ) : usuario.rol === 'ORGANIZADOR' ? (
-          <OrganizadorTabs />
-        ) : (
-          <CompradorTabs />
-        )}
-      </NavigationContainer>
+      <View style={styles.rootContainer}>
+        <NavigationContainer theme={navTheme}>
+          {!usuario ? (
+            <ImageBackground source={authBg} style={styles.bgImage} resizeMode="cover">
+              <AuthStack />
+            </ImageBackground>
+          ) : usuario.rol === 'ORGANIZADOR' ? (
+            <OrganizadorTabs />
+          ) : (
+            <CompradorTabs />
+          )}
+        </NavigationContainer>
+      </View>
     </UnsavedChangesProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+  },
   bgImage: {
     flex: 1,
     width: '100%',

@@ -215,7 +215,7 @@ export function AjustesModal({ visible, onClose }) {
 
                 {/* Email actual y bloque desplegable para cambiarlo */}
                 <View style={styles.emailContainer}>
-                  <Text style={styles.emailLabel}>EMAIL ACTUAL</Text>
+                  <Text style={styles.emailLabel}>EMAIL</Text>
                   <View style={styles.currentEmailCard}>
                     <Text style={styles.currentEmailText}>{usuario?.email}</Text>
                   </View>
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   titleBadge: {
-    backgroundColor: '#7DD3FC', // Celeste Pop
+    backgroundColor: Colors.canaryYellow, // Cartelito amarillo Pop Art
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 8,
@@ -439,8 +439,8 @@ const styles = StyleSheet.create({
   },
   currentEmailText: {
     ...Typography.bodyMedium,
-    color: Colors.inkBlack,
-    fontWeight: '700',
+    color: '#6B7280', // Grisesito que denota campo no editable directamente
+    fontWeight: '500',
   },
   collapsibleBox: {
     padding: 10,

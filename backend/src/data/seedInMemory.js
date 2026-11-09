@@ -88,7 +88,7 @@ export async function inicializarSeedInMemory() {
     fotoPerfil: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
   });
 
-  await usuarioRepository.save({
+  const comprador3 = await usuarioRepository.save({
     id: "usr_comprador_3",
     nombre: "Sofía",
     apellido: "Martínez",
@@ -144,7 +144,7 @@ export async function inicializarSeedInMemory() {
   const fechaPasada5d = new Date(ahora - diaMs * 5).toISOString();
 
   // 1. Recitales (futuro)
-  await eventoRepository.save({
+  const eventoCharly = await eventoRepository.save({
     id: "evt_recital_charly",
     nombre: "Charly García Sinfónico",
     descripcion: "Homenaje sinfónico inolvidable a la obra cumbre de Charly García en el histórico estadio Luna Park.",
@@ -478,6 +478,51 @@ export async function inicializarSeedInMemory() {
     puntaje: 3,
     comentario: "El sonido en el campo trasero estuvo regular, pero buena onda.",
     fecha: new Date(ahora - diaMs * 3).toISOString(),
+  });
+
+  // Compras y reseñas para el evento Charly García (Asociación Deportes y Espectáculos)
+  const compraUtilizadaCharly1 = await compraRepository.save({
+    id: "cmp_utilizada_charly_1",
+    comprador: comprador3,
+    evento: eventoCharly,
+    tipoEntrada: {
+      tipoEntradaId: "tipo_charly_platea",
+      nombre: "Platea Preferencial",
+      precio: 35000,
+    },
+    cantidad: 1,
+    total: 35000,
+    estado: "UTILIZADA",
+  });
+
+  const compraUtilizadaCharly2 = await compraRepository.save({
+    id: "cmp_utilizada_charly_2",
+    comprador: comprador2,
+    evento: eventoCharly,
+    tipoEntrada: {
+      tipoEntradaId: "tipo_charly_popular",
+      nombre: "Cabecera",
+      precio: 18000,
+    },
+    cantidad: 1,
+    total: 18000,
+    estado: "UTILIZADA",
+  });
+
+  await resenaRepository.save({
+    id: "res_3",
+    compraId: "cmp_utilizada_charly_1",
+    puntaje: 5,
+    comentario: "¡La orquesta en vivo fue emocionante! Un homenaje a la altura de Charly.",
+    fecha: new Date(ahora - diaMs * 2).toISOString(),
+  });
+
+  await resenaRepository.save({
+    id: "res_4",
+    compraId: "cmp_utilizada_charly_2",
+    puntaje: 4,
+    comentario: "Muy buena acústica en el Luna Park y el ingreso fue súper rápido.",
+    fecha: new Date(ahora - diaMs * 1).toISOString(),
   });
 
   console.log(" Seed en memoria cargado exitosamente:");

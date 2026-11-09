@@ -124,6 +124,6 @@ export function MisComprasScreen({ navigation }) {
 const styles = StyleSheet.create({
   listContent: {
     paddingTop: 8,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
 });

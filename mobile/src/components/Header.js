@@ -44,7 +44,7 @@ export function Header({ usuario, onLogout, onBack = null }) {
             {onBack ? (
               <HardShadow offset={2} borderRadius={6} style={styles.backBtnShadow}>
                 <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
-                  <Text style={styles.backBtnText}>←</Text>
+                  <Ionicons name="arrow-back" size={18} color={Colors.inkBlack} />
                 </Pressable>
               </HardShadow>
             ) : null}
@@ -177,7 +177,7 @@ export function Header({ usuario, onLogout, onBack = null }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#7DD3FC', // Barra superior celeste Pop Art
+    backgroundColor: Colors.vibrantTurquoise, // Barra superior turquesa vibrante Pop Art
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 2,
@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.inkBlack,
     borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, StatusBar } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors.js';
 import { Typography, FontFamily } from '../../theme/typography.js';
@@ -7,11 +8,18 @@ import { useAuth } from '../../context/AuthContext.js';
 import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
+import { setAndroidBottomBar } from '../../utils/systemBars.js';
 
 const authBg = require('../../../assets/auth-bg.jpg');
 
 export function WelcomeScreen({ navigation }) {
   const { connectionError, reintentar } = useAuth();
+
+  useFocusEffect(
+    useCallback(() => {
+      setAndroidBottomBar('auth');
+    }, [])
+  );
 
   return (
     <ImageBackground source={authBg} style={styles.bgImage} resizeMode="cover">
@@ -65,7 +73,7 @@ export function WelcomeScreen({ navigation }) {
             <View style={styles.buttonSlot}>
               <PopButton
                 title="CREAR CUENTA"
-                variant="canary"
+                variant="turquoise"
                 size="lg"
                 onPress={() => navigation.navigate('Register')}
                 style={styles.actionBtn}
@@ -175,7 +183,8 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...Typography.bodySm,
-    color: Colors.outline,
+    color: Colors.inkBlack,
+    fontWeight: '700',
     textAlign: 'center',
     lineHeight: 18,
   },

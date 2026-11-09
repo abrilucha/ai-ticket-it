@@ -1,31 +1,39 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors.js';
 import { Typography } from '../theme/typography.js';
 import { ExplorarStack } from './ExplorarStack.js';
 import { ComprasStack } from './ComprasStack.js';
+import { TabBarGradient } from '../components/TabBarGradient.js';
+import { setAndroidBottomBar } from '../utils/systemBars.js';
 
 const Tab = createBottomTabNavigator();
 
 export function CompradorTabs() {
+  useEffect(() => {
+    setAndroidBottomBar('main');
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarBackground: () => <TabBarGradient />,
         tabBarStyle: {
-          backgroundColor: Colors.popVermilion,
+          backgroundColor: 'transparent',
           borderTopWidth: 2,
           borderTopColor: Colors.inkBlack,
-          height: 60,
-          paddingBottom: 8,
+          height: 62,
+          paddingBottom: 6,
           paddingTop: 6,
+          elevation: 0,
         },
-        tabBarActiveTintColor: Colors.white,
-        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.75)',
+        tabBarActiveTintColor: Colors.inkBlack,
+        tabBarInactiveTintColor: 'rgba(10, 10, 10, 0.55)',
         tabBarLabelStyle: {
           ...Typography.labelSm,
-          color: Colors.white,
+          color: Colors.inkBlack,
           fontWeight: '800',
         },
       }}

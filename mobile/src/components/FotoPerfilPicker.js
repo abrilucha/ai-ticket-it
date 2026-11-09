@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, Pressable, StyleSheet, Alert, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors.js';
@@ -7,6 +7,8 @@ import { Typography } from '../theme/typography.js';
 import { HardShadow } from './HardShadow.js';
 
 export function FotoPerfilPicker({ fotoUri, onChangeFoto, style }) {
+  const [zoomVisible, setZoomVisible] = useState(false);
+
   const tomarFoto = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -51,17 +53,25 @@ export function FotoPerfilPicker({ fotoUri, onChangeFoto, style }) {
   return (
     <View style={[styles.container, style]}>
       <View style={styles.avatarWrapper}>
-        <HardShadow offset={3} borderRadius={50} style={styles.avatarShadow}>
-          <View style={styles.avatarCircle}>
-            {fotoUri ? (
-              <Image source={{ uri: fotoUri }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.placeholder}>
-                <Ionicons name="person" size={44} color={Colors.inkBlack} />
-              </View>
-            )}
-          </View>
-        </HardShadow>
+        <Pressable
+          onPress={() => {
+            if (fotoUri) setZoomVisible(true);
+          }}
+          disabled={!fotoUri}
+          hitSlop={6}
+        >
+          <HardShadow offset={3} borderRadius={50} style={styles.avatarShadow}>
+            <View style={styles.avatarCircle}>
+              {fotoUri ? (
+                <Image source={{ uri: fotoUri }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.placeholder}>
+                  <Ionicons name="person" size={44} color={Colors.inkBlack} />
+                </View>
+              )}
+            </View>
+          </HardShadow>
+        </Pressable>
 
         {fotoUri ? (
           <Pressable
@@ -94,6 +104,37 @@ export function FotoPerfilPicker({ fotoUri, onChangeFoto, style }) {
           </Pressable>
         </HardShadow>
       </View>
+
+      {/* Modal para ampliar foto en formato redondo */}
+      <Modal
+        visible={zoomVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setZoomVisible(false)}
+      >
+        <Pressable
+          style={styles.zoomOverlay}
+          onPress={() => setZoomVisible(false)}
+        >
+          <View style={styles.zoomContainer}>
+            <HardShadow offset={6} borderRadius={130} style={styles.zoomShadow}>
+              <View style={styles.zoomCircle}>
+                {fotoUri ? (
+                  <Image source={{ uri: fotoUri }} style={styles.zoomImage} />
+                ) : null}
+              </View>
+            </HardShadow>
+
+            <Pressable
+              onPress={() => setZoomVisible(false)}
+              style={styles.zoomCloseBtn}
+              hitSlop={10}
+            >
+              <Text style={styles.zoomCloseText}>✕ CERRAR</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -180,5 +221,46 @@ const styles = StyleSheet.create({
     color: Colors.inkBlack,
     fontWeight: '800',
     fontSize: 11,
+  },
+  zoomOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  zoomContainer: {
+    alignItems: 'center',
+  },
+  zoomShadow: {
+    width: 250,
+    height: 250,
+  },
+  zoomCircle: {
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    borderWidth: 3,
+    borderColor: Colors.inkBlack,
+    backgroundColor: '#FEF3C7',
+    overflow: 'hidden',
+  },
+  zoomImage: {
+    width: '100%',
+    height: '100%',
+  },
+  zoomCloseBtn: {
+    marginTop: 20,
+    backgroundColor: Colors.popVermilion,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  zoomCloseText: {
+    ...Typography.labelMd,
+    color: Colors.white,
+    fontWeight: '900',
   },
 });
