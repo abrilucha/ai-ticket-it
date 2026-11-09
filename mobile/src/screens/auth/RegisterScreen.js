@@ -267,6 +267,17 @@ export function RegisterScreen({ navigation }) {
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="new-password"
+                rightComponent={
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeBtn}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.eyeBtnText}>
+                      {showPassword ? 'OCULTAR' : 'VER'}
+                    </Text>
+                  </Pressable>
+                }
               />
 
               {/* Botón Crear Cuenta */}
@@ -319,22 +330,28 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   backBtn: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.popVermilion,
     borderWidth: 2,
     borderColor: Colors.inkBlack,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    shadowColor: Colors.inkBlack,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   backBtnText: {
     ...Typography.labelMd,
-    color: Colors.inkBlack,
+    color: Colors.white,
+    fontWeight: '800',
   },
   formCardShadow: {
     width: '100%',
   },
   formCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.canvasTint,
     borderWidth: 3,
     borderColor: Colors.inkBlack,
     borderRadius: 16,
@@ -421,16 +438,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   eyeBtn: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: Colors.creamBg,
+    backgroundColor: Colors.popVermilion,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.inkBlack,
+    shadowColor: Colors.inkBlack,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   eyeBtnText: {
     ...Typography.labelSm,
-    color: Colors.inkBlack,
+    color: Colors.white,
+    fontWeight: '800',
   },
   passwordHint: {
     ...Typography.bodySm,

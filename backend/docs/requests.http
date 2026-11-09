@@ -19,7 +19,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "lucas.garcia@gmail.com",
+  "email": "lucas@test.com",
   "password": "{{demoPassword}}"
 }
 
@@ -29,7 +29,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "contacto@rocknacional.com.ar",
+  "email": "rock@productora.com",
   "password": "{{demoPassword}}"
 }
 

@@ -152,7 +152,7 @@ describe('Ajustes Autorizados Fase 4 (A1, A2, A3, A4)', () => {
     // 8. GET /usuarios/me (debe contener el email del usuario logueado)
     const resMe = await request(app).get('/usuarios/me').set('x-user-id', COMPRADOR_1);
     expect(resMe.status).toBe(200);
-    expect(resMe.body.email).toBe('lucas.garcia@gmail.com');
+    expect(resMe.body.email).toBe('lucas@test.com');
   });
 
   test('A4: GET /eventos/:id/compras incluye banderas enriquecidas en cada compra', async () => {

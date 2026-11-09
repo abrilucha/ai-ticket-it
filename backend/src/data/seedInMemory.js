@@ -72,7 +72,7 @@ export async function inicializarSeedInMemory() {
     id: "usr_comprador_1",
     nombre: "Lucas",
     apellido: "García",
-    email: "lucas.garcia@gmail.com",
+    email: "lucas@test.com",
     rol: "COMPRADOR",
     passwordHash,
   });
@@ -81,7 +81,7 @@ export async function inicializarSeedInMemory() {
     id: "usr_comprador_2",
     nombre: "Mariana",
     apellido: "López",
-    email: "mariana.lopez@hotmail.com",
+    email: "mariana@test.com",
     rol: "COMPRADOR",
     passwordHash,
   });
@@ -90,7 +90,7 @@ export async function inicializarSeedInMemory() {
     id: "usr_comprador_3",
     nombre: "Sofía",
     apellido: "Martínez",
-    email: "sofia.martinez@yahoo.com",
+    email: "sofia@test.com",
     rol: "COMPRADOR",
     passwordHash,
   });
@@ -100,7 +100,7 @@ export async function inicializarSeedInMemory() {
     id: "usr_org_rock",
     nombre: "Productora Rock Nacional",
     apellido: "Eventos",
-    email: "contacto@rocknacional.com.ar",
+    email: "rock@productora.com",
     rol: "ORGANIZADOR",
     passwordHash,
   });
@@ -110,7 +110,7 @@ export async function inicializarSeedInMemory() {
     id: "usr_org_teatro",
     nombre: "Teatro Gran Rex",
     apellido: "Administración",
-    email: "entradas@granrex.com.ar",
+    email: "info@granrex.com.ar",
     rol: "ORGANIZADOR",
     passwordHash,
   });
@@ -120,7 +120,7 @@ export async function inicializarSeedInMemory() {
     id: "usr_org_deportes",
     nombre: "Asociación Deportes y Espectáculos",
     apellido: "Producciones",
-    email: "produccion@deportesba.com.ar",
+    email: "eventos@deportes.org",
     rol: "ORGANIZADOR",
     passwordHash,
   });

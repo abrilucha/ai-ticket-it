@@ -32,14 +32,10 @@ export function WelcomeScreen({ navigation }) {
         <View style={styles.heroSection}>
           <HardShadow offset={6} borderRadius={20} style={styles.logoCardShadow}>
             <View style={styles.logoCard}>
-              <View style={styles.badgeTop}>
-                <Text style={styles.badgeTopText}>ENTRADAS SEGURAS</Text>
-              </View>
-
               <View style={styles.brandTitleRow}>
                 <Text style={styles.brandTitle}>AI TICKET</Text>
-                <View style={styles.brandExclBadge}>
-                  <Text style={styles.brandExclText}>IT!</Text>
+                <View style={styles.brandItBadge}>
+                  <Text style={styles.brandItText}>IT</Text>
                 </View>
               </View>
 
@@ -105,49 +101,44 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logoCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.canvasTint,
     borderWidth: 3,
     borderColor: Colors.inkBlack,
     borderRadius: 20,
-    padding: 24,
+    padding: 28,
     alignItems: 'center',
-  },
-  badgeTop: {
-    backgroundColor: Colors.canaryYellow,
-    borderWidth: 2,
-    borderColor: Colors.inkBlack,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginBottom: 16,
-  },
-  badgeTopText: {
-    ...Typography.labelMd,
-    color: Colors.inkBlack,
-    letterSpacing: 1,
   },
   brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   brandTitle: {
     ...Typography.displayLg,
+    fontSize: 34,
     color: Colors.inkBlack,
+    letterSpacing: 0.5,
   },
-  brandExclBadge: {
-    backgroundColor: Colors.popPink,
-    borderWidth: 2,
+  brandItBadge: {
+    backgroundColor: Colors.popVermilion,
+    borderWidth: 2.5,
     borderColor: Colors.inkBlack,
-    borderRadius: 6,
-    paddingHorizontal: 8,
+    borderRadius: 8,
+    paddingHorizontal: 10,
     paddingVertical: 2,
-    marginLeft: 6,
-    transform: [{ rotate: '4deg' }],
+    marginLeft: 8,
+    shadowColor: Colors.inkBlack,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
-  brandExclText: {
+  brandItText: {
     ...Typography.titleLg,
+    fontSize: 26,
     color: Colors.white,
+    fontWeight: '900',
   },
   tagline: {
     ...Typography.bodyMd,

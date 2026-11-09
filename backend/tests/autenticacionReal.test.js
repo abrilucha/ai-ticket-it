@@ -184,23 +184,23 @@ describe("BLOQUE A7: Pruebas de Autenticación Real (Registro, Login, Sesiones)"
   test("5. Login correcto 200 y uso en GET /usuarios/me; contraseña incorrecta y email inexistente devuelven 401 idéntico", async () => {
     // Login con cuenta del seed
     const resLogin = await request(app).post("/auth/login").send({
-      email: "lucas.garcia@gmail.com",
+      email: "lucas@test.com",
       password: DEMO_PASSWORD,
     });
     expect(resLogin.status).toBe(200);
     expect(resLogin.body.token).toBeDefined();
-    expect(resLogin.body.usuario.email).toBe("lucas.garcia@gmail.com");
+    expect(resLogin.body.usuario.email).toBe("lucas@test.com");
 
     // Token utilizable en /usuarios/me
     const resMe = await request(app)
       .get("/usuarios/me")
       .set("Authorization", `Bearer ${resLogin.body.token}`);
     expect(resMe.status).toBe(200);
-    expect(resMe.body.email).toBe("lucas.garcia@gmail.com");
+    expect(resMe.body.email).toBe("lucas@test.com");
 
     // Contraseña incorrecta
     const resWrongPass = await request(app).post("/auth/login").send({
-      email: "lucas.garcia@gmail.com",
+      email: "lucas@test.com",
       password: "PasswordErroneo999",
     });
     expect(resWrongPass.status).toBe(401);
@@ -240,7 +240,7 @@ describe("BLOQUE A7: Pruebas de Autenticación Real (Registro, Login, Sesiones)"
 
     // Token vencido
     const resLogin = await request(app).post("/auth/login").send({
-      email: "lucas.garcia@gmail.com",
+      email: "lucas@test.com",
       password: DEMO_PASSWORD,
     });
     const token = resLogin.body.token;
@@ -276,7 +276,7 @@ describe("BLOQUE A7: Pruebas de Autenticación Real (Registro, Login, Sesiones)"
   // 8. Logout invalida el token
   test("8. Logout: el token deja de servir inmediatamente", async () => {
     const resLogin = await request(app).post("/auth/login").send({
-      email: "lucas.garcia@gmail.com",
+      email: "lucas@test.com",
       password: DEMO_PASSWORD,
     });
     const token = resLogin.body.token;
@@ -400,7 +400,7 @@ describe("BLOQUE A7: Pruebas de Autenticación Real (Registro, Login, Sesiones)"
   // 11. GET /usuarios y GET /usuarios/:id ya no existen (404)
   test("11. GET /usuarios y GET /usuarios/:id responden 404 Not Found", async () => {
     const resLogin = await request(app).post("/auth/login").send({
-      email: "lucas.garcia@gmail.com",
+      email: "lucas@test.com",
       password: DEMO_PASSWORD,
     });
     const token = resLogin.body.token;
@@ -447,7 +447,7 @@ describe("BLOQUE A7: Pruebas de Autenticación Real (Registro, Login, Sesiones)"
 
     // Las cuentas del seed siguen funcionando con Demo1234
     const resLoginSeed = await request(app).post("/auth/login").send({
-      email: "lucas.garcia@gmail.com",
+      email: "lucas@test.com",
       password: DEMO_PASSWORD,
     });
     expect(resLoginSeed.status).toBe(200);
