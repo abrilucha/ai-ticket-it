@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,12 @@ import {
   Platform,
   StyleSheet,
   Pressable,
+  BackHandler,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
+import { useUnsavedChanges } from '../../context/UnsavedChangesContext.js';
 import { Screen } from '../../components/Screen.js';
 import { HardShadow } from '../../components/HardShadow.js';
 import { PopInput } from '../../components/PopInput.js';
@@ -40,6 +42,11 @@ export function CrearEventoScreen({ navigation }) {
   const [tiposEntrada, setTiposEntrada] = useState([
     { nombre: 'General', descripcion: '', precio: '', cupo: '' },
   ]);
+
+  // Contexto para interceptar navegación en la barra inferior (footer Tabs)
+  const unsavedChanges = useUnsavedChanges();
+  const [pendingAction, setPendingAction] = useState(null);
+  const salidaConfirmadaRef = useRef(false);
 
   // Estados de validación y publicación
   const [publicando, setPublicando] = useState(false);
@@ -168,12 +175,81 @@ export function CrearEventoScreen({ navigation }) {
     imagenUrl.trim() !== '' ||
     tiposEntrada.some((t) => t.nombre.trim() !== '' || t.precio !== '' || t.cupo !== '');
 
+  // 1. Interceptar botón físico o barra de navegación nativa de Android
+  useEffect(() => {
+    const onBackPress = () => {
+      if (tieneDatosCargados && !salidaConfirmadaRef.current) {
+        setPendingAction(() => () => navigation.goBack());
+        setDescartarModalVisible(true);
+        return true; // Bloquea el retroceso por defecto de Android
+      }
+      return false; // Permite el retroceso nativo
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backHandler.remove();
+  }, [tieneDatosCargados]);
+
+  // 2. Interceptar evento beforeRemove de React Navigation (gestos o pop del stack)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!tieneDatosCargados || salidaConfirmadaRef.current) {
+        return;
+      }
+      e.preventDefault();
+      setPendingAction(() => () => {
+        salidaConfirmadaRef.current = true;
+        navigation.dispatch(e.data.action);
+      });
+      setDescartarModalVisible(true);
+    });
+
+    return unsubscribe;
+  }, [navigation, tieneDatosCargados]);
+
+  // 3. Interceptar navegación desde las pestañas inferiores del footer (MIS EVENTOS / VALIDAR ENTRADA)
+  useEffect(() => {
+    if (!unsavedChanges?.registerBlocker) return;
+
+    if (tieneDatosCargados && !salidaConfirmadaRef.current) {
+      return unsavedChanges.registerBlocker((onConfirmProceed) => {
+        setPendingAction(() => () => {
+          salidaConfirmadaRef.current = true;
+          navigation.goBack();
+          if (onConfirmProceed) {
+            onConfirmProceed();
+          }
+        });
+        setDescartarModalVisible(true);
+        return true; // Indica al footer que la acción quedó interceptada
+      });
+    }
+  }, [unsavedChanges, tieneDatosCargados]);
+
+  // Manejo del botón superior ← VOLVER
   const handleVolver = () => {
     if (tieneDatosCargados) {
+      setPendingAction(() => () => navigation.goBack());
       setDescartarModalVisible(true);
     } else {
       navigation.goBack();
     }
+  };
+
+  // Confirmación del modal de descarte
+  const handleConfirmarDescarte = () => {
+    salidaConfirmadaRef.current = true;
+    setDescartarModalVisible(false);
+    if (pendingAction) {
+      pendingAction();
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const handleCancelarDescarte = () => {
+    setPendingAction(null);
+    setDescartarModalVisible(false);
   };
 
   // Envío del formulario
@@ -254,6 +330,7 @@ export function CrearEventoScreen({ navigation }) {
       };
 
       await crearEvento(datosParaEnviar);
+      salidaConfirmadaRef.current = true;
       navigation.goBack();
     } catch (err) {
       setApiError(err.message || 'Error al publicar el evento en el servidor.');
@@ -494,11 +571,8 @@ export function CrearEventoScreen({ navigation }) {
         confirmText="SÍ, SALIR"
         cancelText="SEGUIR EDITANDO"
         variant="danger"
-        onConfirm={() => {
-          setDescartarModalVisible(false);
-          navigation.goBack();
-        }}
-        onCancel={() => setDescartarModalVisible(false)}
+        onConfirm={handleConfirmarDescarte}
+        onCancel={handleCancelarDescarte}
       />
     </Screen>
   );

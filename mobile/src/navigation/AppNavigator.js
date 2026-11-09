@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext.js';
+import { UnsavedChangesProvider } from '../context/UnsavedChangesContext.js';
 import { LoginScreen } from '../screens/LoginScreen.js';
 import { CompradorTabs } from './CompradorTabs.js';
 import { OrganizadorTabs } from './OrganizadorTabs.js';
@@ -14,14 +15,16 @@ export function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
-      {!usuario ? (
-        <LoginScreen />
-      ) : usuario.rol === 'ORGANIZADOR' ? (
-        <OrganizadorTabs />
-      ) : (
-        <CompradorTabs />
-      )}
-    </NavigationContainer>
+    <UnsavedChangesProvider>
+      <NavigationContainer>
+        {!usuario ? (
+          <LoginScreen />
+        ) : usuario.rol === 'ORGANIZADOR' ? (
+          <OrganizadorTabs />
+        ) : (
+          <CompradorTabs />
+        )}
+      </NavigationContainer>
+    </UnsavedChangesProvider>
   );
 }
