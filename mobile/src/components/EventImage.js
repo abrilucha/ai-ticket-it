@@ -21,18 +21,19 @@ export function EventImage({ uri, categoriaCodigo, style, height = 180, resizeMo
 
   const fallback = CATEGORIA_ICONS[categoriaCodigo] || { icon: '🎟️', bg: Colors.surfaceContainer };
 
-  if (!uri || hasError) {
+  const esDefaultCover =
+    !uri ||
+    uri === 'assets/default-cover.jpg' ||
+    uri === 'default-cover' ||
+    uri.startsWith('assets/');
+
+  if (esDefaultCover || hasError) {
     return (
-      <View
-        style={[
-          styles.fallbackContainer,
-          { height, backgroundColor: fallback.bg },
-          style,
-        ]}
-      >
-        <Text style={styles.fallbackIcon}>{fallback.icon}</Text>
-        <Text style={styles.fallbackText}>POP TICKET</Text>
-      </View>
+      <Image
+        source={require('../../assets/default-cover.jpg')}
+        style={[{ height, width: '100%' }, style]}
+        resizeMode={resizeMode}
+      />
     );
   }
 

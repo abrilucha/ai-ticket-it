@@ -23,6 +23,7 @@ import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { crearEvento } from '../../api/eventos.js';
 import { parsearFechaHora, formatFecha } from '../../utils/formato.js';
+import { getDefaultCoverString } from '../../utils/defaultCover.js';
 
 export function CrearEventoScreen({ navigation }) {
   // Datos del evento (Strings libres obligatorios)
@@ -51,7 +52,19 @@ export function CrearEventoScreen({ navigation }) {
   // Estados de validación y publicación
   const [publicando, setPublicando] = useState(false);
   const [apiError, setApiError] = useState(null);
+  const [errores, setErrores] = useState({});
   const [descartarModalVisible, setDescartarModalVisible] = useState(false);
+
+  // Limpiar error específico de un campo al escribir
+  const limpiarError = (campo) => {
+    setErrores((prev) => {
+      if (!prev[campo]) return prev;
+      const copy = { ...prev };
+      delete copy[campo];
+      return copy;
+    });
+    setApiError(null);
+  };
 
   // Formateador con máscara automática de fecha (DD/MM/AAAA)
   const handleFechaChange = (text) => {
@@ -150,7 +163,7 @@ export function CrearEventoScreen({ navigation }) {
     });
   };
 
-  // Agregar nuevo tipo de entrada (ilimitado)
+  // Agregar nuevo tipo de entrada (sin límite)
   const handleAgregarTipo = () => {
     setTiposEntrada((prev) => [
       ...prev,
@@ -257,28 +270,43 @@ export function CrearEventoScreen({ navigation }) {
     if (publicando) return;
     setApiError(null);
 
+    const nuevosErrores = {};
+
     // Validaciones de cliente previas
     if (!nombre.trim() || nombre.trim().length < 2) {
+      nuevosErrores.nombre = 'El nombre debe tener al menos 2 caracteres';
+      setErrores(nuevosErrores);
       setApiError('El nombre del evento debe tener al menos 2 caracteres.');
       return;
     }
     if (!descripcion.trim() || descripcion.trim().length < 5) {
+      nuevosErrores.descripcion = 'La descripción debe tener al menos 5 caracteres';
+      setErrores(nuevosErrores);
       setApiError('La descripción del evento debe tener al menos 5 caracteres.');
       return;
     }
     if (!categoriaNombre.trim()) {
+      nuevosErrores.categoriaNombre = 'Ingresá el nombre';
+      setErrores(nuevosErrores);
       setApiError('Debés ingresar el nombre de la categoría.');
       return;
     }
     if (!categoriaDescripcion.trim()) {
+      nuevosErrores.categoriaDescripcion = 'Ingresá la descripción';
+      setErrores(nuevosErrores);
       setApiError('Debés ingresar la descripción de la categoría.');
       return;
     }
     if (fechaError || !fechaParsed) {
+      nuevosErrores.fecha = 'Fecha requerida';
+      nuevosErrores.hora = 'Hora requerida';
+      setErrores(nuevosErrores);
       setApiError(fechaError || 'Debés ingresar una fecha y hora válidas (DD/MM/AAAA y HH:MM).');
       return;
     }
     if (esFechaPasada) {
+      nuevosErrores.fecha = 'Fecha pasada';
+      setErrores(nuevosErrores);
       setApiError('La fecha del evento debe ser a futuro.');
       return;
     }
@@ -294,16 +322,22 @@ export function CrearEventoScreen({ navigation }) {
     for (let i = 0; i < tiposEntrada.length; i++) {
       const t = tiposEntrada[i];
       if (!t.nombre.trim()) {
+        nuevosErrores[`tipo_${i}_nombre`] = 'Obligatorio';
+        setErrores(nuevosErrores);
         setApiError(`El nombre del tipo #${i + 1} es obligatorio.`);
         return;
       }
       const precioNum = Number(t.precio);
       if (t.precio === '' || isNaN(precioNum) || precioNum < 0) {
+        nuevosErrores[`tipo_${i}_precio`] = 'Inválido';
+        setErrores(nuevosErrores);
         setApiError(`El precio del tipo #${i + 1} debe ser mayor o igual a 0.`);
         return;
       }
       const cupoNum = Number(t.cupo);
       if (t.cupo === '' || isNaN(cupoNum) || cupoNum < 1 || !Number.isInteger(cupoNum)) {
+        nuevosErrores[`tipo_${i}_cupo`] = 'Inválido';
+        setErrores(nuevosErrores);
         setApiError(`El cupo del tipo #${i + 1} debe ser un entero mayor a 0.`);
         return;
       }
@@ -312,6 +346,8 @@ export function CrearEventoScreen({ navigation }) {
     setPublicando(true);
 
     try {
+      const coverFinal = imagenUrl.trim() || getDefaultCoverString();
+
       const datosParaEnviar = {
         nombre: nombre.trim(),
         descripcion: descripcion.trim(),
@@ -320,7 +356,7 @@ export function CrearEventoScreen({ navigation }) {
           descripcion: categoriaDescripcion.trim(),
         },
         fecha: fechaParsed.toISOString(),
-        multimedia: imagenUrl.trim() ? [imagenUrl.trim()] : [],
+        multimedia: [coverFinal],
         tiposEntrada: tiposEntrada.map((t) => ({
           nombre: t.nombre.trim(),
           descripcion: (t.descripcion || '').trim(),
@@ -341,14 +377,19 @@ export function CrearEventoScreen({ navigation }) {
 
   return (
     <Screen>
-      {/* Barra superior con botón volver */}
+      {/* Barra superior con botón volver y título Pop */}
       <View style={styles.topFixedBar}>
         <HardShadow offset={2} borderRadius={8}>
           <Pressable onPress={handleVolver} style={styles.backButton} hitSlop={10}>
             <Text style={styles.backButtonText}>← VOLVER</Text>
           </Pressable>
         </HardShadow>
-        <Text style={styles.screenTag}>NUEVO EVENTO</Text>
+
+        <HardShadow offset={2} borderRadius={8}>
+          <View style={styles.screenTagCard}>
+            <Text style={styles.screenTagText}>✨ NUEVO EVENTO</Text>
+          </View>
+        </HardShadow>
       </View>
 
       <KeyboardAvoidingView
@@ -361,7 +402,11 @@ export function CrearEventoScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           {apiError && (
-            <ErrorBanner message={apiError} onRetry={() => setApiError(null)} />
+            <ErrorBanner
+              title="DATOS INCOMPLETOS"
+              message={apiError}
+              onRetry={() => setApiError(null)}
+            />
           )}
 
           {/* 1. Tarjeta de Datos Básicos del Evento */}
@@ -373,7 +418,11 @@ export function CrearEventoScreen({ navigation }) {
                 label="NOMBRE DEL EVENTO *"
                 placeholder="Ej: Quilmes Rock 2027"
                 value={nombre}
-                onChangeText={setNombre}
+                onChangeText={(val) => {
+                  setNombre(val);
+                  limpiarError('nombre');
+                }}
+                error={errores.nombre}
                 maxLength={80}
               />
 
@@ -381,7 +430,11 @@ export function CrearEventoScreen({ navigation }) {
                 label="DESCRIPCIÓN COMPLETA *"
                 placeholder="Detallá bandas, cronograma, acceso o servicios..."
                 value={descripcion}
-                onChangeText={setDescripcion}
+                onChangeText={(val) => {
+                  setDescripcion(val);
+                  limpiarError('descripcion');
+                }}
+                error={errores.descripcion}
                 multiline
                 numberOfLines={4}
                 inputStyle={styles.textAreaInput}
@@ -401,7 +454,11 @@ export function CrearEventoScreen({ navigation }) {
                 label="NOMBRE DE LA CATEGORÍA *"
                 placeholder="Ej: Recital de Rock, Teatro, Festival..."
                 value={categoriaNombre}
-                onChangeText={setCategoriaNombre}
+                onChangeText={(val) => {
+                  setCategoriaNombre(val);
+                  limpiarError('categoriaNombre');
+                }}
+                error={errores.categoriaNombre}
                 maxLength={50}
               />
 
@@ -409,7 +466,11 @@ export function CrearEventoScreen({ navigation }) {
                 label="DESCRIPCIÓN DE LA CATEGORÍA *"
                 placeholder="Describí las características de esta categoría..."
                 value={categoriaDescripcion}
-                onChangeText={setCategoriaDescripcion}
+                onChangeText={(val) => {
+                  setCategoriaDescripcion(val);
+                  limpiarError('categoriaDescripcion');
+                }}
+                error={errores.categoriaDescripcion}
                 multiline
                 numberOfLines={3}
                 inputStyle={styles.textAreaSmallInput}
@@ -428,7 +489,11 @@ export function CrearEventoScreen({ navigation }) {
                     label="FECHA (DD/MM/AAAA) *"
                     placeholder="15/04/2027"
                     value={fechaInput}
-                    onChangeText={handleFechaChange}
+                    onChangeText={(val) => {
+                      handleFechaChange(val);
+                      limpiarError('fecha');
+                    }}
+                    error={errores.fecha}
                     keyboardType="numeric"
                     maxLength={10}
                   />
@@ -438,7 +503,11 @@ export function CrearEventoScreen({ navigation }) {
                     label="HORA (HH:MM) *"
                     placeholder="21:00"
                     value={horaInput}
-                    onChangeText={handleHoraChange}
+                    onChangeText={(val) => {
+                      handleHoraChange(val);
+                      limpiarError('hora');
+                    }}
+                    error={errores.hora}
                     keyboardType="numeric"
                     maxLength={5}
                   />
@@ -532,9 +601,15 @@ export function CrearEventoScreen({ navigation }) {
                     index={idx}
                     item={tipo}
                     totalRows={tiposEntrada.length}
-                    onChange={handleTipoChange}
+                    onChange={(i, campo, val) => {
+                      handleTipoChange(i, campo, val);
+                      limpiarError(`tipo_${i}_${campo}`);
+                    }}
                     onRemove={handleQuitarTipo}
                     isDuplicateName={esDuplicado}
+                    errorNombre={errores[`tipo_${idx}_nombre`]}
+                    errorPrecio={errores[`tipo_${idx}_precio`]}
+                    errorCupo={errores[`tipo_${idx}_cupo`]}
                   />
                 );
               })}
@@ -590,21 +665,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.canvasTint,
   },
   backButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.popVermilion,
     borderWidth: 2,
     borderColor: Colors.inkBlack,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   backButtonText: {
     ...Typography.labelSm,
     fontWeight: '900',
-    color: Colors.inkBlack,
+    color: Colors.white,
+    letterSpacing: 0.5,
   },
-  screenTag: {
-    ...Typography.headingSm,
-    color: Colors.inkBlack,
+  screenTagCard: {
+    backgroundColor: Colors.electricCobalt,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  screenTagText: {
+    ...Typography.labelSm,
+    fontWeight: '900',
+    color: Colors.white,
+    letterSpacing: 0.5,
   },
   container: {
     padding: 16,

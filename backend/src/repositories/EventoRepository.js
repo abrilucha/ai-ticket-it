@@ -42,17 +42,14 @@ export class EventoRepository {
 
   async save(evento) {
     const id = evento.id;
-    if (id) {
-      const idx = this.eventos.findIndex((e) => e.id === id);
-      if (idx !== -1) {
-        this.eventos[idx] = { ...this.eventos[idx], ...evento, id };
-        return this.eventos[idx];
-      }
+    const idx = this.eventos.findIndex((e) => e.id === id);
+    if (idx !== -1) {
+      this.eventos[idx] = { ...this.eventos[idx], ...evento, id };
+      return this.eventos[idx];
     }
-    const nuevoId = id || `evt_${crypto.randomUUID().slice(0, 8)}`;
     const nuevo = {
       ...evento,
-      id: nuevoId,
+      id,
       tiposEntrada: (evento.tiposEntrada || []).map((t, idx) => {
         const tId = t.id || `tipo_${idx + 1}`;
         return {

@@ -1,5 +1,6 @@
 export class CambioEstadoCompra {
   constructor({ compra, estado, quien, fechaHora = new Date() }) {
+    this.id = crypto.randomUUID();
     this.compra = compra;
     this.estado = estado;
     this.quien = quien;

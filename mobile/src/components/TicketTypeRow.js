@@ -17,6 +17,9 @@ export function TicketTypeRow({
   onChange,
   onRemove,
   isDuplicateName = false,
+  errorNombre = null,
+  errorPrecio = null,
+  errorCupo = null,
 }) {
   return (
     <HardShadow offset={3} borderRadius={10} style={styles.cardShadow}>
@@ -49,6 +52,7 @@ export function TicketTypeRow({
           placeholder="Ej: Campo General, Platea VIP, Pullman"
           value={item.nombre}
           onChangeText={(val) => onChange(index, 'nombre', val)}
+          error={errorNombre}
           maxLength={40}
         />
 
@@ -73,6 +77,7 @@ export function TicketTypeRow({
                 const clean = val.replace(/[^0-9]/g, '');
                 onChange(index, 'precio', clean);
               }}
+              error={errorPrecio}
             />
           </View>
           <View style={styles.numberInputCol}>
@@ -85,6 +90,7 @@ export function TicketTypeRow({
                 const clean = val.replace(/[^0-9]/g, '');
                 onChange(index, 'cupo', clean);
               }}
+              error={errorCupo}
             />
           </View>
         </View>

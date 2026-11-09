@@ -1,5 +1,6 @@
 export class Evento {
   constructor({ nombre, descripcion, categoria, fecha, tiposEntrada, multimedia, organizador }) {
+    this.id = crypto.randomUUID();
     this.nombre = nombre;
     this.descripcion = descripcion;
     this.categoria = categoria;

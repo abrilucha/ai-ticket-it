@@ -10,6 +10,7 @@ import { HardShadow } from './HardShadow.js';
  * Banner de error Pop Art con botón para reintentar la acción.
  */
 export function ErrorBanner({
+  title = 'ATENCIÓN',
   message = 'Ocurrió un error inesperado',
   onRetry = null,
   style,
@@ -18,7 +19,7 @@ export function ErrorBanner({
     <HardShadow offset={3} borderRadius={10} style={[styles.wrapper, style]}>
       <View style={styles.card}>
         <View style={styles.textCol}>
-          <Text style={styles.header}>⚠ ERROR DE CONEXIÓN</Text>
+          <Text style={styles.header}>⚠️ {title.toUpperCase()}</Text>
           <Text style={styles.body}>{message}</Text>
         </View>
         {onRetry ? (
