@@ -52,6 +52,14 @@ export class UsuarioService {
         throw new BadRequestError("Formato de email inválido", "DATOS_INVALIDOS");
       }
       if (emailNormalizado !== u.email) {
+        if (!passwordActual) {
+          throw new BadRequestError("Debes ingresar tu contraseña actual para confirmar el cambio de email", "PASSWORD_ACTUAL_REQUERIDA");
+        }
+        const validaEmailPass = await authService.verifyPassword(passwordActual, u.passwordHash);
+        if (!validaEmailPass) {
+          throw new UnauthorizedError("La contraseña actual es incorrecta", "PASSWORD_ACTUAL_INCORRECTA");
+        }
+
         const existente = await this.usuarioRepository.findByEmail(emailNormalizado);
         if (existente && existente.id !== u.id) {
           throw new ConflictError("Ese email ya está registrado", "EMAIL_YA_REGISTRADO");

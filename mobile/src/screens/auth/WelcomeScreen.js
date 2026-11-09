@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ImageBackground, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors.js';
 import { Typography, FontFamily } from '../../theme/typography.js';
@@ -15,6 +15,7 @@ export function WelcomeScreen({ navigation }) {
 
   return (
     <ImageBackground source={authBg} style={styles.bgImage} resizeMode="cover">
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}

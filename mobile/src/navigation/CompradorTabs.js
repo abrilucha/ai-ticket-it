@@ -14,7 +14,7 @@ export function CompradorTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.electricCobalt,
+          backgroundColor: Colors.popVermilion,
           borderTopWidth: 2,
           borderTopColor: Colors.inkBlack,
           height: 60,

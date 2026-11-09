@@ -7,7 +7,7 @@ import { Typography } from '../theme/typography.js';
 import { HardShadow } from './HardShadow.js';
 
 export function FotoPerfilPicker({ fotoUri, onChangeFoto, style }) {
-  const tomarFoto = async (cameraType = ImagePicker.CameraType.front) => {
+  const tomarFoto = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -15,7 +15,6 @@ export function FotoPerfilPicker({ fotoUri, onChangeFoto, style }) {
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
-        cameraType,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.6,
@@ -80,27 +79,17 @@ export function FotoPerfilPicker({ fotoUri, onChangeFoto, style }) {
       <View style={styles.actionsRow}>
         <HardShadow offset={2} borderRadius={6} style={styles.btnShadow}>
           <Pressable
-            onPress={() => tomarFoto(ImagePicker.CameraType.front)}
+            onPress={tomarFoto}
             style={styles.actionBtn}
           >
-            <Ionicons name="camera-reverse" size={14} color={Colors.inkBlack} />
-            <Text style={styles.actionBtnText}>SELFIE</Text>
-          </Pressable>
-        </HardShadow>
-
-        <HardShadow offset={2} borderRadius={6} style={styles.btnShadow}>
-          <Pressable
-            onPress={() => tomarFoto(ImagePicker.CameraType.back)}
-            style={styles.actionBtn}
-          >
-            <Ionicons name="camera" size={14} color={Colors.inkBlack} />
+            <Ionicons name="camera" size={15} color={Colors.inkBlack} />
             <Text style={styles.actionBtnText}>CÁMARA</Text>
           </Pressable>
         </HardShadow>
 
         <HardShadow offset={2} borderRadius={6} style={styles.btnShadow}>
           <Pressable onPress={elegirDeGaleria} style={styles.actionBtn}>
-            <Ionicons name="images" size={14} color={Colors.inkBlack} />
+            <Ionicons name="images" size={15} color={Colors.inkBlack} />
             <Text style={styles.actionBtnText}>GALERÍA</Text>
           </Pressable>
         </HardShadow>

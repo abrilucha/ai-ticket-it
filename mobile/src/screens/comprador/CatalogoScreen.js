@@ -115,7 +115,7 @@ export function CatalogoScreen({ navigation }) {
                       styles.pasadosBtn,
                       {
                         backgroundColor: incluirRealizados
-                          ? Colors.popVermilion
+                          ? Colors.canaryYellow
                           : Colors.white,
                       },
                     ]}
@@ -124,7 +124,8 @@ export function CatalogoScreen({ navigation }) {
                       style={[
                         styles.pasadosBtnText,
                         {
-                          color: incluirRealizados ? Colors.white : Colors.inkBlack,
+                          color: Colors.inkBlack,
+                          fontWeight: incluirRealizados ? '900' : '700',
                         },
                       ]}
                     >
@@ -141,9 +142,15 @@ export function CatalogoScreen({ navigation }) {
                 {eventosLoading ? 'Buscando...' : `${eventos.length} ${eventos.length === 1 ? 'evento disponible' : 'eventos disponibles'}`}
               </Text>
               {hayFiltrosActivos && (
-                <Pressable onPress={handleLimpiarFiltros} hitSlop={6}>
-                  <Text style={styles.clearFiltrosText}>Limpiar filtros ✕</Text>
-                </Pressable>
+                <HardShadow offset={2} borderRadius={6}>
+                  <Pressable
+                    onPress={handleLimpiarFiltros}
+                    style={styles.clearCardBtn}
+                    hitSlop={6}
+                  >
+                    <Text style={styles.clearCardBtnText}>✕ LIMPIAR FILTROS</Text>
+                  </Pressable>
+                </HardShadow>
               )}
             </View>
           </View>
@@ -233,9 +240,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: Colors.inkBlack,
   },
-  clearFiltrosText: {
+  clearCardBtn: {
+    backgroundColor: Colors.popVermilion,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearCardBtnText: {
     ...Typography.labelSm,
-    color: Colors.popVermilion,
-    textDecorationLine: 'underline',
+    color: Colors.white,
+    fontWeight: '900',
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
 });

@@ -16,8 +16,8 @@ export function SegmentedFilter({
   style,
 }) {
   const tabs = options || [
-    { id: 'ACTIVAS', label: `ACTIVAS ${counts.activas !== undefined ? `(${counts.activas})` : ''}`.trim() },
-    { id: 'HISTORIAL', label: `HISTORIAL ${counts.historial !== undefined ? `(${counts.historial})` : ''}`.trim() },
+    { id: 'ACTIVAS', label: 'ACTIVAS' },
+    { id: 'HISTORIAL', label: 'HISTORIAL' },
   ];
 
   return (

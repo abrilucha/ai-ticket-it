@@ -75,6 +75,7 @@ export async function inicializarSeedInMemory() {
     email: "lucas@test.com",
     rol: "COMPRADOR",
     passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
   });
 
   const comprador2 = await usuarioRepository.save({
@@ -84,6 +85,7 @@ export async function inicializarSeedInMemory() {
     email: "mariana@test.com",
     rol: "COMPRADOR",
     passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
   });
 
   await usuarioRepository.save({
@@ -93,6 +95,7 @@ export async function inicializarSeedInMemory() {
     email: "sofia@test.com",
     rol: "COMPRADOR",
     passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80",
   });
 
   // Organizador A: con eventos pasados y reseñas (promedio 4.0)
@@ -103,6 +106,7 @@ export async function inicializarSeedInMemory() {
     email: "rock@productora.com",
     rol: "ORGANIZADOR",
     passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150&auto=format&fit=crop&q=80",
   });
 
   // Organizador B: con eventos futuros, SIN reseñas (puntaje null / 0 reseñas)
@@ -113,6 +117,7 @@ export async function inicializarSeedInMemory() {
     email: "info@granrex.com.ar",
     rol: "ORGANIZADOR",
     passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=150&auto=format&fit=crop&q=80",
   });
 
   // Organizador C: con eventos futuros y compras
@@ -123,6 +128,7 @@ export async function inicializarSeedInMemory() {
     email: "eventos@deportes.org",
     rol: "ORGANIZADOR",
     passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=150&auto=format&fit=crop&q=80",
   });
 
   // 3. Eventos: 6 futuros escalonados (+15d, +30d, +45d, +60d, +90d, +120d) + 1 pasado (-5d)

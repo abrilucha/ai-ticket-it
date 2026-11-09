@@ -9,6 +9,7 @@ import {
   Platform,
   ImageBackground,
   BackHandler,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -114,6 +115,7 @@ export function RegisterScreen({ navigation }) {
 
   return (
     <ImageBackground source={authBg} style={styles.bgImage} resizeMode="cover">
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

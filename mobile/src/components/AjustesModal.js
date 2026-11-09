@@ -24,8 +24,13 @@ export function AjustesModal({ visible, onClose }) {
 
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
-  const [email, setEmail] = useState('');
   const [fotoPerfil, setFotoPerfil] = useState(null);
+
+  // Campos de cambio de email
+  const [deseaCambiarEmail, setDeseaCambiarEmail] = useState(false);
+  const [nuevoEmail, setNuevoEmail] = useState('');
+  const [passwordEmail, setPasswordEmail] = useState('');
+  const [showPasswordEmail, setShowPasswordEmail] = useState(false);
 
   // Campos de contraseña
   const [deseaCambiarPassword, setDeseaCambiarPassword] = useState(false);
@@ -45,8 +50,11 @@ export function AjustesModal({ visible, onClose }) {
     if (visible && usuario) {
       setNombre(usuario.nombre || '');
       setApellido(usuario.apellido || '');
-      setEmail(usuario.email || '');
       setFotoPerfil(usuario.fotoPerfil || null);
+      setDeseaCambiarEmail(false);
+      setNuevoEmail('');
+      setPasswordEmail('');
+      setShowPasswordEmail(false);
       setDeseaCambiarPassword(false);
       setPasswordActual('');
       setPasswordNueva('');
@@ -64,7 +72,6 @@ export function AjustesModal({ visible, onClose }) {
 
     const nom = nombre.trim();
     const ape = apellido.trim();
-    const em = email.trim();
 
     if (!nom) {
       setErrorMsg(isComprador ? 'Ingresá tu nombre.' : 'Ingresá el nombre del organizador o productora.');
@@ -76,21 +83,29 @@ export function AjustesModal({ visible, onClose }) {
       return;
     }
 
-    if (!em) {
-      setErrorMsg('Ingresá tu email.');
-      return;
-    }
-
     const payload = {
       nombre: nom,
       apellido: isComprador ? ape : (ape || null),
-      email: em,
       fotoPerfil: fotoPerfil || null,
     };
 
+    if (deseaCambiarEmail && nuevoEmail.trim()) {
+      const emailTrim = nuevoEmail.trim().toLowerCase();
+      if (!emailTrim.includes('@')) {
+        setErrorMsg('El formato del nuevo email es inválido.');
+        return;
+      }
+      if (!passwordEmail) {
+        setErrorMsg('Ingresá tu contraseña actual para confirmar el cambio de email.');
+        return;
+      }
+      payload.email = emailTrim;
+      payload.passwordActual = passwordEmail;
+    }
+
     if (deseaCambiarPassword || passwordNueva) {
       if (!passwordActual) {
-        setErrorMsg('Ingresá tu contraseña actual para confirmar el cambio.');
+        setErrorMsg('Ingresá tu contraseña actual para confirmar el cambio de contraseña.');
         return;
       }
       if (!passwordNueva) {
@@ -198,17 +213,61 @@ export function AjustesModal({ visible, onClose }) {
                   />
                 ) : null}
 
-                {/* Campo Email */}
-                <PopInput
-                  label="EMAIL *"
-                  value={email}
-                  onChangeText={(val) => {
-                    setEmail(val);
-                    if (errorMsg) setErrorMsg(null);
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
+                {/* Email actual y bloque desplegable para cambiarlo */}
+                <View style={styles.emailContainer}>
+                  <Text style={styles.emailLabel}>EMAIL ACTUAL</Text>
+                  <View style={styles.currentEmailCard}>
+                    <Text style={styles.currentEmailText}>{usuario?.email}</Text>
+                  </View>
+
+                  <View style={styles.collapsibleBox}>
+                    <Pressable
+                      onPress={() => setDeseaCambiarEmail(!deseaCambiarEmail)}
+                      style={styles.toggleRow}
+                    >
+                      <Text style={styles.toggleText}>
+                        {deseaCambiarEmail ? '▼ CANCELAR CAMBIO DE EMAIL' : '▶ CAMBIAR EMAIL'}
+                      </Text>
+                    </Pressable>
+
+                    {deseaCambiarEmail ? (
+                      <View style={styles.toggleContent}>
+                        <PopInput
+                          label="NUEVO EMAIL *"
+                          value={nuevoEmail}
+                          onChangeText={(val) => {
+                            setNuevoEmail(val);
+                            if (errorMsg) setErrorMsg(null);
+                          }}
+                          placeholder="ej: nuevo@ejemplo.com"
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                        />
+
+                        <PopInput
+                          label="CONTRASEÑA ACTUAL PARA CONFIRMAR *"
+                          value={passwordEmail}
+                          onChangeText={(val) => {
+                            setPasswordEmail(val);
+                            if (errorMsg) setErrorMsg(null);
+                          }}
+                          placeholder="Ingresá tu contraseña"
+                          secureTextEntry={!showPasswordEmail}
+                          autoCapitalize="none"
+                        />
+
+                        <Pressable
+                          onPress={() => setShowPasswordEmail(!showPasswordEmail)}
+                          style={styles.showPassBtn}
+                        >
+                          <Text style={styles.showPassBtnText}>
+                            {showPasswordEmail ? 'OCULTAR CONTRASEÑA' : 'VER CONTRASEÑA'}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
 
                 {/* Bloque Cambio de Contraseña */}
                 <View style={styles.passwordSection}>
@@ -359,6 +418,48 @@ const styles = StyleSheet.create({
     ...Typography.labelMd,
     color: Colors.inkBlack,
     fontWeight: '800',
+  },
+  emailContainer: {
+    marginVertical: 6,
+  },
+  emailLabel: {
+    ...Typography.labelSm,
+    color: Colors.inkBlack,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  currentEmailCard: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 6,
+  },
+  currentEmailText: {
+    ...Typography.bodyMedium,
+    color: Colors.inkBlack,
+    fontWeight: '700',
+  },
+  collapsibleBox: {
+    padding: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 10,
+    backgroundColor: Colors.white,
+    marginVertical: 4,
+  },
+  toggleRow: {
+    paddingVertical: 4,
+  },
+  toggleText: {
+    ...Typography.labelSm,
+    color: Colors.electricCobalt,
+    fontWeight: '900',
+  },
+  toggleContent: {
+    marginTop: 8,
   },
   passwordSection: {
     marginVertical: 8,
