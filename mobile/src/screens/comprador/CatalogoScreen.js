@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
-  ScrollView,
   RefreshControl,
   StyleSheet,
   Pressable,
@@ -11,13 +10,11 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
-import { listarCategorias } from '../../api/categorias.js';
 import { useEventos } from '../../hooks/useEventos.js';
 import { useAuth } from '../../context/AuthContext.js';
 import { Screen } from '../../components/Screen.js';
 import { Header } from '../../components/Header.js';
 import { SearchBar } from '../../components/SearchBar.js';
-import { FilterChip } from '../../components/FilterChip.js';
 import { SortSelector } from '../../components/SortSelector.js';
 import { EventCard } from '../../components/EventCard.js';
 import { LoadingView } from '../../components/LoadingView.js';
@@ -31,40 +28,17 @@ export function CatalogoScreen({ navigation }) {
 
   // Estados de filtros
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [orden, setOrden] = useState('fecha');
   const [direccion, setDireccion] = useState('asc');
   const [incluirRealizados, setIncluirRealizados] = useState(false);
 
-  // Lista de categorías obtenidas de la API
-  const [categorias, setCategorias] = useState([]);
-  const [catLoading, setCatLoading] = useState(true);
-
-  // Cargar categorías canónicas de la API
-  const cargarCategorias = useCallback(async () => {
-    try {
-      setCatLoading(true);
-      const data = await listarCategorias();
-      setCategorias(Array.isArray(data) ? data : []);
-    } catch {
-      // Si falla, el listado quedará vacío y se puede reintentar con reload
-    } finally {
-      setCatLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargarCategorias();
-  }, [cargarCategorias]);
-
   // Filtros combinados para el hook useEventos
   const filtros = useMemo(() => ({
     q: searchQuery,
-    categoria: categoriaSeleccionada,
     orden,
     direccion,
     incluirRealizados,
-  }), [searchQuery, categoriaSeleccionada, orden, direccion, incluirRealizados]);
+  }), [searchQuery, orden, direccion, incluirRealizados]);
 
   const { data: eventos, loading: eventosLoading, error, reload } = useEventos(filtros);
 
@@ -79,28 +53,19 @@ export function CatalogoScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([reload(), cargarCategorias()]);
+    await reload();
     setRefreshing(false);
-  };
-
-  const handleSelectCategoria = (codigo) => {
-    if (categoriaSeleccionada === codigo) {
-      setCategoriaSeleccionada(''); // Desactivar si ya estaba activo
-    } else {
-      setCategoriaSeleccionada(codigo);
-    }
   };
 
   const handleLimpiarFiltros = () => {
     setSearchQuery('');
-    setCategoriaSeleccionada('');
     setOrden('fecha');
     setDireccion('asc');
     setIncluirRealizados(false);
   };
 
   const hayFiltrosActivos = Boolean(
-    searchQuery || categoriaSeleccionada || incluirRealizados || orden !== 'fecha' || direccion !== 'asc'
+    searchQuery || incluirRealizados || orden !== 'fecha' || direccion !== 'asc'
   );
 
   return (
@@ -126,33 +91,6 @@ export function CatalogoScreen({ navigation }) {
               value={searchQuery}
               onDebouncedChange={setSearchQuery}
             />
-
-            {/* Chips de Categorías */}
-            <View style={styles.categoriesRow}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipsScroll}
-              >
-                <FilterChip
-                  label="TODAS"
-                  selected={categoriaSeleccionada === ''}
-                  onPress={() => setCategoriaSeleccionada('')}
-                  activeColor={Colors.inkBlack}
-                  activeTextColor={Colors.white}
-                />
-                {categorias.map((cat) => (
-                  <FilterChip
-                    key={cat.id || cat.codigo}
-                    label={cat.nombre.toUpperCase()}
-                    selected={categoriaSeleccionada === cat.codigo}
-                    onPress={() => handleSelectCategoria(cat.codigo)}
-                    activeColor={Colors.electricCobalt}
-                    activeTextColor={Colors.white}
-                  />
-                ))}
-              </ScrollView>
-            </View>
 
             {/* Controles de Ordenamiento e Historial */}
             <View style={styles.controlsRow}>
@@ -290,8 +228,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   summaryCount: {
-    ...Typography.labelSm,
-    color: Colors.onSurfaceVariant,
+    ...Typography.titleMd,
+    fontSize: 16,
+    fontWeight: '900',
+    color: Colors.inkBlack,
   },
   clearFiltrosText: {
     ...Typography.labelSm,

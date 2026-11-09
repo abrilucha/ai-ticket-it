@@ -14,17 +14,19 @@ export function CompradorTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.canvasTint,
+          backgroundColor: Colors.electricCobalt,
           borderTopWidth: 2,
           borderTopColor: Colors.inkBlack,
           height: 60,
           paddingBottom: 8,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: Colors.electricCobalt,
-        tabBarInactiveTintColor: Colors.outline,
+        tabBarActiveTintColor: Colors.white,
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.75)',
         tabBarLabelStyle: {
           ...Typography.labelSm,
+          color: Colors.white,
+          fontWeight: '800',
         },
       }}
     >

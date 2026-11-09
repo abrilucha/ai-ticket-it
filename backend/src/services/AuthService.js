@@ -49,7 +49,7 @@ export class AuthService {
     }
   }
 
-  registrar = async ({ nombre, apellido, email, password, rol }) => {
+  registrar = async ({ nombre, apellido, email, password, rol, fotoPerfil }) => {
     const emailNormalizado = email.trim().toLowerCase();
     const existente = await this.usuarioRepository.findByEmail(emailNormalizado);
     if (existente) {
@@ -66,6 +66,7 @@ export class AuthService {
       email: emailNormalizado,
       rol,
       passwordHash,
+      fotoPerfil: fotoPerfil || null,
     });
 
     const guardado = await this.usuarioRepository.save(usuarioDominio);
@@ -79,6 +80,7 @@ export class AuthService {
         apellido: guardado.apellido,
         email: guardado.email,
         rol: guardado.rol,
+        fotoPerfil: guardado.fotoPerfil || null,
       },
     };
   };
@@ -113,6 +115,7 @@ export class AuthService {
         apellido: usuario.apellido,
         email: usuario.email,
         rol: usuario.rol,
+        fotoPerfil: usuario.fotoPerfil || null,
       },
     };
   };

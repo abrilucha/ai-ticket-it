@@ -13,6 +13,7 @@ export function PopInput({
   onChangeText,
   placeholder,
   error,
+  isPink = false,
   secureTextEntry = false,
   keyboardType = 'default',
   multiline = false,
@@ -30,6 +31,7 @@ export function PopInput({
       <View
         style={[
           styles.inputContainer,
+          isPink ? styles.inputContainerPink : null,
           error ? styles.inputContainerError : null,
           rightComponent ? styles.inputContainerWithRight : null,
         ]}
@@ -80,6 +82,10 @@ const styles = StyleSheet.create({
   inputContainerWithRight: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  inputContainerPink: {
+    backgroundColor: '#FFE4E6',
+    borderColor: '#F43F5E',
   },
   inputContainerError: {
     borderColor: Colors.error,

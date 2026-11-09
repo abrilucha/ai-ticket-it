@@ -26,6 +26,7 @@ export const RegisterSchema = z
     rol: z.enum(["COMPRADOR", "ORGANIZADOR"], {
       errorMap: () => ({ message: "El rol debe ser COMPRADOR u ORGANIZADOR" }),
     }),
+    fotoPerfil: z.string().optional().nullable(),
   })
   .strip()
   .superRefine((data, ctx) => {

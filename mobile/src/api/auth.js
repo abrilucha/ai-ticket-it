@@ -42,3 +42,15 @@ export async function cerrarSesion() {
 export async function obtenerYo() {
   return await apiClient('/usuarios/me');
 }
+
+/**
+ * Actualiza los datos del usuario autenticado actualmente (nombre, apellido, email, password, fotoPerfil).
+ * @param {Object} datos { nombre, apellido, email, passwordActual, passwordNueva, fotoPerfil }
+ * @returns {Promise<Object>}
+ */
+export async function actualizarPerfil(datos) {
+  return await apiClient('/usuarios/me', {
+    method: 'PUT',
+    body: JSON.stringify(datos),
+  });
+}

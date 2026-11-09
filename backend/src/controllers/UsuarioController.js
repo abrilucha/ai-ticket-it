@@ -25,6 +25,16 @@ export class UsuarioController {
       next(e);
     }
   };
+
+  actualizarActual = async (req, res, next) => {
+    try {
+      const userId = req.user?.id || req.headers["x-user-id"];
+      const usuarioActualizado = await this.usuarioService.actualizarPerfil(userId, req.body);
+      res.status(200).json(usuarioActualizado);
+    } catch (e) {
+      next(e);
+    }
+  };
 }
 
 export const usuarioController = new UsuarioController();

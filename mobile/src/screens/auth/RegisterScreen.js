@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,21 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ImageBackground,
+  BackHandler,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/colors.js';
 import { Typography } from '../../theme/typography.js';
 import { useAuth } from '../../context/AuthContext.js';
-import { Screen } from '../../components/Screen.js';
 import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
 import { PopInput } from '../../components/PopInput.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
+import { FotoPerfilPicker } from '../../components/FotoPerfilPicker.js';
+
+const authBg = require('../../../assets/auth-bg.jpg');
 
 export function RegisterScreen({ navigation }) {
   const { registrar } = useAuth();
@@ -24,6 +30,7 @@ export function RegisterScreen({ navigation }) {
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [email, setEmail] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +38,22 @@ export function RegisterScreen({ navigation }) {
   const [errorMsg, setErrorMsg] = useState(null);
 
   const isComprador = rol === 'COMPRADOR';
+
+  // Volver siempre a la primerísima pantalla (Welcome), tanto por botón físico como en pantalla
+  const handleGoWelcome = useCallback(() => {
+    navigation.navigate('Welcome');
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        handleGoWelcome();
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [handleGoWelcome])
+  );
 
   const handleRegister = async () => {
     if (loading) return;
@@ -76,6 +99,9 @@ export function RegisterScreen({ navigation }) {
       if (isComprador && ape) {
         datos.apellido = ape;
       }
+      if (fotoPerfil) {
+        datos.fotoPerfil = fotoPerfil;
+      }
 
       await registrar(datos);
       // Al registrarse con éxito, AuthContext asigna `usuario` y `token`, derivando a la pantalla correspondiente
@@ -87,39 +113,39 @@ export function RegisterScreen({ navigation }) {
   };
 
   return (
-    <Screen style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardContainer}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+    <ImageBackground source={authBg} style={styles.bgImage} resizeMode="cover">
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardContainer}
         >
-          {/* Botón Volver */}
-          <View style={styles.topBar}>
-            <Pressable
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-              hitSlop={10}
-            >
-              <Text style={styles.backBtnText}>← VOLVER</Text>
-            </Pressable>
-          </View>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Botón Volver (lleva a Welcome) */}
+            <View style={styles.topBar}>
+              <Pressable
+                onPress={handleGoWelcome}
+                style={styles.backBtn}
+                hitSlop={10}
+              >
+                <Text style={styles.backBtnText}>← VOLVER</Text>
+              </Pressable>
+            </View>
 
-          {/* Tarjeta de Formulario Pop Art */}
-          <HardShadow offset={5} borderRadius={16} style={styles.formCardShadow}>
-            <View style={styles.formCard}>
-              <View style={styles.headerBlock}>
-                <View style={styles.titleBadge}>
-                  <Text style={styles.titleBadgeText}>NUEVA CUENTA</Text>
+            {/* Tarjeta de Formulario Pop Art */}
+            <HardShadow offset={5} borderRadius={16} style={styles.formCardShadow}>
+              <View style={styles.formCard}>
+                <View style={styles.headerBlock}>
+                  <View style={styles.titleBadge}>
+                    <Text style={styles.titleBadgeText}>CREAR CUENTA</Text>
+                  </View>
+                  <Text style={styles.subtitle}>
+                    Elegí tu rol en la plataforma para comenzar
+                  </Text>
                 </View>
-                <Text style={styles.title}>CREAR CUENTA</Text>
-                <Text style={styles.subtitle}>
-                  Elegí tu rol en la plataforma para comenzar
-                </Text>
-              </View>
 
               {/* Selector de Rol Pop Kinetic */}
               <View style={styles.roleSelectionBlock}>
@@ -174,6 +200,12 @@ export function RegisterScreen({ navigation }) {
                   </Pressable>
                 </View>
               </View>
+
+              {/* Foto de perfil opcional */}
+              <FotoPerfilPicker
+                fotoUri={fotoPerfil}
+                onChangeFoto={setFotoPerfil}
+              />
 
               {/* Banner de Error sin perder lo escrito */}
               {errorMsg ? (
@@ -307,13 +339,19 @@ export function RegisterScreen({ navigation }) {
           </HardShadow>
         </ScrollView>
       </KeyboardAvoidingView>
-    </Screen>
+    </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.creamBg,
+  bgImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  safeArea: {
+    backgroundColor: 'transparent',
     flex: 1,
   },
   keyboardContainer: {
@@ -366,18 +404,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.inkBlack,
     borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     marginBottom: 8,
   },
   titleBadgeText: {
-    ...Typography.labelMd,
+    ...Typography.titleMd,
+    fontSize: 16,
+    fontWeight: '800',
     color: Colors.inkBlack,
-  },
-  title: {
-    ...Typography.displayMd,
-    color: Colors.inkBlack,
-    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtitle: {
     ...Typography.bodyMd,
@@ -403,11 +439,11 @@ const styles = StyleSheet.create({
   },
   roleCardSelected: {
     borderColor: Colors.inkBlack,
-    backgroundColor: Colors.creamBg,
+    backgroundColor: '#7DD3FC',
   },
   roleCardUnselected: {
-    borderColor: Colors.outline,
-    backgroundColor: Colors.white,
+    borderColor: Colors.inkBlack,
+    backgroundColor: Colors.canvasTint,
   },
   roleHeaderRow: {
     flexDirection: 'row',
@@ -417,17 +453,19 @@ const styles = StyleSheet.create({
   roleRadio: {
     fontSize: 16,
     marginRight: 8,
-    color: Colors.outline,
+    color: Colors.inkBlack,
   },
   roleRadioSelected: {
     color: Colors.inkBlack,
   },
   roleCardTitle: {
     ...Typography.titleSm,
-    color: Colors.outline,
+    color: Colors.inkBlack,
+    fontWeight: '700',
   },
   roleCardTitleSelected: {
     color: Colors.inkBlack,
+    fontWeight: '800',
   },
   roleCardDesc: {
     ...Typography.bodySm,

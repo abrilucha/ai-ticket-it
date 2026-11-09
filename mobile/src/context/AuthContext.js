@@ -14,6 +14,8 @@ const AuthContext = createContext({
   registrar: async () => {},
   logout: async () => {},
   reintentar: async () => {},
+  actualizarUsuario: () => {},
+  recargarUsuario: async () => {},
 });
 
 export function AuthProvider({ children }) {
@@ -150,6 +152,19 @@ export function AuthProvider({ children }) {
     return nuevoUsuario;
   };
 
+  const actualizarUsuario = useCallback((usuarioActualizado) => {
+    setUsuario((prev) => ({ ...prev, ...usuarioActualizado }));
+  }, []);
+
+  const recargarUsuario = useCallback(async () => {
+    try {
+      const perfil = await obtenerYo();
+      if (perfil && perfil.id) {
+        setUsuario(perfil);
+      }
+    } catch {}
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -161,6 +176,8 @@ export function AuthProvider({ children }) {
         registrar,
         logout,
         reintentar: restaurarSesion,
+        actualizarUsuario,
+        recargarUsuario,
       }}
     >
       {children}

@@ -16,6 +16,7 @@ const router = Router({ mergeParams: true });
  *         description: No autenticado
  */
 router.route("/me")
-  .get((req, res, next) => usuarioController.obtenerActual(req, res, next));
+  .get((req, res, next) => usuarioController.obtenerActual(req, res, next))
+  .put((req, res, next) => usuarioController.actualizarActual(req, res, next));
 
 export default router;
