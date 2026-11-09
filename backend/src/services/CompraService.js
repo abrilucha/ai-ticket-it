@@ -58,10 +58,10 @@ export class CompraService {
         ? this.calcularDiasRestantes(fechaEvento)
         : null;
 
-    // Garantizar que no se expone email ni passwordHash en comprador ni en organizador
+    // Garantizar que no se expone email, passwordHash ni favoritos en comprador ni en organizador
     let compradorSanitizado = compra.comprador;
     if (compradorSanitizado) {
-      const { email: _emailComp, passwordHash: _hashComp, ...restoComp } = compradorSanitizado;
+      const { email: _emailComp, passwordHash: _hashComp, favoritos: _favs, ...restoComp } = compradorSanitizado;
       compradorSanitizado = restoComp;
     }
 

@@ -32,6 +32,23 @@ La plataforma implementa un esquema de autenticación por tokens de sesión opac
 
 > **Nota sobre rutas removidas**: Las rutas públicas de consulta de usuarios `GET /usuarios` y `GET /usuarios/:id` fueron eliminadas de la API por seguridad y diseño del dominio. Consultar dichas rutas retorna `404 Not Found`. La recuperación de datos de la cuenta activa se realiza a través de `GET /usuarios/me`.
 
+### Rutas de Favoritos (`/favoritos`) - Exclusivas COMPRADOR
+
+1. **`GET /favoritos`**: Lista los eventos favoritos del comprador autenticado, ordenados del agregado más reciente al más antiguo.
+   - Requiere: `Authorization: Bearer <token>`
+   - Formato: Cada elemento tiene exactamente el mismo esquema que un evento de `GET /eventos` (`precioMinimo`, `realizado`, `puntajeOrganizador`, `cantidadResenas`, `esFavorito: true`, etc.). Incluye eventos realizados (`realizado: true`).
+   - Códigos HTTP: `200 OK` (lista vacía `[]` si no tiene favoritos), `401 Unauthorized`, `403 Forbidden` (`FAVORITOS_SOLO_COMPRADORES`).
+2. **`POST /favoritos/:eventoId`**: Guarda un evento como favorito (sin body).
+   - Requiere: `Authorization: Bearer <token>`
+   - Idempotente: Si el evento no estaba, responde `201 Created` con `{ eventoId, esFavorito: true }`; si ya estaba, responde `200 OK` con `{ eventoId, esFavorito: true }`.
+   - Códigos HTTP: `201 Created`, `200 OK`, `401 Unauthorized`, `403 Forbidden` (`FAVORITOS_SOLO_COMPRADORES`), `404 Not Found` (`NO_ENCONTRADO` si el evento no existe).
+3. **`DELETE /favoritos/:eventoId`**: Quita un evento de la lista de favoritos.
+   - Requiere: `Authorization: Bearer <token>`
+   - Idempotente: Si estaba o si no era favorito, responde `204 No Content` sin cuerpo.
+   - Códigos HTTP: `204 No Content`, `401 Unauthorized`, `403 Forbidden` (`FAVORITOS_SOLO_COMPRADORES`), `404 Not Found` (`NO_ENCONTRADO` si el evento no existe).
+
+> **Regla de rol y orden de validación**: Solo los compradores pueden guardar eventos favoritos. Si un organizador invoca cualquiera de estas tres rutas, el servicio rechaza la petición con código HTTP `403 Forbidden`, `code: "FAVORITOS_SOLO_COMPRADORES"` y mensaje `"Solo los compradores pueden guardar eventos favoritos"`. Orden estricto: `401 (sin token)` → `403 (rol)` → `404 (evento)` → `ejecución`.
+
 ---
 
 ## Formato Uniforme de Respuestas de Error
@@ -159,7 +176,10 @@ A continuación se lista la totalidad de las 26 rutas registradas en el router d
 | 23 | `GET` | `/organizadores/:id` | Sí | Cualquier rol | **Contrato original Etapa 6**: Perfil del organizador (`id`, `nombre`, `puntajePromedio`, `cantidadResenas`) | 200, 401, 404 |
 | 24 | `GET` | `/organizadores/:id/reputacion` | Sí | Cualquier rol | *Alias de `/organizadores/:id`* mantenido para retrocompatibilidad | 200, 401, 404 |
 | 25 | `GET` | `/organizadores/:id/resenas` | Sí | Cualquier rol | **Contrato original Etapa 6**: Reseñas acumuladas de los eventos del organizador | 200, 401, 404 |
-| 26 | `POST` | `/dev/reset` | No | Entorno Dev | Restaura la persistencia en memoria al seed original (`ENABLE_DEV_ENDPOINTS=true`) | 200, 404 |
+| 26 | `GET` | `/favoritos` | Sí | `COMPRADOR` | Lista de eventos favoritos del comprador (orden más reciente primero, incluye realizados) | 200, 401, 403 |
+| 27 | `POST` | `/favoritos/:eventoId` | Sí | `COMPRADOR` | Agrega un evento a favoritos (idempotente) | 200, 201, 401, 403, 404 |
+| 28 | `DELETE` | `/favoritos/:eventoId` | Sí | `COMPRADOR` | Quita un evento de favoritos (idempotente) | 204, 401, 403, 404 |
+| 29 | `POST` | `/dev/reset` | No | Entorno Dev | Restaura la persistencia en memoria al seed original (`ENABLE_DEV_ENDPOINTS=true`) | 200, 404 |
 
 ---
 

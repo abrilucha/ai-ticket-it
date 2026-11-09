@@ -23,6 +23,7 @@ import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { QuantityStepper } from '../../components/QuantityStepper.js';
 import { ConfirmModal } from '../../components/ConfirmModal.js';
+import { FavoriteButton } from '../../components/FavoriteButton.js';
 import { formatFechaCompleta, formatPrecio } from '../../utils/formato.js';
 
 export function EventoDetalleScreen({ route, navigation }) {
@@ -173,13 +174,20 @@ export function EventoDetalleScreen({ route, navigation }) {
 
   return (
     <Screen>
-      {/* Barra superior fija con botón volver en rojo */}
+      {/* Barra superior fija con botón volver en rojo y botón de favoritos */}
       <View style={styles.topFixedBar}>
         <HardShadow offset={2} borderRadius={8}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={10}>
             <Text style={styles.backButtonText}>← VOLVER</Text>
           </Pressable>
         </HardShadow>
+
+        {evento?.id ? (
+          <FavoriteButton
+            eventoId={evento.id}
+            esFavoritoInicial={Boolean(evento.esFavorito)}
+          />
+        ) : null}
       </View>
 
       <ScrollView
@@ -430,6 +438,7 @@ const styles = StyleSheet.create({
   topFixedBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: Colors.vibrantTurquoise,

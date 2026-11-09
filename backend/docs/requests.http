@@ -274,6 +274,31 @@ Authorization: Bearer {{tokenOrgRock}}
 
 
 ###############################################################################
+# FAVORITOS (Solo Compradores)
+###############################################################################
+
+### Listar favoritos del comprador autenticado (Lucas)
+GET {{baseUrl}}/favoritos
+Authorization: Bearer {{tokenLucas}}
+
+### Agregar evento a favoritos (Quilmes Rock)
+POST {{baseUrl}}/favoritos/evt_quilmes
+Authorization: Bearer {{tokenLucas}}
+
+### Agregar evento ya favorito (idempotente - Cosquín Rock)
+POST {{baseUrl}}/favoritos/evt_cosquin
+Authorization: Bearer {{tokenLucas}}
+
+### Quitar evento de favoritos (Quilmes Rock)
+DELETE {{baseUrl}}/favoritos/evt_quilmes
+Authorization: Bearer {{tokenLucas}}
+
+### Intentar agregar como Organizador (Retorna 403)
+POST {{baseUrl}}/favoritos/evt_quilmes
+Authorization: Bearer {{tokenOrgRock}}
+
+
+###############################################################################
 # DEV ENDPOINTS: Reset de base en memoria
 ###############################################################################
 

@@ -5,6 +5,7 @@ import { Colors } from '../theme/colors.js';
 import { Typography } from '../theme/typography.js';
 import { ExplorarStack } from './ExplorarStack.js';
 import { ComprasStack } from './ComprasStack.js';
+import { FavoritosStack } from './FavoritosStack.js';
 import { TabBarGradient } from '../components/TabBarGradient.js';
 import { setAndroidBottomBar } from '../utils/systemBars.js';
 
@@ -55,6 +56,16 @@ export function CompradorTabs() {
           tabBarLabel: 'MIS COMPRAS',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="ticket" size={size || 22} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="FavoritosTab"
+        component={FavoritosStack}
+        options={{
+          tabBarLabel: 'FAVORITOS',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="heart" size={size || 22} color={color} />
           ),
         }}
       />

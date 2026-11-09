@@ -8,12 +8,14 @@ export class EventoController {
   buscar = async (req, res, next) => {
     try {
       const { q, categoria, orden, direccion, incluirRealizados } = req.query;
+      const usuarioId = req.user?.id || req.headers["x-user-id"];
       const eventos = await this.eventoService.buscar({
         q,
         categoria,
         orden,
         direccion,
         incluirRealizados,
+        usuarioId,
       });
       res.status(200).json(eventos);
     } catch (e) {
@@ -23,7 +25,8 @@ export class EventoController {
 
   getById = async (req, res, next) => {
     try {
-      const evento = await this.eventoService.getById(req.params.id);
+      const usuarioId = req.user?.id || req.headers["x-user-id"];
+      const evento = await this.eventoService.getById(req.params.id, usuarioId);
       res.status(200).json(evento);
     } catch (e) {
       next(e);

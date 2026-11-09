@@ -112,6 +112,28 @@ Este documento registra los fundamentos y criterios técnicos aplicados en el di
 - La variable de entorno `ENABLE_SIMULATED_AUTH` permite que el middleware `requireAuth` acepte condicionalmente la cabecera `x-user-id`.
 - Se evalúa dinámicamente por request, está apagada por defecto en producción/desarrollo y se enciende exclusivamente en la configuración de Jest para preservar la validez de los tests preexistentes.
 
+---
+
+## 8. Favoritos de Eventos
+
+### Orden de inserción y retorno del más reciente al más antiguo
+- La lista de favoritos preserva el orden cronológico en que el comprador expresó su interés y la API lo retorna invertido (LIFO).
+- Este comportamiento modela una pila de interés natural donde los eventos descubiertos recientemente tienen prioridad de visibilidad para el usuario.
+
+### Referencias por ID en persistencia vs. Evento[] en dominio
+- En la capa de persistencia (`UsuarioRepository`), el usuario almacena únicamente un array inmutable de identificadores (`string[]`), evitando duplicación y desincronización de estado.
+- A nivel del objeto de dominio `Usuario`, los métodos operan con instancias de `Evento[]`, permitiendo composición y consistencia sin acoplar el almacenamiento a copias estáticas.
+
+### Validación de rol exclusivamente en la capa de servicios
+- La restricción de que solo un `COMPRADOR` puede gestionar favoritos se valida dentro de `FavoritosService` y no en el middleware ni en el controlador HTTP.
+- Esto preserva la regla como lógica de negocio pura e independiente del protocolo de transporte, garantizando su cumplimiento ante cualquier punto de entrada.
+
+### Cálculo dinámico de `esFavorito` relativo al observador
+- El campo booleano `esFavorito` no se persiste en la entidad `Evento`, ya que no es una propiedad intrínseca del evento sino un estado relacional que depende del usuario autenticado.
+- Se resuelve dinámicamente en `EventoService` al consultar el catálogo o detalle, devolviendo `true` para el comprador que lo marcó y `false` para organizadores o terceros.
+
+---
+
 
 | Caso de Uso del TP | Test en `tests/casosDeUso.test.js` | Endpoints HTTP Involucrados |
 |---|---|---|

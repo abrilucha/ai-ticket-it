@@ -69,6 +69,7 @@ npx expo start
    - **Iniciar sesión (LoginScreen):** Ingresá con email y contraseña. El botón de alternar visibilidad permite ver/ocultar la clave. La derivación a la experiencia de Comprador u Organizador la decide estrictamente el atributo `rol` devuelto por el backend.
    - **Crear cuenta (RegisterScreen):** Permite registrarse como comprador u organizador mediante un selector táctil. Para compradores solicita Nombre, Apellido, Email y Contraseña (con confirmación local y regla de mínimo 8 caracteres, al menos 1 letra y 1 número). Para organizadores, el apellido se oculta y no es obligatorio.
    - **Sesión persistente:** El token de autenticación se persiste localmente en `AsyncStorage` (`@ai_ticket_it:auth_token`). Al reabrir la app, se valida automáticamente con `GET /usuarios/me`. Si se pierde conectividad, no se borra la sesión y se ofrece un botón de reintento.
+   - **Navegación del Comprador:** Posee 3 pestañas: **EXPLORAR**, **MIS COMPRAS** y **FAVORITOS**. En el catálogo y en el detalle de eventos, cada tarjeta incluye un botón corazón Pop Kinetic para agregar o quitar favoritos instantáneamente.
    - Podés presionar **"SALIR"** en el encabezado en cualquier momento para revocar el token en el servidor y volver a la pantalla de bienvenida.
 
 ---
@@ -191,7 +192,19 @@ El backend garantiza que **únicamente** se pueden reseñar compras en estado `U
 
 ---
 
-## 9. Tips Útiles para la Grabación del Video Demostrativo
+## 9. Favoritos de Eventos (Solo Comprador)
+
+Esta funcionalidad permite a los compradores armar su lista personalizada de eventos favoritos:
+
+### 9.1 Características y Reglas
+- **Botón Corazón Pop Kinetic (`FavoriteButton`):** Ubicado en la esquina superior derecha de las tarjetas del catálogo (`EventCard`) y en la barra superior del detalle del evento (`EventoDetalleScreen`). Posee un área táctil de al menos 44x44, borde de tinta de 2px, sombra física dura y aislamiento de toques para no activar la navegación al detalle.
+- **Protección contra doble toque:** Deshabilita temporalmente la acción mientras la petición HTTP está en vuelo y revierte el estado visual ante cualquier fallo de red.
+- **Pestaña "FAVORITOS":** Exclusiva para el rol `COMPRADOR`. Presenta la lista de eventos favoritos ordenada del más reciente al más antiguo, con soporte de pull-to-refresh, recarga al recuperar el foco (`useFocusEffect`) y estado vacío con botón de acción directa a explorar. Si un evento favorito ya fue realizado, se muestra conservando su badge descriptivo.
+- **Exclusión para organizadores:** Los organizadores no visualizan la pestaña ni los botones de corazón en ninguna pantalla.
+
+---
+
+## 10. Tips Útiles para la Grabación del Video Demostrativo
 
 - **Reinicio limpio del backend:** Antes de encender la cámara, detené el backend con `Ctrl+C` y volvé a levantarlo con `npm start` en `backend/` para tener el seed inicial canónico con cupos e historiales limpios.
 - **Ocultar el botón o menú de desarrollo de Expo:**

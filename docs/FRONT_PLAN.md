@@ -20,7 +20,7 @@
 3. **Omisión de Gemini y librerías web:**  
    Se omite `AIVibeModal` y toda lógica de Inteligencia Artificial externa, sin emplear ninguna de las dependencias externas del export web (`@google/genai`, `express`, `dotenv`, `motion`, `lucide-react`, `tailwind`).
 4. **Esquema de navegación por rol:**  
-   - **Comprador:** Tab Navigator con 2 pestañas: **"Explorar"** y **"Mis compras"**.
+   - **Comprador:** Tab Navigator con 3 pestañas: **"Explorar"**, **"Mis compras"** y **"Favoritos"**.
    - **Organizador:** Tab Navigator con 2 pestañas: **"Mis eventos"** y **"Validar entrada"**.  
    El perfil y reputación del organizador no ocupa una pestaña independiente, sino que se consulta navegando desde el detalle del evento.
 
@@ -177,6 +177,7 @@ Se compone de dos familias de fuentes de Google Fonts:
 5. **`Screen`**: Contenedor con `SafeAreaView` y fondo de papel prensa `#FAF8F5`.
 6. **`LoadingView`**, **`EmptyState`**, **`ErrorBanner`**: Estados auxiliares de carga, vacío y error con botón de reintento.
 7. **`Header`**: Barra superior unificada con logo Pop Art, nombre de usuario activo, pastilla de rol y botón de cierre de sesión.
+8. **`FavoriteButton`**: Botón táctil con icono de corazón (lleno bermellón o contorno), borde negro de 2px, sombra dura Pop Kinetic y aislamiento de propagación de eventos, reservado exclusivamente para compradores.
 
 ---
 
@@ -196,6 +197,7 @@ Se compone de dos familias de fuentes de Google Fonts:
 | **Reseñas previas visibles en eventos del organizador** | Comprobado (Fase 2: `OrganizadorPerfilScreen`) | Pantalla de perfil de organizador accesible desde el detalle del evento para ver su puntaje promedio y opiniones. |
 | **Ordenar por precio, fecha y puntaje** | Comprobado (Fase 2: `ExplorarScreen`) | Selector de orden en la cabecera del catálogo (`orden=precio_asc`, `fecha_asc`, `puntaje_desc`). |
 | **Comprar eligiendo tipo y cantidad sin superar el cupo** | Comprobado (Fase 3: `EventoDetalleScreen`) | Selector de tipo de entrada y `QuantityStepper` limitado al `cupoRestante` en el detalle del evento (`POST /compras`). |
+| **Comprador guarda eventos favoritos** | Comprobado (`FavoritosScreen`, `FavoriteButton`, `EventCard`, `EventoDetalleScreen`) | Pestaña *"Favoritos"* exclusiva para compradores (`GET /favoritos`), corazón Pop Kinetic para alternar estado (`POST /favoritos/:id` y `DELETE /favoritos/:id`) con protección anti-doble toque y refresco por foco. |
 
 ---
 
@@ -212,6 +214,7 @@ flowchart TD
     
     CompTabs --> CTab1[Tab 1: EXPLORAR\nLlama a GET /categorias]
     CompTabs --> CTab2[Tab 2: MIS COMPRAS\nMarcador de billetera]
+    CompTabs --> CTab3[Tab 3: FAVORITOS\nStack de eventos favoritos]
     
     OrgTabs --> OTab1[Tab 1: MIS EVENTOS\nMarcador panel organizador]
     OrgTabs --> OTab2[Tab 2: VALIDAR ENTRADA\nMarcador validador acceso]

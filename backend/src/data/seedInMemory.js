@@ -203,6 +203,10 @@ export async function inicializarSeedInMemory() {
     ],
   });
 
+  // Requisito A4: La cuenta demo de Lucas (usr_comprador_1) arranca con UN favorito: evt_cosquin
+  comprador1.favoritos = [eventoRock];
+  await usuarioRepository.save(comprador1);
+
   // 3. Teatro (futuro) - Organizador B (sin reseñas)
   const eventoTeatro = await eventoRepository.save({
     id: "evt_teatro",

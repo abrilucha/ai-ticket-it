@@ -148,7 +148,45 @@ export class EventoService {
     );
   };
 
-  buscar = async ({ q, categoria, orden, direccion, incluirRealizados }) => {
+  /**
+   * Enriquecimiento centralizado de eventos para catálogo, detalle y favoritos.
+   */
+  enriquecerEvento = async (ev, usuario = null) => {
+    const precios = (ev.tiposEntrada || []).map((t) => t.precio);
+    const precioMinimo = precios.length > 0 ? Math.min(...precios) : 0;
+    const ahora = new Date();
+    const realizado = new Date(ev.fecha) < ahora;
+
+    const orgId = ev.organizador?.id || ev.organizador;
+    const reputacionOrg = await this.reputacionService.calcularPuntajeOrganizador(orgId);
+    const reputacionEvt = await this.reputacionService.calcularPuntajeEvento(ev.id);
+    const tiposConDisponibilidad = await this.calcularDisponibilidadTipos(ev);
+    const { email: _email, passwordHash: _hash, ...orgSinEmail } = ev.organizador || {};
+
+    const esFavorito = (usuario && usuario.rol === "COMPRADOR")
+      ? Boolean(usuario.esFavorito(ev.id))
+      : false;
+
+    return {
+      ...ev,
+      precioMinimo,
+      realizado,
+      puntajeOrganizador: reputacionOrg.puntajePromedio, // number o null (nunca 0.0)
+      cantidadResenas: reputacionOrg.cantidadResenas,
+      // Puntuación y reseñas exclusivas del evento:
+      puntajeEvento: reputacionEvt.puntajePromedio,
+      cantidadResenasEvento: reputacionEvt.cantidadResenas,
+      tiposEntrada: tiposConDisponibilidad,
+      organizador: {
+        ...orgSinEmail,
+        puntajePromedio: reputacionOrg.puntajePromedio,
+        cantidadResenas: reputacionOrg.cantidadResenas,
+      },
+      esFavorito,
+    };
+  };
+
+  buscar = async ({ q, categoria, orden, direccion, incluirRealizados, usuarioId }) => {
     // Validar orden y direccion
     const ordenesValidos = ["precio", "fecha", "puntaje"];
     if (orden && !ordenesValidos.includes(orden)) {
@@ -193,37 +231,14 @@ export class EventoService {
 
     let eventos = await this.eventoRepository.getAll(filter, { fecha: 1 });
 
-    // Enriquecer cada evento con campos calculados
-    const ahora = new Date();
+    let usuario = null;
+    if (usuarioId) {
+      usuario = await this.usuarioRepository.findById(usuarioId);
+    }
+
+    // Enriquecer cada evento con campos calculados y esFavorito
     const eventosEnriquecidos = await Promise.all(
-      eventos.map(async (ev) => {
-        const precios = (ev.tiposEntrada || []).map((t) => t.precio);
-        const precioMinimo = precios.length > 0 ? Math.min(...precios) : 0;
-        const realizado = new Date(ev.fecha) < ahora;
-
-        const orgId = ev.organizador?.id || ev.organizador;
-        const reputacionOrg = await this.reputacionService.calcularPuntajeOrganizador(orgId);
-        const reputacionEvt = await this.reputacionService.calcularPuntajeEvento(ev.id);
-        const tiposConDisponibilidad = await this.calcularDisponibilidadTipos(ev);
-        const { email: _email, passwordHash: _hash, ...orgSinEmail } = ev.organizador || {};
-
-        return {
-          ...ev,
-          precioMinimo,
-          realizado,
-          puntajeOrganizador: reputacionOrg.puntajePromedio, // number o null (nunca 0.0)
-          cantidadResenas: reputacionOrg.cantidadResenas,
-          // Puntuación y reseñas exclusivas del evento:
-          puntajeEvento: reputacionEvt.puntajePromedio,
-          cantidadResenasEvento: reputacionEvt.cantidadResenas,
-          tiposEntrada: tiposConDisponibilidad,
-          organizador: {
-            ...orgSinEmail,
-            puntajePromedio: reputacionOrg.puntajePromedio,
-            cantidadResenas: reputacionOrg.cantidadResenas,
-          },
-        };
-      })
+      eventos.map((ev) => this.enriquecerEvento(ev, usuario))
     );
 
     // Filtrar realizados por defecto salvo inclusión explícita
@@ -273,7 +288,7 @@ export class EventoService {
     return resultado;
   };
 
-  getById = async (id) => {
+  getById = async (id, usuarioId = null) => {
     if (!id || typeof id !== "string" || id.trim() === "") {
       throw new NotFoundError("Evento no encontrado");
     }
@@ -282,6 +297,14 @@ export class EventoService {
     if (!evento) {
       throw new NotFoundError("Evento no encontrado");
     }
+
+    let usuario = null;
+    if (usuarioId) {
+      usuario = await this.usuarioRepository.findById(usuarioId);
+    }
+    const esFavorito = (usuario && usuario.rol === "COMPRADOR")
+      ? Boolean(usuario.esFavorito(id))
+      : false;
 
     const orgId = evento.organizador?.id || evento.organizador;
 
@@ -361,6 +384,7 @@ export class EventoService {
       puntajeEvento: reputacionEvento.puntajePromedio,
       cantidadResenasEvento: reputacionEvento.cantidadResenas,
       resenasEvento: resenasEventoFormateadas,
+      esFavorito,
     };
   };
 

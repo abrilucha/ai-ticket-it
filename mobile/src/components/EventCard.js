@@ -5,6 +5,7 @@ import { Typography } from '../theme/typography.js';
 import { HardShadow } from './HardShadow.js';
 import { EventImage } from './EventImage.js';
 import { RatingStars } from './RatingStars.js';
+import { FavoriteButton } from './FavoriteButton.js';
 import { formatFecha, formatPrecio } from '../utils/formato.js';
 
 /**
@@ -13,7 +14,7 @@ import { formatFecha, formatPrecio } from '../utils/formato.js';
  * Muestra imagen, badge de categoría, nombre, fecha, precio mínimo ("Desde $X"),
  * puntaje del organizador y badge "REALIZADO" si aplica.
  */
-export function EventCard({ evento, onPress, style }) {
+export function EventCard({ evento, onPress, onToggleFavorito, style }) {
   if (!evento) return null;
 
   const imagenUri = Array.isArray(evento.multimedia) && evento.multimedia.length > 0
@@ -43,6 +44,15 @@ export function EventCard({ evento, onPress, style }) {
           {/* Badge de Categoría flotante con nombre real */}
           <View style={styles.categoriaPill}>
             <Text style={styles.categoriaText}>{categoriaNombre.toUpperCase()}</Text>
+          </View>
+
+          {/* Botón de Favorito flotante sobre la portada */}
+          <View style={styles.favoriteBtnContainer}>
+            <FavoriteButton
+              eventoId={evento.id}
+              esFavoritoInicial={Boolean(evento.esFavorito)}
+              onToggle={onToggleFavorito}
+            />
           </View>
 
           {/* Badge de Evento Realizado si aplica */}
@@ -120,9 +130,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '800',
   },
+  favoriteBtnContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
   realizadoPill: {
     position: 'absolute',
-    top: 10,
+    bottom: 10,
     right: 10,
     backgroundColor: Colors.popVermilion,
     paddingHorizontal: 8,

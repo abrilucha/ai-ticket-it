@@ -10,6 +10,7 @@ import categoriaRoutes from "./routes/CategoriaRoutes.js";
 import eventoRoutes from "./routes/EventoRoutes.js";
 import compraRoutes from "./routes/CompraRoutes.js";
 import organizadorRoutes from "./routes/OrganizadorRoutes.js";
+import favoritosRoutes from "./routes/FavoritosRoutes.js";
 import devRoutes from "./routes/DevRoutes.js";
 
 // Middlewares
@@ -38,6 +39,7 @@ app.use("/categorias", categoriaRoutes);
 app.use("/eventos", eventoRoutes);
 app.use("/compras", compraRoutes);
 app.use("/organizadores", organizadorRoutes);
+app.use("/favoritos", favoritosRoutes);
 app.use("/dev", devRoutes);
 
 // 3. Middlewares de errores
