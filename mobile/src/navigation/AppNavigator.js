@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext.js';
 import { UnsavedChangesProvider } from '../context/UnsavedChangesContext.js';
-import { LoginScreen } from '../screens/LoginScreen.js';
+import { AuthStack } from './AuthStack.js';
 import { CompradorTabs } from './CompradorTabs.js';
 import { OrganizadorTabs } from './OrganizadorTabs.js';
 import { LoadingView } from '../components/LoadingView.js';
@@ -18,7 +18,7 @@ export function AppNavigator() {
     <UnsavedChangesProvider>
       <NavigationContainer>
         {!usuario ? (
-          <LoginScreen />
+          <AuthStack />
         ) : usuario.rol === 'ORGANIZADOR' ? (
           <OrganizadorTabs />
         ) : (

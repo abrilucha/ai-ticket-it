@@ -1,32 +1,30 @@
-import { UsuarioService } from "../services/UsuarioService.js";
+import { usuarioService as defaultUsuarioService } from "../services/UsuarioService.js";
 
 export class UsuarioController {
-  constructor(usuarioService = new UsuarioService()) {
+  constructor(usuarioService = defaultUsuarioService) {
     this.usuarioService = usuarioService;
   }
-
-  listar = async (req, res, next) => {
-    try {
-      res.status(200).json(await this.usuarioService.listar());
-    } catch (e) {
-      next(e);
-    }
-  };
 
   obtenerActual = async (req, res, next) => {
     try {
       const userId = req.user?.id || req.headers["x-user-id"];
-      res.status(200).json(await this.usuarioService.obtenerActual(userId));
-    } catch (e) {
-      next(e);
-    }
-  };
-
-  obtenerPorId = async (req, res, next) => {
-    try {
-      res.status(200).json(await this.usuarioService.obtenerPorId(req.params.id));
+      const usuario = await this.usuarioService.obtenerActual(userId);
+      if (!usuario) {
+        return res.status(404).json({
+          error: {
+            code: "NO_ENCONTRADO",
+            message: "Usuario no encontrado",
+          },
+          status: "fail",
+          statusCode: 404,
+          message: "Usuario no encontrado",
+        });
+      }
+      res.status(200).json(usuario);
     } catch (e) {
       next(e);
     }
   };
 }
+
+export const usuarioController = new UsuarioController();

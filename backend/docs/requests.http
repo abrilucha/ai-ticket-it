@@ -1,19 +1,68 @@
 ### Variables globales
 @baseUrl = http://localhost:3000
-@compradorId = usr_comprador_1
-@comprador2Id = usr_comprador_2
-@organizadorRockId = usr_org_rock
-@organizadorTeatroId = usr_org_teatro
+@demoPassword = Demo1234
+
+# Tokens opacos obtenidos tras login (actualizar tras ejecutar POST /auth/login)
+@tokenLucas = {{loginLucas.response.body.token}}
+@tokenOrgRock = {{loginOrgRock.response.body.token}}
 
 ###############################################################################
-# HEALTH & USUARIOS (Rutas públicas)
+# AUTENTICACIÓN REAL (Rutas públicas y privadas)
 ###############################################################################
 
-### Health check
+### Health check (Público)
 GET {{baseUrl}}/health
 
-### Listar usuarios disponibles en el seed
-GET {{baseUrl}}/usuarios
+### Iniciar sesión como Comprador (Lucas García)
+# @name loginLucas
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "lucas.garcia@gmail.com",
+  "password": "{{demoPassword}}"
+}
+
+### Iniciar sesión como Organizador (Productora Rock Nacional)
+# @name loginOrgRock
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "contacto@rocknacional.com.ar",
+  "password": "{{demoPassword}}"
+}
+
+### Registrar nuevo Comprador
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "Esteban",
+  "apellido": "Quito",
+  "email": "esteban.quito@ejemplo.com",
+  "password": "Password123",
+  "rol": "COMPRADOR"
+}
+
+### Registrar nuevo Organizador
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "Nueva Productora BA",
+  "email": "info@nuevaproductoraba.com",
+  "password": "Password123",
+  "rol": "ORGANIZADOR"
+}
+
+### Obtener perfil del usuario actual (/usuarios/me)
+GET {{baseUrl}}/usuarios/me
+Authorization: Bearer {{tokenLucas}}
+
+### Cerrar sesión (invalida el token)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -22,7 +71,7 @@ GET {{baseUrl}}/usuarios
 
 ### Listar categorías canónicas
 GET {{baseUrl}}/categorias
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -32,7 +81,7 @@ x-user-id: {{compradorId}}
 ### Crear evento (Organizador)
 POST {{baseUrl}}/eventos
 Content-Type: application/json
-x-user-id: {{organizadorRockId}}
+Authorization: Bearer {{tokenOrgRock}}
 
 {
   "nombre": "Festival Música Urbana 2027",
@@ -60,7 +109,7 @@ x-user-id: {{organizadorRockId}}
 
 ### Listar mis eventos creados (Organizador)
 GET {{baseUrl}}/eventos/mios
-x-user-id: {{organizadorRockId}}
+Authorization: Bearer {{tokenOrgRock}}
 
 
 ###############################################################################
@@ -69,27 +118,27 @@ x-user-id: {{organizadorRockId}}
 
 ### Búsqueda textual por "rock"
 GET {{baseUrl}}/eventos?q=rock
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Filtrar por categoría recitales
 GET {{baseUrl}}/eventos?categoria=cat_recitales
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Ordenar por precio ascendente
 GET {{baseUrl}}/eventos?orden=precio&direccion=asc
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Ordenar por fecha ascendente
 GET {{baseUrl}}/eventos?orden=fecha&direccion=asc
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Ordenar por puntaje del organizador (descendente)
 GET {{baseUrl}}/eventos?orden=puntaje&direccion=desc
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Búsqueda incluyendo eventos ya realizados
 GET {{baseUrl}}/eventos?q=rock&incluirRealizados=true
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -98,11 +147,11 @@ x-user-id: {{compradorId}}
 
 ### Detalle de evento con cupo restante y datos del organizador
 GET {{baseUrl}}/eventos/evt_cosquin
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Reseñas asociadas a un evento
 GET {{baseUrl}}/eventos/evt_cosquin/resenas
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -112,7 +161,7 @@ x-user-id: {{compradorId}}
 ### Crear compra de entradas (Comprador)
 POST {{baseUrl}}/compras
 Content-Type: application/json
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 {
   "eventoId": "evt_cosquin",
@@ -127,7 +176,7 @@ x-user-id: {{compradorId}}
 
 ### Pagar compra pendiente para confirmarla
 POST {{baseUrl}}/compras/cmp_pendiente_1/pagar
-x-user-id: {{comprador2Id}}
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -136,11 +185,11 @@ x-user-id: {{comprador2Id}}
 
 ### Listar mis compras (con badges y acciones calculadas)
 GET {{baseUrl}}/compras/mias
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Detalle de compra con historial de estados
 GET {{baseUrl}}/compras/cmp_confirmada_1
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -149,11 +198,11 @@ x-user-id: {{compradorId}}
 
 ### Cancelar compra pendiente (libera cupo)
 POST {{baseUrl}}/compras/cmp_pendiente_1/cancelar
-x-user-id: {{comprador2Id}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Cancelar compra confirmada (reembolsa y libera cupo)
 POST {{baseUrl}}/compras/cmp_confirmada_1/cancelar
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -162,7 +211,7 @@ x-user-id: {{compradorId}}
 
 ### Marcar entrada como utilizada (Organizador)
 POST {{baseUrl}}/compras/cmp_confirmada_1/utilizar
-x-user-id: {{organizadorRockId}}
+Authorization: Bearer {{tokenOrgRock}}
 
 
 ###############################################################################
@@ -171,12 +220,12 @@ x-user-id: {{organizadorRockId}}
 
 ### Listar mensajes del chat de la compra
 GET {{baseUrl}}/compras/cmp_confirmada_1/mensajes
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Enviar mensaje como comprador
 POST {{baseUrl}}/compras/cmp_confirmada_1/mensajes
 Content-Type: application/json
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 {
   "texto": "¿A qué hora finaliza el show aproximadamente?"
@@ -185,7 +234,7 @@ x-user-id: {{compradorId}}
 ### Responder mensaje como organizador
 POST {{baseUrl}}/compras/cmp_confirmada_1/mensajes
 Content-Type: application/json
-x-user-id: {{organizadorRockId}}
+Authorization: Bearer {{tokenOrgRock}}
 
 {
   "texto": "Hola Lucas, el show termina aproximadamente a las 02:00 hs."
@@ -199,7 +248,7 @@ x-user-id: {{organizadorRockId}}
 ### Dejar reseña sobre compra utilizada
 POST {{baseUrl}}/compras/cmp_utilizada_sin_resena/resena
 Content-Type: application/json
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 {
   "puntaje": 5,
@@ -208,11 +257,11 @@ x-user-id: {{compradorId}}
 
 ### Consultar reseña de una compra
 GET {{baseUrl}}/compras/cmp_utilizada_1/resena
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 ### Consultar reputación del organizador
 GET {{baseUrl}}/organizadores/usr_org_rock/reputacion
-x-user-id: {{compradorId}}
+Authorization: Bearer {{tokenLucas}}
 
 
 ###############################################################################
@@ -221,7 +270,7 @@ x-user-id: {{compradorId}}
 
 ### Listar compras y disponibilidad por tipo de entrada
 GET {{baseUrl}}/eventos/evt_cosquin/compras
-x-user-id: {{organizadorRockId}}
+Authorization: Bearer {{tokenOrgRock}}
 
 
 ###############################################################################

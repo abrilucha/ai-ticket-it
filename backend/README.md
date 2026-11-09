@@ -54,21 +54,36 @@ El servidor funciona de manera autónoma con valores por defecto pero permite co
 |---|---|---|
 | `PORT` | Puerto HTTP donde escucha el servidor | `3000` |
 | `ENABLE_DEV_ENDPOINTS` | Habilita rutas de desarrollo como `POST /dev/reset` | `"false"` |
+| `ENABLE_SIMULATED_AUTH` | Habilita modo compatibilidad con header `x-user-id` para tests | `"false"` |
 
 ---
 
-## 👥 Usuarios del Seed (Datos de Prueba)
+## 🔐 Autenticación y Registro Real
 
-La persistencia en memoria se inicializa automáticamente al arrancar con un conjunto de datos coherente:
+El sistema cuenta con autenticación real mediante tokens de sesión opacos y hash criptográfico nativo (`crypto.scrypt`):
 
-| ID de Usuario | Nombre | Rol | Propósito en Pruebas |
-|---|---|---|---|
-| `usr_comprador_1` | Lucas García | `COMPRADOR` | Titular de compras confirmadas, utilizadas (con y sin reseña) y chat activo. |
-| `usr_comprador_2` | Mariana López | `COMPRADOR` | Titular de compra pendiente (para pagar/cancelar) y reseña previa. |
-| `usr_comprador_3` | Sofía Martínez | `COMPRADOR` | Usuario comprador limpio para crear compras desde cero. |
-| `usr_org_rock` | Productora Rock Nacional | `ORGANIZADOR` | Dueño de Cosquín Rock y evento pasado Divididos con 2 reseñas (promedio 4.0). |
-| `usr_org_teatro` | Teatro Gran Rex | `ORGANIZADOR` | Dueño de Toc Toc en Teatro, caso borde: 0 reseñas (`puntajePromedio: null`). |
-| `usr_org_deportes` | Asociación Deportes | `ORGANIZADOR` | Dueño de Superclásico, Charly Sinfónico y Lollapalooza. |
+- **Registro**: `POST /auth/register` con `{ email, password, rol, nombre, apellido? }`. Crea un usuario con rol `COMPRADOR` u `ORGANIZADOR` y devuelve el objeto `usuario` y su `token` de sesión.
+- **Login**: `POST /auth/login` con `{ email, password }`. Valida credenciales y emite un `token` válido por 24 horas.
+- **Logout**: `POST /auth/logout` con header `Authorization: Bearer <token>`. Revoca inmediatamente la sesión.
+- **Peticiones autenticadas**: Se envían con cabecera `Authorization: Bearer <token>`.
+- **Recuperación de sesión**: `GET /usuarios/me` devuelve los datos completos del usuario autenticado (incluyendo email).
+
+> **Aviso de persistencia en memoria**: Todas las cuentas registradas dinámicamente y las sesiones activas residen en memoria volátil (Maps y Arrays). Al reiniciar el proceso de Node.js o invocar `POST /dev/reset`, las sesiones se vacían y los usuarios vuelven exclusivamente a las cuentas del seed inicial.
+
+---
+
+## 👥 Cuentas Demo del Seed (Datos de Prueba)
+
+La persistencia en memoria se inicializa automáticamente al arrancar con las siguientes cuentas semilla. Todas comparten la contraseña demo: `Demo1234`.
+
+| ID | Email | Nombre | Rol | Contraseña Demo |
+|---|---|---|---|---|
+| `usr_comprador_1` | `lucas@test.com` | Lucas García | `COMPRADOR` | `Demo1234` |
+| `usr_comprador_2` | `mariana@test.com` | Mariana López | `COMPRADOR` | `Demo1234` |
+| `usr_comprador_3` | `sofia@test.com` | Sofía Martínez | `COMPRADOR` | `Demo1234` |
+| `usr_org_rock` | `rock@productora.com` | Productora Rock Nacional | `ORGANIZADOR` | `Demo1234` |
+| `usr_org_teatro` | `info@granrex.com.ar` | Teatro Gran Rex | `ORGANIZADOR` | `Demo1234` |
+| `usr_org_deportes` | `eventos@deportes.org` | Asociación Deportes | `ORGANIZADOR` | `Demo1234` |
 
 ---
 

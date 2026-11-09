@@ -80,3 +80,51 @@ Este documento registra los fundamentos y criterios técnicos aplicados en el di
 | **CU11** Comprador ordena por precio, fecha y puntaje del organizador | `CU11: comprador ordena por precio, fecha y puntaje del organizador` | `GET /eventos?orden=...&direccion=...` |
 | **CU12** Comprador compra eligiendo tipo y cantidad sin superar el cupo | `CU12: comprador compra eligiendo tipo y cantidad sin superar el cupo` | `GET /eventos/:id`, `POST /compras` |
 
+---
+
+## 8. Autenticación y Registro Real
+
+### Entidad única `Usuario` con atributo `rol`
+- Se modela una sola entidad `Usuario` con el discriminador `rol` (`COMPRADOR` u `ORGANIZADOR`).
+- Evita duplicación de estructuras de base y autorizaciones, permitiendo que compras y eventos referencien un único tipo de usuario de manera consistente.
+
+### Hashing con `crypto.scrypt` nativo
+- Las contraseñas se hashean utilizando la función nativa `crypto.scrypt` con sal aleatoria de 16 bytes y longitud de clave de 64 bytes.
+- Se almacenan en formato `salt:key` y se verifican con `crypto.timingSafeEqual`. Si el usuario no existe, se ejecuta un hash ficticio para mitigar ataques de temporización (*timing attacks*).
+
+### Tokens opacos en memoria (`SesionRepository`)
+- Las sesiones activas se gestionan mediante tokens opacos generados con `crypto.randomBytes(32).toString('hex')` en un `Map` en memoria.
+- No se utilizan JWTs ni firmas externas, manteniendo coherencia con el diseño en memoria y permitiendo revocación inmediata en `POST /auth/logout`.
+
+### Mensaje unificado de credenciales inválidas
+- Tanto si el email no existe como si la contraseña es incorrecta, el sistema responde siempre `401 Unauthorized` con el mensaje genérico `"Credenciales inválidas"`.
+- Esta práctica previene la enumeración de correos electrónicos registrados en la plataforma.
+
+### Expiración de sesiones a 24 horas
+- Cada sesión almacena su timestamp de creación (`creadoEn`) y se invalida automáticamente si han transcurrido más de 24 horas desde su emisión.
+- Al detectarse expiración, el registro es purgado inmediatamente del repositorio liberando memoria.
+
+### Contraseña demo para cuentas del seed
+- Todas las cuentas preexistentes en el seed se inicializan con la contraseña unificada `Demo1234`.
+- Las contraseñas se hashean de manera individual con su propia sal criptográfica durante la carga del seed o al invocar `POST /dev/reset`.
+
+### Flag `ENABLE_SIMULATED_AUTH` para tests legados
+- La variable de entorno `ENABLE_SIMULATED_AUTH` permite que el middleware `requireAuth` acepte condicionalmente la cabecera `x-user-id`.
+- Se evalúa dinámicamente por request, está apagada por defecto en producción/desarrollo y se enciende exclusivamente en la configuración de Jest para preservar la validez de los tests preexistentes.
+
+
+| Caso de Uso del TP | Test en `tests/casosDeUso.test.js` | Endpoints HTTP Involucrados |
+|---|---|---|
+| **CU1** Comprador ve sus compras con estado y días restantes (solo si `CONFIRMADA`) | `CU1: comprador ve sus compras con estado y días restantes (solo si CONFIRMADA)` | `GET /compras/mias` |
+| **CU2** Organizador ve las compras de un evento con estado y entradas restantes por tipo | `CU2: organizador ve las compras de un evento con estado y entradas restantes por tipo` | `GET /eventos/:id/compras` |
+| **CU3** Comprador busca por texto y explora por categorías | `CU3: comprador busca por texto y explora por categorías` | `GET /categorias`, `GET /eventos?q=...`, `GET /eventos?categoria=...` |
+| **CU4** Organizador crea un evento con varios tipos de entrada | `CU4: organizador crea un evento con varios tipos de entrada` | `POST /eventos` |
+| **CU5** Comprador envía mensajes en una compra | `CU5: comprador envía mensajes en una compra` | `POST /compras/:id/mensajes` |
+| **CU6** Organizador responde mensajes | `CU6: organizador responde mensajes` | `POST /compras/:id/mensajes`, `GET /compras/:id/mensajes` |
+| **CU7** Comprador cancela una compra y se registra el reembolso | `CU7: comprador cancela una compra y se registra el reembolso` | `POST /compras/:id/cancelar`, `GET /eventos/:id` |
+| **CU8** Cancelación permitida solo si la compra no está `UTILIZADA` y el evento no se realizó | `CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó` | `POST /compras/:id/cancelar` |
+| **CU9** Comprador puntúa y comenta una vez utilizada la entrada | `CU9: comprador puntúa y comenta una vez utilizada la entrada` | `POST /compras/:id/resena` |
+| **CU10** Las reseñas de eventos anteriores se ven en los eventos de cada organizador | `CU10: las reseñas de eventos anteriores se ven en los eventos de cada organizador` | `GET /eventos/:id`, `GET /organizadores/:id` |
+| **CU11** Comprador ordena por precio, fecha y puntaje del organizador | `CU11: comprador ordena por precio, fecha y puntaje del organizador` | `GET /eventos?orden=...&direccion=...` |
+| **CU12** Comprador compra eligiendo tipo y cantidad sin superar el cupo | `CU12: comprador compra eligiendo tipo y cantidad sin superar el cupo` | `GET /eventos/:id`, `POST /compras` |
+

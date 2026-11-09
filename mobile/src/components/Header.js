@@ -36,7 +36,7 @@ export function Header({ usuario, onLogout, onBack = null }) {
           <View style={styles.userSection}>
             <View style={styles.userInfoCol}>
               <Text style={styles.userName} numberOfLines={1}>
-                {usuario.nombre}
+                {usuario.nombre}{usuario.apellido ? ` ${usuario.apellido}` : ''}
               </Text>
               <View
                 style={[

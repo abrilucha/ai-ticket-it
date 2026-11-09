@@ -1,17 +1,26 @@
 import slugify from "slugify";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
+import { sesionRepository } from "../repositories/SesionRepository.js";
 import { categoriaRepository } from "../repositories/CategoriaRepository.js";
 import { eventoRepository } from "../repositories/EventoRepository.js";
 import { compraRepository } from "../repositories/CompraRepository.js";
 import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { cambioEstadoCompraRepository } from "../repositories/CambioEstadoCompraRepository.js";
 import { mensajeRepository } from "../repositories/MensajeRepository.js";
+import { authService } from "../services/AuthService.js";
+
+/**
+ * Contraseña común para todas las cuentas del seed inicial.
+ * Solo para propósitos de demostración y pruebas automáticas.
+ */
+export const DEMO_PASSWORD = "Demo1234";
 
 const codigo = (titulo) => slugify(titulo, { lower: true, replacement: "_" });
 
 export async function inicializarSeedInMemory() {
   await Promise.all([
     usuarioRepository.clear(),
+    sesionRepository.clear(),
     categoriaRepository.clear(),
     eventoRepository.clear(),
     compraRepository.clear(),
@@ -19,6 +28,8 @@ export async function inicializarSeedInMemory() {
     cambioEstadoCompraRepository.clear(),
     mensajeRepository.clear(),
   ]);
+
+  const passwordHash = await authService.hashPassword(DEMO_PASSWORD);
 
   // 1. Categorías canónicas (5)
   const catRecitales = await categoriaRepository.save({
@@ -63,6 +74,7 @@ export async function inicializarSeedInMemory() {
     apellido: "García",
     email: "lucas.garcia@gmail.com",
     rol: "COMPRADOR",
+    passwordHash,
   });
 
   const comprador2 = await usuarioRepository.save({
@@ -71,6 +83,7 @@ export async function inicializarSeedInMemory() {
     apellido: "López",
     email: "mariana.lopez@hotmail.com",
     rol: "COMPRADOR",
+    passwordHash,
   });
 
   await usuarioRepository.save({
@@ -79,6 +92,7 @@ export async function inicializarSeedInMemory() {
     apellido: "Martínez",
     email: "sofia.martinez@yahoo.com",
     rol: "COMPRADOR",
+    passwordHash,
   });
 
   // Organizador A: con eventos pasados y reseñas (promedio 4.0)
@@ -88,6 +102,7 @@ export async function inicializarSeedInMemory() {
     apellido: "Eventos",
     email: "contacto@rocknacional.com.ar",
     rol: "ORGANIZADOR",
+    passwordHash,
   });
 
   // Organizador B: con eventos futuros, SIN reseñas (puntaje null / 0 reseñas)
@@ -97,6 +112,7 @@ export async function inicializarSeedInMemory() {
     apellido: "Administración",
     email: "entradas@granrex.com.ar",
     rol: "ORGANIZADOR",
+    passwordHash,
   });
 
   // Organizador C: con eventos futuros y compras
@@ -106,6 +122,7 @@ export async function inicializarSeedInMemory() {
     apellido: "Producciones",
     email: "produccion@deportesba.com.ar",
     rol: "ORGANIZADOR",
+    passwordHash,
   });
 
   // 3. Eventos: 6 futuros escalonados (+15d, +30d, +45d, +60d, +90d, +120d) + 1 pasado (-5d)

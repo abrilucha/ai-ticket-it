@@ -64,11 +64,29 @@ npx expo start
 2. **Abrir la App:**
    - En **Android:** Abrí la app **Expo Go** y seleccioná *"Scan QR code"*, apuntando al QR de tu terminal.
    - En **iOS:** Abrí la app nativa de **Cámara** y tocá la notificación para abrir en **Expo Go**.
-3. **Flujo de Prueba en Fase 1:**
-   - Verás la pantalla de **Login Pop Art** sin contraseñas con los usuarios del seed agrupados en *Compradores* y *Organizadores*.
-   - Al tocar cualquier comprador (ej. *Lucas* o *Mariana*), entrarás a la vista con pestañas **"EXPLORAR"** y **"MIS COMPRAS"**.
-   - En **"EXPLORAR"**, la app llamará a `GET /categorias` y listará las 5 categorías canónicas en vivo, confirmando la conectividad de la API.
-   - Podés presionar **"SALIR"** en el encabezado para cerrar sesión y probar el ingreso como organizador (*Productora Rock*), accediendo a las pestañas **"MIS EVENTOS"** y **"VALIDAR ENTRADA"**.
+3. **Flujo de Autenticación y Navegación:**
+   - La aplicación inicia en la pantalla de bienvenida (**WelcomeScreen**) con estilo Pop Kinetic, ofreciendo dos acciones principales: **"INICIAR SESIÓN"** y **"CREAR CUENTA"**.
+   - **Iniciar sesión (LoginScreen):** Ingresá con email y contraseña. El botón de alternar visibilidad permite ver/ocultar la clave. La derivación a la experiencia de Comprador u Organizador la decide estrictamente el atributo `rol` devuelto por el backend.
+   - **Crear cuenta (RegisterScreen):** Permite registrarse como comprador u organizador mediante un selector táctil. Para compradores solicita Nombre, Apellido, Email y Contraseña (con confirmación local y regla de mínimo 8 caracteres, al menos 1 letra y 1 número). Para organizadores, el apellido se oculta y no es obligatorio.
+   - **Sesión persistente:** El token de autenticación se persiste localmente en `AsyncStorage` (`@ai_ticket_it:auth_token`). Al reabrir la app, se valida automáticamente con `GET /usuarios/me`. Si se pierde conectividad, no se borra la sesión y se ofrece un botón de reintento.
+   - Podés presionar **"SALIR"** en el encabezado en cualquier momento para revocar el token en el servidor y volver a la pantalla de bienvenida.
+
+---
+
+## 👥 Cuentas de Prueba Preconfiguradas (Seed)
+
+Todas las cuentas demo vienen precargadas con la contraseña demo: `Demo1234`.
+
+| Email | Contraseña Demo | Rol | Nombre |
+|---|---|---|---|
+| `lucas@test.com` | `Demo1234` | Comprador | Lucas García |
+| `mariana@test.com` | `Demo1234` | Comprador | Mariana López |
+| `sofia@test.com` | `Demo1234` | Comprador | Sofía Martínez |
+| `rock@productora.com` | `Demo1234` | Organizador | Productora Rock Nacional |
+| `info@granrex.com.ar` | `Demo1234` | Organizador | Teatro Gran Rex |
+| `eventos@deportes.org` | `Demo1234` | Organizador | Asociación Deportes |
+
+> **Nota sobre persistencia**: El backend almacena los usuarios y sesiones 100% en memoria. Las cuentas nuevas creadas desde "Crear cuenta" son plenamente operativas durante la ejecución del backend, pero si el servidor Node.js se reinicia o se invoca `POST /dev/reset`, los datos vuelven a las 6 cuentas semilla indicadas arriba.
 
 ---
 

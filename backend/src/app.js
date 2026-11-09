@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 // Rutas (todas bajo src/routes/)
 import healthRoutes from "./routes/HealthCheckRoutes.js";
+import authRoutes from "./routes/AuthRoutes.js";
 import usuarioRoutes from "./routes/UsuarioRoutes.js";
 import categoriaRoutes from "./routes/CategoriaRoutes.js";
 import eventoRoutes from "./routes/EventoRoutes.js";
@@ -31,6 +32,7 @@ app.use(requireAuth);
 
 // 2. Registro de rutas
 app.use("/health", healthRoutes);
+app.use("/auth", authRoutes);
 app.use("/usuarios", usuarioRoutes);
 app.use("/categorias", categoriaRoutes);
 app.use("/eventos", eventoRoutes);

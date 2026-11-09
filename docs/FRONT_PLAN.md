@@ -10,8 +10,11 @@
 
 ## Decisiones del Estudiante (Definiciones Prioritarias)
 
-1. **Login Pop Kinetic sin contraseñas:**  
-   El backend utiliza autenticación simulada mediante el encabezado HTTP `x-user-id` y el enunciado del TP no exige formulario de contraseñas. La pantalla de ingreso lista las cuentas obtenidas de `GET /usuarios` agrupadas en **"Compradores"** y **"Organizadores"**, cada una con su nombre y badge semántico de rol. Al tocar una cuenta se inicia sesión de inmediato y se persiste en `AsyncStorage`. La aplicación cuenta con acción para cerrar sesión. No se simulan campos de password.
+1. **Flujo de Autenticación Real (Pop Kinetic):**  
+   Reemplaza el selector de usuarios simulado anterior por autenticación real con tokens de sesión en memoria:
+   - **Stack de Autenticación (`AuthStack`):** Consta de `WelcomeScreen` (pantalla de bienvenida con botones principales "Iniciar sesión" y "Crear cuenta"), `LoginScreen` (email y contraseña con alternancia de visibilidad) y `RegisterScreen` (selector táctil "Soy comprador" / "Soy organizador", nombre, apellido condicional para compradores, email, contraseña con validación local de 8 caracteres alfanuméricos y confirmación).
+   - **Manejo de Sesión:** Persiste el token de sesión en `AsyncStorage` (`@ai_ticket_it:auth_token`), transmitiéndolo en el encabezado `Authorization: Bearer <token>`. El inicio de sesión y la derivación de pantallas están gobernados exclusivamente por el atributo `rol` retornado por el backend (`GET /usuarios/me`).
+   - **Manejo de Desconexión:** Ante fallas transitorias de red al iniciar, la aplicación no borra la sesión almacenada y presenta un botón de reintento. Si el backend responde 401 Unauthorized en peticiones autenticadas, se produce el cierre de sesión automático.
 2. **Validación de entradas (implementación en fase posterior):**  
    Se utilizará la cámara física mediante `expo-camera`, incorporando además un campo de ingreso manual del identificador de compra como mecanismo de respaldo. Los tickets del comprador exhibirán códigos QR generados 100% offline mediante `react-native-svg` y `react-native-qrcode-svg`. Queda terminantemente prohibido el uso de APIs o servicios externos para renderizar códigos QR.
 3. **Omisión de Gemini y librerías web:**  

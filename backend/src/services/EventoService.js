@@ -75,7 +75,7 @@ export class EventoService {
       throw new BadRequestError("La fecha del evento debe ser a futuro");
     }
 
-    const { email: _orgEmail, ...orgSinEmail } = organizador;
+    const { email: _orgEmail, passwordHash: _orgHash, ...orgSinEmail } = organizador;
 
     const tiposEntradaArmados = (nuevo.tiposEntrada || []).map((tipo) => {
       const suffix = crypto.randomUUID().slice(0, 8);
@@ -138,7 +138,7 @@ export class EventoService {
     return await Promise.all(
       eventos.map(async (ev) => {
         const tiposConDisponibilidad = await this.calcularDisponibilidadTipos(ev);
-        const { email: _email, ...orgSinEmail } = ev.organizador || {};
+        const { email: _email, passwordHash: _hash, ...orgSinEmail } = ev.organizador || {};
         return {
           ...ev,
           tiposEntrada: tiposConDisponibilidad,
@@ -204,7 +204,7 @@ export class EventoService {
         const orgId = ev.organizador?.id || ev.organizador;
         const reputacion = await this.reputacionService.calcularPuntajeOrganizador(orgId);
         const tiposConDisponibilidad = await this.calcularDisponibilidadTipos(ev);
-        const { email: _email, ...orgSinEmail } = ev.organizador || {};
+        const { email: _email, passwordHash: _hash, ...orgSinEmail } = ev.organizador || {};
 
         return {
           ...ev,

@@ -1,11 +1,13 @@
 export class Usuario {
-  constructor({ nombre, apellido, email, rol, favoritos }) {
-    this.id = crypto.randomUUID();
+  constructor({ id, nombre, apellido, email, rol, passwordHash, favoritos }) {
+    this.id = id || `usr_${crypto.randomUUID().slice(0, 8)}`;
     this.nombre = nombre;
     this.apellido = apellido;
-    this.email = email;
+    this.email = email ? email.trim().toLowerCase() : email;
     this.rol = rol;
+    this.passwordHash = passwordHash;
     this.favoritos = favoritos ?? [];
   }
 }
+
 
