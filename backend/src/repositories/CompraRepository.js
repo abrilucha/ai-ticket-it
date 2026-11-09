@@ -31,19 +31,16 @@ export class CompraRepository {
 
   async save(compra) {
     const id = compra.id;
-    if (id) {
-      const idx = this.compras.findIndex((c) => c.id === id);
-      if (idx !== -1) {
-        this.compras[idx] = { ...this.compras[idx], ...compra, id };
-        return this.compras[idx];
-      }
+    const idx = this.compras.findIndex((c) => c.id === id);
+    if (idx !== -1) {
+      this.compras[idx] = { ...this.compras[idx], ...compra, id };
+      return this.compras[idx];
     }
-    const nuevoId = id || `cmp_${crypto.randomUUID().slice(0, 8)}`;
     const nuevo = {
       ...compra,
-      id: nuevoId,
+      id,
       mensajes: compra.mensajes || [],
-      createdAt: new Date().toISOString(),
+      createdAt: compra.createdAt || new Date().toISOString(),
     };
     this.compras.push(nuevo);
     return nuevo;

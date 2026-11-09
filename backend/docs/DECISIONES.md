@@ -68,15 +68,15 @@ Este documento registra los fundamentos y criterios técnicos aplicados en el di
 | Caso de Uso del TP | Test en `tests/casosDeUso.test.js` | Endpoints HTTP Involucrados |
 |---|---|---|
 | **CU1** Comprador ve sus compras con estado y días restantes (solo si `CONFIRMADA`) | `CU1: comprador ve sus compras con estado y días restantes (solo si CONFIRMADA)` | `GET /compras/mias` |
-| **CU2** Organizador ve las compras de un evento con estado y entradas restantes de cada tipo | `CU2: organizador ve las compras de un evento con estado y entradas restantes de cada tipo` | `GET /eventos/:id/compras` |
+| **CU2** Organizador ve las compras de un evento con estado y entradas restantes por tipo | `CU2: organizador ve las compras de un evento con estado y entradas restantes por tipo` | `GET /eventos/:id/compras` |
 | **CU3** Comprador busca por texto y explora por categorías | `CU3: comprador busca por texto y explora por categorías` | `GET /categorias`, `GET /eventos?q=...`, `GET /eventos?categoria=...` |
-| **CU4** Organizador crea un evento con varios tipos de entrada, cada uno con precio y cupo | `CU4: organizador crea un evento con varios tipos de entrada, cada uno con precio y cupo` | `POST /eventos` |
+| **CU4** Organizador crea un evento con varios tipos de entrada | `CU4: organizador crea un evento con varios tipos de entrada` | `POST /eventos` |
 | **CU5** Comprador envía mensajes en una compra | `CU5: comprador envía mensajes en una compra` | `POST /compras/:id/mensajes` |
-| **CU6** Organizador responde mensajes en una compra | `CU6: organizador responde mensajes en una compra` | `POST /compras/:id/mensajes`, `GET /compras/:id/mensajes` |
+| **CU6** Organizador responde mensajes | `CU6: organizador responde mensajes` | `POST /compras/:id/mensajes`, `GET /compras/:id/mensajes` |
 | **CU7** Comprador cancela una compra y se registra el reembolso | `CU7: comprador cancela una compra y se registra el reembolso` | `POST /compras/:id/cancelar`, `GET /eventos/:id` |
-| **CU8** La cancelación solo se permite si la compra no está `UTILIZADA` y el evento aún no se realizó | `CU8: la cancelación solo se permite si la compra no está UTILIZADA y el evento aún no se realizó (ambos bloqueos)` | `POST /compras/:id/cancelar` |
+| **CU8** Cancelación permitida solo si la compra no está `UTILIZADA` y el evento no se realizó | `CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó` | `POST /compras/:id/cancelar` |
 | **CU9** Comprador puntúa y comenta una vez utilizada la entrada | `CU9: comprador puntúa y comenta una vez utilizada la entrada` | `POST /compras/:id/resena` |
 | **CU10** Las reseñas de eventos anteriores se ven en los eventos de cada organizador | `CU10: las reseñas de eventos anteriores se ven en los eventos de cada organizador` | `GET /eventos/:id`, `GET /organizadores/:id` |
-| **CU11** Comprador ordena eventos por precio, fecha y puntaje del organizador | `CU11: comprador ordena eventos por precio, fecha y puntaje del organizador` | `GET /eventos?orden=...&direccion=...` |
+| **CU11** Comprador ordena por precio, fecha y puntaje del organizador | `CU11: comprador ordena por precio, fecha y puntaje del organizador` | `GET /eventos?orden=...&direccion=...` |
 | **CU12** Comprador compra eligiendo tipo y cantidad sin superar el cupo | `CU12: comprador compra eligiendo tipo y cantidad sin superar el cupo` | `GET /eventos/:id`, `POST /compras` |
 

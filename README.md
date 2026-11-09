@@ -22,3 +22,62 @@ Una vez finalizado el evento, los asistentes podrán calificar su experiencia me
 
 Para llevar adelante este objetivo, se diseñará e implementará AI Ticket It como una solución web moderna y escalable. El desarrollo se organizará en distintas iteraciones, permitiendo construir progresivamente las funcionalidades principales del sistema, comenzando desde el modelo conceptual del negocio hasta la implementación completa de la plataforma.
 
+
+
+---
+
+## **Guía de Puesta en Marcha (Back-End + Front-End)**
+
+### 1. Requisitos Previos
+- **Node.js** v18 o superior.
+- **Expo Go** instalado en un celular físico (Android o iOS) conectado a la **misma red Wi-Fi** que la PC.
+
+---
+
+### 2. Ejecución del Back-End
+El servidor Express reside en `backend/`, provee 25 rutas RESTful y almacena los datos en memoria con un seed canónico inicial:
+
+```bash
+cd backend
+npm install
+npm start
+```
+*El servidor iniciará en el puerto 3000 (`http://localhost:3000`). Podés comprobar su estado accediendo a `http://localhost:3000/health`.*
+
+Para correr la suite completa de 68 tests automatizados de integración (incluyendo CU1 a CU12):
+```bash
+cd backend
+npm test
+```
+
+---
+
+### 3. Configuración y Ejecución del Front-End (Mobile)
+El cliente móvil reside en `mobile/` y está desarrollado en **React Native con Expo**:
+
+1. **Configurar la IP local:**
+   - Averiguá la IPv4 de tu PC en la red Wi-Fi con `ipconfig` (ej: `192.168.1.40`).
+   - Creá el archivo `mobile/.env` copiando `mobile/.env.example`:
+     ```bash
+     cd mobile
+     cp .env.example .env
+     ```
+   - Indicá tu IP: `EXPO_PUBLIC_API_URL=http://TU_IP:3000` *(por defecto `http://192.168.1.40:3000`)*.
+
+2. **Iniciar Expo:**
+   ```bash
+   cd mobile
+   npm install
+   npx expo start
+   ```
+
+3. **Abrir en el celular:**
+   - Escaneá el código QR mostrado en la terminal utilizando **Expo Go** (Android) o la app de **Cámara** (iOS).
+
+---
+
+### 4. Documentación de Referencia y Demo
+- [`docs/FLUJO_VIDEO.md`](docs/FLUJO_VIDEO.md): Guion y mapa técnico completo para la grabación del video demostrativo.
+- [`docs/CHECKLIST_CASOS_DE_USO.md`](docs/CHECKLIST_CASOS_DE_USO.md): Checklist de verificación de los 12 Casos de Uso (CU1 a CU12) y casos de borde.
+- [`backend/docs/API.md`](backend/docs/API.md): Contratos oficiales, enums y códigos de error de las 25 rutas de la API.
+- [`docs/FRONT_PLAN.md`](docs/FRONT_PLAN.md): Plan de pantallas, navegación y trazabilidad de componentes front-end.

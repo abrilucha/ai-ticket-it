@@ -1,9 +1,11 @@
+import crypto from "crypto";
 import { eventoRepository } from "../repositories/EventoRepository.js";
 import { categoriaRepository } from "../repositories/CategoriaRepository.js";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
 import { compraRepository } from "../repositories/CompraRepository.js";
 import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { reputacionService } from "./ReputacionService.js";
+import { compraService } from "./CompraService.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { ForbiddenError } from "../errors/ForbiddenError.js";
@@ -43,12 +45,26 @@ export class EventoService {
       throw new ForbiddenError("Acceso denegado: solo un ORGANIZADOR puede crear eventos");
     }
 
-    let categoria = await this.categoriaRepository.findById(nuevo.categoria);
-    if (!categoria) {
-      categoria = await this.categoriaRepository.findByCodigo(nuevo.categoria);
-    }
-    if (!categoria) {
-      throw new BadRequestError("Categoría no encontrada");
+    let categoria;
+    if (typeof nuevo.categoria === "object" && nuevo.categoria !== null) {
+      const nombreCat = (nuevo.categoria.nombre || "").trim();
+      const descCat = (nuevo.categoria.descripcion || "").trim();
+      if (!nombreCat) {
+        throw new BadRequestError("El nombre de la categoría es obligatorio");
+      }
+      categoria = await this.categoriaRepository.save({
+        nombre: nombreCat,
+        descripcion: descCat,
+        codigo: nombreCat.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
+      });
+    } else {
+      categoria = await this.categoriaRepository.findById(nuevo.categoria);
+      if (!categoria) {
+        categoria = await this.categoriaRepository.findByCodigo(nuevo.categoria);
+      }
+      if (!categoria) {
+        throw new BadRequestError("Categoría no encontrada");
+      }
     }
 
     const fechaEvento = new Date(nuevo.fecha);
@@ -59,14 +75,20 @@ export class EventoService {
       throw new BadRequestError("La fecha del evento debe ser a futuro");
     }
 
-    const tiposEntradaArmados = (nuevo.tiposEntrada || []).map((tipo, idx) => ({
-      id: tipo.id || `tipo_${idx + 1}`,
-      nombre: tipo.nombre.trim(),
-      descripcion: tipo.descripcion || "",
-      precio: tipo.precio,
-      cupo: tipo.cupo,
-      cupoDisponible: tipo.cupo,
-    }));
+    const { email: _orgEmail, ...orgSinEmail } = organizador;
+
+    const tiposEntradaArmados = (nuevo.tiposEntrada || []).map((tipo) => {
+      const suffix = crypto.randomUUID().slice(0, 8);
+      return {
+        id: `tipo_${suffix}`,
+        nombre: tipo.nombre.trim(),
+        descripcion: tipo.descripcion || "",
+        precio: tipo.precio,
+        cupo: tipo.cupo,
+        cupoDisponible: tipo.cupo,
+        cupoRestante: tipo.cupo,
+      };
+    });
 
     const eventoDominio = new Evento({
       nombre: nuevo.nombre.trim(),
@@ -75,17 +97,55 @@ export class EventoService {
       fecha: fechaEvento.toISOString(),
       tiposEntrada: tiposEntradaArmados,
       multimedia: nuevo.multimedia || [],
-      organizador: organizador,
+      organizador: orgSinEmail,
     });
 
     return await this.eventoRepository.save(eventoDominio);
+  };
+
+  /**
+   * Única fuente de verdad para el cálculo de cupo disponible y restante por tipo de entrada.
+   */
+  calcularDisponibilidadTipos = async (evento) => {
+    if (!evento || !Array.isArray(evento.tiposEntrada)) return [];
+    const compras = await this.compraRepository.findByEvento(evento.id);
+
+    return evento.tiposEntrada.map((t) => {
+      const tId = t.id;
+      const vendidas = compras
+        .filter(
+          (c) =>
+            (c.tipoEntrada?.tipoEntradaId === tId || c.tipoEntrada?.id === tId) &&
+            c.estado !== "CANCELADA" &&
+            c.estado !== "REEMBOLSADA"
+        )
+        .reduce((sum, c) => sum + (c.cantidad || 0), 0);
+
+      const restante = Math.max(0, t.cupo - vendidas);
+      return {
+        ...t,
+        cupoDisponible: restante,
+        cupoRestante: restante,
+      };
+    });
   };
 
   listarMios = async (organizadorId) => {
     if (!organizadorId) {
       throw new BadRequestError("Se requiere identificación del organizador");
     }
-    return await this.eventoRepository.findByOrganizador(organizadorId);
+    const eventos = await this.eventoRepository.findByOrganizador(organizadorId);
+    return await Promise.all(
+      eventos.map(async (ev) => {
+        const tiposConDisponibilidad = await this.calcularDisponibilidadTipos(ev);
+        const { email: _email, ...orgSinEmail } = ev.organizador || {};
+        return {
+          ...ev,
+          tiposEntrada: tiposConDisponibilidad,
+          organizador: orgSinEmail,
+        };
+      })
+    );
   };
 
   buscar = async ({ q, categoria, orden, direccion, incluirRealizados }) => {
@@ -143,6 +203,8 @@ export class EventoService {
 
         const orgId = ev.organizador?.id || ev.organizador;
         const reputacion = await this.reputacionService.calcularPuntajeOrganizador(orgId);
+        const tiposConDisponibilidad = await this.calcularDisponibilidadTipos(ev);
+        const { email: _email, ...orgSinEmail } = ev.organizador || {};
 
         return {
           ...ev,
@@ -150,6 +212,8 @@ export class EventoService {
           realizado,
           puntajeOrganizador: reputacion.puntajePromedio, // number o null (nunca 0.0)
           cantidadResenas: reputacion.cantidadResenas,
+          tiposEntrada: tiposConDisponibilidad,
+          organizador: orgSinEmail,
         };
       })
     );
@@ -243,24 +307,7 @@ export class EventoService {
       resenas: resenasFormateadas,
     };
 
-    const compras = await this.compraRepository.findByEvento(id);
-
-    const tiposEntradaConDisponibilidad = (evento.tiposEntrada || []).map((t) => {
-      const tId = t.id;
-      const vendidas = compras
-        .filter(
-          (c) =>
-            (c.tipoEntrada?.tipoEntradaId === tId || c.tipoEntrada?.id === tId) &&
-            c.estado !== "CANCELADA" &&
-            c.estado !== "REEMBOLSADA"
-        )
-        .reduce((sum, c) => sum + (c.cantidad || 0), 0);
-
-      return {
-        ...t,
-        cupoRestante: Math.max(0, t.cupo - vendidas),
-      };
-    });
+    const tiposEntradaConDisponibilidad = await this.calcularDisponibilidadTipos(evento);
 
     const precios = (evento.tiposEntrada || []).map((t) => t.precio);
     const precioMinimo = precios.length > 0 ? Math.min(...precios) : 0;
@@ -275,33 +322,25 @@ export class EventoService {
     };
   };
 
-  listarCompras = async (eventoId) => {
+  listarCompras = async (eventoId, organizadorId) => {
     const evento = await this.getById(eventoId);
     const comprasRaw = await this.compraRepository.findByEvento(eventoId);
 
-    // Asegurar que ninguna compra exponga mensajes
-    const compras = comprasRaw.map((c) => {
-      const { mensajes: _omitted, ...sinMensajes } = c;
-      return sinMensajes;
-    });
+    // Enriquecer cada compra con las banderas del backend y sanitizar emails
+    const compras = await Promise.all(
+      comprasRaw.map(async (c) => {
+        return await compraService.enriquecerCompra(c, organizadorId, "ORGANIZADOR");
+      })
+    );
 
     const disponibilidadPorTipo = (evento.tiposEntrada || []).map((tipo) => {
-      const tId = tipo.id;
-      const vendidas = compras
-        .filter(
-          (c) =>
-            (c.tipoEntrada?.tipoEntradaId === tId || c.tipoEntrada?.id === tId) &&
-            c.estado !== "CANCELADA" &&
-            c.estado !== "REEMBOLSADA"
-        )
-        .reduce((acc, c) => acc + (c.cantidad || 0), 0);
-
       return {
-        tipoEntradaId: tId,
+        tipoEntradaId: tipo.id,
         nombre: tipo.nombre,
         precio: tipo.precio,
         cupoTotal: tipo.cupo,
-        cupoRestante: Math.max(0, tipo.cupo - vendidas),
+        cupoRestante: tipo.cupoRestante,
+        cupoDisponible: tipo.cupoDisponible,
       };
     });
 

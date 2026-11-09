@@ -1,0 +1,301 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  Pressable,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Colors } from '../../theme/colors.js';
+import { Typography } from '../../theme/typography.js';
+import { listarCategorias } from '../../api/categorias.js';
+import { useEventos } from '../../hooks/useEventos.js';
+import { useAuth } from '../../context/AuthContext.js';
+import { Screen } from '../../components/Screen.js';
+import { Header } from '../../components/Header.js';
+import { SearchBar } from '../../components/SearchBar.js';
+import { FilterChip } from '../../components/FilterChip.js';
+import { SortSelector } from '../../components/SortSelector.js';
+import { EventCard } from '../../components/EventCard.js';
+import { LoadingView } from '../../components/LoadingView.js';
+import { ErrorBanner } from '../../components/ErrorBanner.js';
+import { EmptyState } from '../../components/EmptyState.js';
+import { PopButton } from '../../components/PopButton.js';
+import { HardShadow } from '../../components/HardShadow.js';
+
+export function CatalogoScreen({ navigation }) {
+  const { usuario, logout } = useAuth();
+
+  // Estados de filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
+  const [orden, setOrden] = useState('fecha');
+  const [direccion, setDireccion] = useState('asc');
+  const [incluirRealizados, setIncluirRealizados] = useState(false);
+
+  // Lista de categorías obtenidas de la API
+  const [categorias, setCategorias] = useState([]);
+  const [catLoading, setCatLoading] = useState(true);
+
+  // Cargar categorías canónicas de la API
+  const cargarCategorias = useCallback(async () => {
+    try {
+      setCatLoading(true);
+      const data = await listarCategorias();
+      setCategorias(Array.isArray(data) ? data : []);
+    } catch {
+      // Si falla, el listado quedará vacío y se puede reintentar con reload
+    } finally {
+      setCatLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarCategorias();
+  }, [cargarCategorias]);
+
+  // Filtros combinados para el hook useEventos
+  const filtros = useMemo(() => ({
+    q: searchQuery,
+    categoria: categoriaSeleccionada,
+    orden,
+    direccion,
+    incluirRealizados,
+  }), [searchQuery, categoriaSeleccionada, orden, direccion, incluirRealizados]);
+
+  const { data: eventos, loading: eventosLoading, error, reload } = useEventos(filtros);
+
+  // Recargar catálogo al recibir foco (mantiene reputación y cupos sincronizados)
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload])
+  );
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([reload(), cargarCategorias()]);
+    setRefreshing(false);
+  };
+
+  const handleSelectCategoria = (codigo) => {
+    if (categoriaSeleccionada === codigo) {
+      setCategoriaSeleccionada(''); // Desactivar si ya estaba activo
+    } else {
+      setCategoriaSeleccionada(codigo);
+    }
+  };
+
+  const handleLimpiarFiltros = () => {
+    setSearchQuery('');
+    setCategoriaSeleccionada('');
+    setOrden('fecha');
+    setDireccion('asc');
+    setIncluirRealizados(false);
+  };
+
+  const hayFiltrosActivos = Boolean(
+    searchQuery || categoriaSeleccionada || incluirRealizados || orden !== 'fecha' || direccion !== 'asc'
+  );
+
+  return (
+    <Screen>
+      <Header usuario={usuario} onLogout={logout} />
+      <FlatList
+        data={eventos}
+        keyExtractor={(item) => item.id}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.electricCobalt]}
+          />
+        }
+        ListHeaderComponent={
+          <View style={styles.headerBlock}>
+            {/* Buscador de cómic con debounce de 400ms */}
+            <SearchBar
+              value={searchQuery}
+              onDebouncedChange={setSearchQuery}
+            />
+
+            {/* Chips de Categorías */}
+            <View style={styles.categoriesRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsScroll}
+              >
+                <FilterChip
+                  label="TODAS"
+                  selected={categoriaSeleccionada === ''}
+                  onPress={() => setCategoriaSeleccionada('')}
+                  activeColor={Colors.inkBlack}
+                  activeTextColor={Colors.white}
+                />
+                {categorias.map((cat) => (
+                  <FilterChip
+                    key={cat.id || cat.codigo}
+                    label={cat.nombre.toUpperCase()}
+                    selected={categoriaSeleccionada === cat.codigo}
+                    onPress={() => handleSelectCategoria(cat.codigo)}
+                    activeColor={Colors.electricCobalt}
+                    activeTextColor={Colors.white}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Controles de Ordenamiento e Historial */}
+            <View style={styles.controlsRow}>
+              <SortSelector
+                orden={orden}
+                direccion={direccion}
+                onChange={(nuevoOrden, nuevaDir) => {
+                  setOrden(nuevoOrden);
+                  setDireccion(nuevaDir);
+                }}
+              />
+
+              {/* Chip / Switch de Incluir Eventos Pasados */}
+              <View style={styles.pasadosRow}>
+                <HardShadow
+                  offset={incluirRealizados ? 1 : 2}
+                  borderRadius={8}
+                >
+                  <Pressable
+                    onPress={() => setIncluirRealizados(!incluirRealizados)}
+                    style={[
+                      styles.pasadosBtn,
+                      {
+                        backgroundColor: incluirRealizados
+                          ? Colors.popVermilion
+                          : Colors.white,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.pasadosBtnText,
+                        {
+                          color: incluirRealizados ? Colors.white : Colors.inkBlack,
+                        },
+                      ]}
+                    >
+                      {incluirRealizados ? '✓ PASADOS INCLUIDOS' : '+ INCLUIR PASADOS'}
+                    </Text>
+                  </Pressable>
+                </HardShadow>
+              </View>
+            </View>
+
+            {/* Resumen del orden y resultados */}
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryCount}>
+                {eventosLoading ? 'Buscando...' : `${eventos.length} ${eventos.length === 1 ? 'evento disponible' : 'eventos disponibles'}`}
+              </Text>
+              {hayFiltrosActivos && (
+                <Pressable onPress={handleLimpiarFiltros} hitSlop={6}>
+                  <Text style={styles.clearFiltrosText}>Limpiar filtros ✕</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <EventCard
+            evento={item}
+            onPress={() => navigation.navigate('EventoDetalle', { id: item.id })}
+          />
+        )}
+        ListEmptyComponent={
+          eventosLoading ? (
+            <LoadingView message="Cargando eventos..." />
+          ) : error ? (
+            <ErrorBanner message={error} onRetry={reload} />
+          ) : (
+            <EmptyState
+              icon="🔍"
+              title="NO SE ENCONTRARON EVENTOS"
+              subtitle="No hay eventos que coincidan con la búsqueda o filtros aplicados."
+              action={
+                hayFiltrosActivos ? (
+                  <PopButton
+                    title="LIMPIAR FILTROS"
+                    variant="secondary"
+                    size="sm"
+                    onPress={handleLimpiarFiltros}
+                  />
+                ) : null
+              }
+            />
+          )
+        }
+      />
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  listContent: {
+    paddingBottom: 40,
+  },
+  headerBlock: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    marginBottom: 8,
+  },
+  categoriesRow: {
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  chipsScroll: {
+    paddingVertical: 4,
+  },
+  controlsRow: {
+    marginTop: 4,
+  },
+  pasadosRow: {
+    marginTop: 6,
+    marginBottom: 6,
+    alignSelf: 'flex-start',
+  },
+  pasadosBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pasadosBtnText: {
+    ...Typography.labelSm,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1.5,
+    borderColor: Colors.surfaceDim,
+    marginBottom: 12,
+  },
+  summaryCount: {
+    ...Typography.labelSm,
+    color: Colors.onSurfaceVariant,
+  },
+  clearFiltrosText: {
+    ...Typography.labelSm,
+    color: Colors.popVermilion,
+    textDecorationLine: 'underline',
+  },
+});

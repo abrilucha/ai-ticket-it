@@ -6,7 +6,8 @@ export class UsuarioService {
   }
 
   listar = async () => {
-    return await this.usuarioRepository.getAll();
+    const usuarios = await this.usuarioRepository.getAll();
+    return usuarios.map(({ email, ...u }) => u);
   };
 
   obtenerActual = async (id) => {
@@ -15,7 +16,10 @@ export class UsuarioService {
   };
 
   obtenerPorId = async (id) => {
-    return await this.usuarioRepository.findById(id);
+    const u = await this.usuarioRepository.findById(id);
+    if (!u) return null;
+    const { email, ...sinEmail } = u;
+    return sinEmail;
   };
 }
 
