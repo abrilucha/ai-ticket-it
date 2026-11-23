@@ -73,7 +73,7 @@ export function WelcomeScreen({ navigation }) {
             <View style={styles.buttonSlot}>
               <PopButton
                 title="CREAR CUENTA"
-                variant="turquoise"
+                variant="canary"
                 size="lg"
                 onPress={() => navigation.navigate('Register')}
                 style={styles.actionBtn}

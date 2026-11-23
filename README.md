@@ -1,6 +1,6 @@
 ## **AI Ticket It - Plataforma de Venta de Entradas para Eventos**
 
-![alt text](image.png)
+![alt text](image-1.png)
 
 Trabajo Práctico Individual de 
 Desarrollo con Inteligencia Artificial
@@ -76,8 +76,3 @@ El cliente móvil reside en `mobile/` y está desarrollado en **React Native con
 
 ---
 
-### 4. Documentación de Referencia y Demo
-- [`docs/FLUJO_VIDEO.md`](docs/FLUJO_VIDEO.md): Guion y mapa técnico completo para la grabación del video demostrativo.
-- [`docs/CHECKLIST_CASOS_DE_USO.md`](docs/CHECKLIST_CASOS_DE_USO.md): Checklist de verificación de los 12 Casos de Uso (CU1 a CU12) y casos de borde.
-- [`backend/docs/API.md`](backend/docs/API.md): Contratos oficiales, enums y códigos de error de las 25 rutas de la API.
-- [`docs/FRONT_PLAN.md`](docs/FRONT_PLAN.md): Plan de pantallas, navegación y trazabilidad de componentes front-end.

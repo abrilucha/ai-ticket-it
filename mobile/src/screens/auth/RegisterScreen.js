@@ -330,7 +330,7 @@ export function RegisterScreen({ navigation }) {
               <View style={styles.submitSlot}>
                 <PopButton
                   title="CREAR CUENTA"
-                  variant="primary"
+                  variant="canary"
                   size="lg"
                   loading={loading}
                   disabled={loading}
