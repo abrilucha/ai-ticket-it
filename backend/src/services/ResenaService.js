@@ -22,6 +22,11 @@ export class ResenaService {
   }
 
   formatearResena(resena, compra) {
+    const compComprador = compra?.comprador || {};
+    const nombreCompleto =
+      [compComprador.nombre, compComprador.apellido].filter(Boolean).join(" ") ||
+      compComprador.nombre ||
+      "Comprador";
     return {
       id: resena.id,
       compraId: resena.compraId,
@@ -33,8 +38,9 @@ export class ResenaService {
         nombre: compra.evento?.nombre || "Evento",
       },
       autor: {
-        id: compra.comprador?.id,
-        nombre: compra.comprador?.nombre || "Comprador",
+        id: compComprador.id,
+        nombre: nombreCompleto,
+        fotoPerfil: compComprador.fotoPerfil || null,
       },
     };
   }

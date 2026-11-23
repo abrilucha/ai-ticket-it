@@ -17,6 +17,7 @@ import {
 
 import { Colors } from './src/theme/colors.js';
 import { AuthProvider } from './src/context/AuthContext.js';
+import { FeedbackProvider } from './src/context/FeedbackContext.js';
 import { AppNavigator } from './src/navigation/AppNavigator.js';
 
 export default function App() {
@@ -39,16 +40,22 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={styles.safeAreaProvider}>
       <StatusBar style="dark" />
       <AuthProvider>
-        <AppNavigator />
+        <FeedbackProvider>
+          <AppNavigator />
+        </FeedbackProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  safeAreaProvider: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   loadingScreen: {
     flex: 1,
     backgroundColor: Colors.canvasBase,

@@ -50,6 +50,12 @@ export function PopButton({
           text: Colors.inkBlack,
           border: Colors.inkBlack,
         };
+      case 'turquoise':
+        return {
+          bg: Colors.vibrantTurquoise,
+          text: Colors.inkBlack,
+          border: Colors.inkBlack,
+        };
       case 'primary':
       default:
         return {

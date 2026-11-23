@@ -1,12 +1,17 @@
-import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, ScrollView, StyleSheet, ImageBackground, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors.js';
+import { setAndroidBottomBar } from '../utils/systemBars.js';
+
+const authBg = require('../../assets/auth-bg.jpg');
 
 /**
  * Screen
  * Contenedor base para todas las pantallas de la app.
- * Utiliza SafeAreaView con el fondo de papel prensa `#FAF8F5`.
+ * Renderiza el fondo de puntos semitono Pop Art bajo el contenido de la pantalla,
+ * unificando la barra de notificaciones superior con el celeste del encabezado (#7DD3FC)
+ * y la barra inferior de botones del sistema en rojo (#EF4444).
  */
 export function Screen({
   children,
@@ -14,19 +19,25 @@ export function Screen({
   style,
   contentContainerStyle,
 }) {
+  useEffect(() => {
+    setAndroidBottomBar('main');
+  }, []);
   return (
     <SafeAreaView style={[styles.root, style]} edges={['top', 'left', 'right']}>
-      {scroll ? (
-        <ScrollView
-          style={styles.root}
-          contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={[styles.root, contentContainerStyle]}>{children}</View>
-      )}
+      <StatusBar backgroundColor={Colors.vibrantTurquoise} barStyle="dark-content" />
+      <ImageBackground source={authBg} style={styles.bgImage} resizeMode="cover">
+        {scroll ? (
+          <ScrollView
+            style={styles.innerRoot}
+            contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[styles.innerRoot, contentContainerStyle]}>{children}</View>
+        )}
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -34,7 +45,16 @@ export function Screen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.canvasBase,
+    backgroundColor: Colors.vibrantTurquoise, // Mismo turquesa de la barra superior para eliminar la franja rara
+  },
+  bgImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  innerRoot: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     flexGrow: 1,

@@ -1,17 +1,26 @@
 import slugify from "slugify";
 import { usuarioRepository } from "../repositories/UsuarioRepository.js";
+import { sesionRepository } from "../repositories/SesionRepository.js";
 import { categoriaRepository } from "../repositories/CategoriaRepository.js";
 import { eventoRepository } from "../repositories/EventoRepository.js";
 import { compraRepository } from "../repositories/CompraRepository.js";
 import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { cambioEstadoCompraRepository } from "../repositories/CambioEstadoCompraRepository.js";
 import { mensajeRepository } from "../repositories/MensajeRepository.js";
+import { authService } from "../services/AuthService.js";
+
+/**
+ * Contraseña común para todas las cuentas del seed inicial.
+ * Solo para propósitos de demostración y pruebas automáticas.
+ */
+export const DEMO_PASSWORD = "Demo1234";
 
 const codigo = (titulo) => slugify(titulo, { lower: true, replacement: "_" });
 
 export async function inicializarSeedInMemory() {
   await Promise.all([
     usuarioRepository.clear(),
+    sesionRepository.clear(),
     categoriaRepository.clear(),
     eventoRepository.clear(),
     compraRepository.clear(),
@@ -19,6 +28,8 @@ export async function inicializarSeedInMemory() {
     cambioEstadoCompraRepository.clear(),
     mensajeRepository.clear(),
   ]);
+
+  const passwordHash = await authService.hashPassword(DEMO_PASSWORD);
 
   // 1. Categorías canónicas (5)
   const catRecitales = await categoriaRepository.save({
@@ -61,24 +72,30 @@ export async function inicializarSeedInMemory() {
     id: "usr_comprador_1",
     nombre: "Lucas",
     apellido: "García",
-    email: "lucas.garcia@gmail.com",
+    email: "lucas@test.com",
     rol: "COMPRADOR",
+    passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
   });
 
   const comprador2 = await usuarioRepository.save({
     id: "usr_comprador_2",
     nombre: "Mariana",
     apellido: "López",
-    email: "mariana.lopez@hotmail.com",
+    email: "mariana@test.com",
     rol: "COMPRADOR",
+    passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
   });
 
-  await usuarioRepository.save({
+  const comprador3 = await usuarioRepository.save({
     id: "usr_comprador_3",
     nombre: "Sofía",
     apellido: "Martínez",
-    email: "sofia.martinez@yahoo.com",
+    email: "sofia@test.com",
     rol: "COMPRADOR",
+    passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80",
   });
 
   // Organizador A: con eventos pasados y reseñas (promedio 4.0)
@@ -86,8 +103,10 @@ export async function inicializarSeedInMemory() {
     id: "usr_org_rock",
     nombre: "Productora Rock Nacional",
     apellido: "Eventos",
-    email: "contacto@rocknacional.com.ar",
+    email: "rock@productora.com",
     rol: "ORGANIZADOR",
+    passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150&auto=format&fit=crop&q=80",
   });
 
   // Organizador B: con eventos futuros, SIN reseñas (puntaje null / 0 reseñas)
@@ -95,8 +114,10 @@ export async function inicializarSeedInMemory() {
     id: "usr_org_teatro",
     nombre: "Teatro Gran Rex",
     apellido: "Administración",
-    email: "entradas@granrex.com.ar",
+    email: "info@granrex.com.ar",
     rol: "ORGANIZADOR",
+    passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=150&auto=format&fit=crop&q=80",
   });
 
   // Organizador C: con eventos futuros y compras
@@ -104,8 +125,10 @@ export async function inicializarSeedInMemory() {
     id: "usr_org_deportes",
     nombre: "Asociación Deportes y Espectáculos",
     apellido: "Producciones",
-    email: "produccion@deportesba.com.ar",
+    email: "eventos@deportes.org",
     rol: "ORGANIZADOR",
+    passwordHash,
+    fotoPerfil: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=150&auto=format&fit=crop&q=80",
   });
 
   // 3. Eventos: 6 futuros escalonados (+15d, +30d, +45d, +60d, +90d, +120d) + 1 pasado (-5d)
@@ -121,7 +144,7 @@ export async function inicializarSeedInMemory() {
   const fechaPasada5d = new Date(ahora - diaMs * 5).toISOString();
 
   // 1. Recitales (futuro)
-  await eventoRepository.save({
+  const eventoCharly = await eventoRepository.save({
     id: "evt_recital_charly",
     nombre: "Charly García Sinfónico",
     descripcion: "Homenaje sinfónico inolvidable a la obra cumbre de Charly García en el histórico estadio Luna Park.",
@@ -179,6 +202,10 @@ export async function inicializarSeedInMemory() {
       },
     ],
   });
+
+  // Requisito A4: La cuenta demo de Lucas (usr_comprador_1) arranca con UN favorito: evt_cosquin
+  comprador1.favoritos = [eventoRock];
+  await usuarioRepository.save(comprador1);
 
   // 3. Teatro (futuro) - Organizador B (sin reseñas)
   const eventoTeatro = await eventoRepository.save({
@@ -455,6 +482,51 @@ export async function inicializarSeedInMemory() {
     puntaje: 3,
     comentario: "El sonido en el campo trasero estuvo regular, pero buena onda.",
     fecha: new Date(ahora - diaMs * 3).toISOString(),
+  });
+
+  // Compras y reseñas para el evento Charly García (Asociación Deportes y Espectáculos)
+  const compraUtilizadaCharly1 = await compraRepository.save({
+    id: "cmp_utilizada_charly_1",
+    comprador: comprador3,
+    evento: eventoCharly,
+    tipoEntrada: {
+      tipoEntradaId: "tipo_charly_platea",
+      nombre: "Platea Preferencial",
+      precio: 35000,
+    },
+    cantidad: 1,
+    total: 35000,
+    estado: "UTILIZADA",
+  });
+
+  const compraUtilizadaCharly2 = await compraRepository.save({
+    id: "cmp_utilizada_charly_2",
+    comprador: comprador2,
+    evento: eventoCharly,
+    tipoEntrada: {
+      tipoEntradaId: "tipo_charly_popular",
+      nombre: "Cabecera",
+      precio: 18000,
+    },
+    cantidad: 1,
+    total: 18000,
+    estado: "UTILIZADA",
+  });
+
+  await resenaRepository.save({
+    id: "res_3",
+    compraId: "cmp_utilizada_charly_1",
+    puntaje: 5,
+    comentario: "¡La orquesta en vivo fue emocionante! Un homenaje a la altura de Charly.",
+    fecha: new Date(ahora - diaMs * 2).toISOString(),
+  });
+
+  await resenaRepository.save({
+    id: "res_4",
+    compraId: "cmp_utilizada_charly_2",
+    puntaje: 4,
+    comentario: "Muy buena acústica en el Luna Park y el ingreso fue súper rápido.",
+    fecha: new Date(ahora - diaMs * 1).toISOString(),
   });
 
   console.log(" Seed en memoria cargado exitosamente:");

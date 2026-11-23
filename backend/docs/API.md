@@ -1,12 +1,53 @@
 # Documentación de la API HTTP - AI Ticket It
 
-## Autenticación Simulada
+## Autenticación y Sesiones
 
-La plataforma utiliza un esquema de autenticación simulada mediante cabeceras HTTP:
-- **Header**: `x-user-id: <id_usuario>`
-- **Rutas Públicas**: únicamente `GET /health` y `GET /usuarios` (además de `POST /dev/reset` cuando se encuentre activo en desarrollo).
-- Cualquier otra petición sin cabecera o con usuario inexistente recibe `401 Unauthorized` `{ error: { code: "NO_AUTORIZADO", message: "..." } }`.
-- Para endpoints con control de acceso por rol (`ORGANIZADOR` o `COMPRADOR`), si el usuario autenticado tiene un rol distinto, recibe `403 Forbidden` `{ error: { code: "ACCESO_DENEGADO", message: "..." } }`.
+La plataforma implementa un esquema de autenticación por tokens de sesión opacos transmitidos en cabecera estándar HTTP:
+- **Header**: `Authorization: Bearer <token_de_sesion>`
+- **Rutas Públicas**:
+  - `GET /health`
+  - `POST /auth/register`
+  - `POST /auth/login`
+  - `POST /dev/reset` (cuando `ENABLE_DEV_ENDPOINTS=true` en desarrollo)
+- **Rutas Privadas**: cualquier otra petición requiere un token de sesión válido emitido en el login o registro.
+- **Errores de autenticación y autorización**:
+  - Peticiones sin cabecera o con token inválido/expirado responden `401 Unauthorized` con código `"NO_AUTENTICADO"`.
+  - Para endpoints con control de acceso por rol (`ORGANIZADOR` o `COMPRADOR`), si el usuario autenticado tiene un rol distinto, recibe `403 Forbidden` con código `"ACCESO_DENEGADO"`.
+- **Retrocompatibilidad para tests legados**:
+  - Mediante la variable de entorno `ENABLE_SIMULATED_AUTH=true`, el middleware `requireAuth` acepta de forma alternativa la cabecera `x-user-id: <id_usuario>` sin alterar los contratos ni tests existentes del sistema.
+
+### Rutas de Autenticación (`/auth`)
+
+1. **`POST /auth/register`**: Registra un nuevo usuario (`COMPRADOR` u `ORGANIZADOR`) y retorna token de sesión.
+   - Body: `{ email, password, rol, nombre, apellido? }`
+   - Código HTTP: `201 Created`
+   - Respuesta: `{ usuario: { id, nombre, apellido?, email, rol }, token }`
+2. **`POST /auth/login`**: Inicia sesión validando credenciales (scrypt).
+   - Body: `{ email, password }`
+   - Código HTTP: `200 OK`
+   - Respuesta: `{ usuario: { id, nombre, apellido?, email, rol }, token }`
+3. **`POST /auth/logout`**: Cierra la sesión activa revocando el token del repositorio en memoria.
+   - Requiere: `Authorization: Bearer <token>`
+   - Código HTTP: `204 No Content` (sin cuerpo)
+
+> **Nota sobre rutas removidas**: Las rutas públicas de consulta de usuarios `GET /usuarios` y `GET /usuarios/:id` fueron eliminadas de la API por seguridad y diseño del dominio. Consultar dichas rutas retorna `404 Not Found`. La recuperación de datos de la cuenta activa se realiza a través de `GET /usuarios/me`.
+
+### Rutas de Favoritos (`/favoritos`) - Exclusivas COMPRADOR
+
+1. **`GET /favoritos`**: Lista los eventos favoritos del comprador autenticado, ordenados del agregado más reciente al más antiguo.
+   - Requiere: `Authorization: Bearer <token>`
+   - Formato: Cada elemento tiene exactamente el mismo esquema que un evento de `GET /eventos` (`precioMinimo`, `realizado`, `puntajeOrganizador`, `cantidadResenas`, `esFavorito: true`, etc.). Incluye eventos realizados (`realizado: true`).
+   - Códigos HTTP: `200 OK` (lista vacía `[]` si no tiene favoritos), `401 Unauthorized`, `403 Forbidden` (`FAVORITOS_SOLO_COMPRADORES`).
+2. **`POST /favoritos/:eventoId`**: Guarda un evento como favorito (sin body).
+   - Requiere: `Authorization: Bearer <token>`
+   - Idempotente: Si el evento no estaba, responde `201 Created` con `{ eventoId, esFavorito: true }`; si ya estaba, responde `200 OK` con `{ eventoId, esFavorito: true }`.
+   - Códigos HTTP: `201 Created`, `200 OK`, `401 Unauthorized`, `403 Forbidden` (`FAVORITOS_SOLO_COMPRADORES`), `404 Not Found` (`NO_ENCONTRADO` si el evento no existe).
+3. **`DELETE /favoritos/:eventoId`**: Quita un evento de la lista de favoritos.
+   - Requiere: `Authorization: Bearer <token>`
+   - Idempotente: Si estaba o si no era favorito, responde `204 No Content` sin cuerpo.
+   - Códigos HTTP: `204 No Content`, `401 Unauthorized`, `403 Forbidden` (`FAVORITOS_SOLO_COMPRADORES`), `404 Not Found` (`NO_ENCONTRADO` si el evento no existe).
+
+> **Regla de rol y orden de validación**: Solo los compradores pueden guardar eventos favoritos. Si un organizador invoca cualquiera de estas tres rutas, el servicio rechaza la petición con código HTTP `403 Forbidden`, `code: "FAVORITOS_SOLO_COMPRADORES"` y mensaje `"Solo los compradores pueden guardar eventos favoritos"`. Orden estricto: `401 (sin token)` → `403 (rol)` → `404 (evento)` → `ejecución`.
 
 ---
 
@@ -104,37 +145,41 @@ El contrato original de la Etapa 6 devuelve una estructura plana con el puntaje 
 
 ---
 
-## Tabla Exhaustiva de Rutas Montadas (Total: 25 rutas verificadas en código)
+## Tabla Exhaustiva de Rutas Montadas (Total: 26 rutas verificadas en código)
 
-A continuación se lista la totalidad de las 25 rutas registradas en el router de Express mediante introspección dinámica en tiempo de ejecución:
+A continuación se lista la totalidad de las 26 rutas registradas en el router de Express mediante introspección dinámica en tiempo de ejecución:
 
 | # | Método | Ruta | Auth Requerida | Rol Permitido | Descripción | Códigos HTTP |
 |---|---|---|---|---|---|---|
 | 1 | `GET` | `/health` | No | Público | Estado de disponibilidad del servicio | 200 |
-| 2 | `GET` | `/usuarios` | No | Público | Lista todos los usuarios cargados en el seed | 200 |
-| 3 | `GET` | `/usuarios/me` | Sí | Cualquier rol | Datos del usuario actualmente autenticado | 200, 401 |
-| 4 | `GET` | `/usuarios/:id` | Sí | Cualquier rol | Consulta de usuario por su identificador | 200, 401, 404 |
-| 5 | `GET` | `/categorias` | Sí | Cualquier rol | Listado de las 5 categorías canónicas fijas | 200, 401 |
-| 6 | `GET` | `/eventos/mios` | Sí | `ORGANIZADOR` | Lista los eventos del organizador autenticado | 200, 401, 403 |
-| 7 | `GET` | `/eventos` | Sí | Cualquier rol | Exploración, búsqueda (`q`), filtro (`categoria`), orden (`precio`, `fecha`, `puntaje`) e histórico (`incluirRealizados`) | 200, 400, 401 |
-| 8 | `POST` | `/eventos` | Sí | `ORGANIZADOR` | Creación de nuevo evento con múltiples tipos de entrada | 201, 400, 401, 403 |
-| 9 | `GET` | `/eventos/:id` | Sí | Cualquier rol | Detalle de evento con datos del organizador, cupo restante y reseñas | 200, 401, 404 |
-| 10 | `GET` | `/eventos/:id/compras` | Sí | `ORGANIZADOR` | Compras del evento y disponibilidad por tipo de entrada | 200, 401, 403, 404 |
-| 11 | `GET` | `/eventos/:id/resenas` | Sí | Cualquier rol | Reseñas asociadas a un evento específico | 200, 401, 404 |
-| 12 | `GET` | `/compras/mias` | Sí | `COMPRADOR` | Listado de compras del comprador con badges calculados | 200, 401, 403 |
-| 13 | `POST` | `/compras` | Sí | `COMPRADOR` | Creación de compra (`PENDIENTE`) y descuento de cupo | 201, 400, 401, 403, 404, 409 |
-| 14 | `GET` | `/compras/:id` | Sí | Participante | Detalle de compra e `historialEstados` | 200, 401, 403, 404 |
-| 15 | `POST` | `/compras/:id/pagar` | Sí | `COMPRADOR` | Pasa de `PENDIENTE` a `CONFIRMADA` | 200, 401, 403, 404, 409 |
-| 16 | `POST` | `/compras/:id/utilizar` | Sí | `ORGANIZADOR` | Pasa de `CONFIRMADA` a `UTILIZADA` | 200, 401, 403, 404, 409 |
-| 17 | `POST` | `/compras/:id/cancelar` | Sí | `COMPRADOR` | Cancela (`CANCELADA` o `REEMBOLSADA`) y libera cupo | 200, 401, 403, 404, 409 |
-| 18 | `GET` | `/compras/:id/mensajes` | Sí | Participante | Historial de chat de la compra | 200, 401, 403, 404 |
-| 19 | `POST` | `/compras/:id/mensajes` | Sí | Participante | Envía mensaje en el chat de la compra | 201, 400, 401, 403, 404 |
-| 20 | `GET` | `/compras/:id/resena` | Sí | Participante | Consulta la reseña de una compra | 200, 401, 403, 404 |
-| 21 | `POST` | `/compras/:id/resena` | Sí | `COMPRADOR` | Crea reseña en compra `UTILIZADA` (puntaje 1 a 5 y comentario) | 201, 400, 401, 403, 404, 409 |
-| 22 | `GET` | `/organizadores/:id` | Sí | Cualquier rol | **Contrato original Etapa 6**: Perfil del organizador (`id`, `nombre`, `puntajePromedio`, `cantidadResenas`) | 200, 401, 404 |
-| 23 | `GET` | `/organizadores/:id/reputacion` | Sí | Cualquier rol | *Alias de `/organizadores/:id`* mantenido para retrocompatibilidad | 200, 401, 404 |
-| 24 | `GET` | `/organizadores/:id/resenas` | Sí | Cualquier rol | **Contrato original Etapa 6**: Reseñas acumuladas de los eventos del organizador | 200, 401, 404 |
-| 25 | `POST` | `/dev/reset` | No | Entorno Dev | Restaura la persistencia en memoria al seed original (`ENABLE_DEV_ENDPOINTS=true`) | 200, 404 |
+| 2 | `POST` | `/auth/register` | No | Público | Registro de nuevo comprador u organizador | 201, 400 |
+| 3 | `POST` | `/auth/login` | No | Público | Inicio de sesión con email y contraseña | 200, 400, 401 |
+| 4 | `POST` | `/auth/logout` | Sí | Cualquier rol | Cierre de sesión y revocación del token activo | 204, 401 |
+| 5 | `GET` | `/usuarios/me` | Sí | Cualquier rol | Datos del usuario actualmente autenticado (incluye email) | 200, 401 |
+| 6 | `GET` | `/categorias` | Sí | Cualquier rol | Listado de las 5 categorías canónicas fijas | 200, 401 |
+| 7 | `GET` | `/eventos/mios` | Sí | `ORGANIZADOR` | Lista los eventos del organizador autenticado | 200, 401, 403 |
+| 8 | `GET` | `/eventos` | Sí | Cualquier rol | Exploración, búsqueda (`q`), filtro (`categoria`), orden (`precio`, `fecha`, `puntaje`) e histórico (`incluirRealizados`) | 200, 400, 401 |
+| 9 | `POST` | `/eventos` | Sí | `ORGANIZADOR` | Creación de nuevo evento con múltiples tipos de entrada | 201, 400, 401, 403 |
+| 10 | `GET` | `/eventos/:id` | Sí | Cualquier rol | Detalle de evento con datos del organizador, cupo restante y reseñas | 200, 401, 404 |
+| 11 | `GET` | `/eventos/:id/compras` | Sí | `ORGANIZADOR` | Compras del evento y disponibilidad por tipo de entrada | 200, 401, 403, 404 |
+| 12 | `GET` | `/eventos/:id/resenas` | Sí | Cualquier rol | Reseñas asociadas a un evento específico | 200, 401, 404 |
+| 13 | `GET` | `/compras/mias` | Sí | `COMPRADOR` | Listado de compras del comprador con badges calculados | 200, 401, 403 |
+| 14 | `POST` | `/compras` | Sí | `COMPRADOR` | Creación de compra (`PENDIENTE`) y descuento de cupo | 201, 400, 401, 403, 404, 409 |
+| 15 | `GET` | `/compras/:id` | Sí | Participante | Detalle de compra e `historialEstados` | 200, 401, 403, 404 |
+| 16 | `POST` | `/compras/:id/pagar` | Sí | `COMPRADOR` | Pasa de `PENDIENTE` a `CONFIRMADA` | 200, 401, 403, 404, 409 |
+| 17 | `POST` | `/compras/:id/utilizar` | Sí | `ORGANIZADOR` | Pasa de `CONFIRMADA` a `UTILIZADA` | 200, 401, 403, 404, 409 |
+| 18 | `POST` | `/compras/:id/cancelar` | Sí | `COMPRADOR` | Cancela (`CANCELADA` o `REEMBOLSADA`) y libera cupo | 200, 401, 403, 404, 409 |
+| 19 | `GET` | `/compras/:id/mensajes` | Sí | Participante | Historial de chat de la compra | 200, 401, 403, 404 |
+| 20 | `POST` | `/compras/:id/mensajes` | Sí | Participante | Envía mensaje en el chat de la compra | 201, 400, 401, 403, 404 |
+| 21 | `GET` | `/compras/:id/resena` | Sí | Participante | Consulta la reseña de una compra | 200, 401, 403, 404 |
+| 22 | `POST` | `/compras/:id/resena` | Sí | `COMPRADOR` | Crea reseña en compra `UTILIZADA` (puntaje 1 a 5 y comentario) | 201, 400, 401, 403, 404, 409 |
+| 23 | `GET` | `/organizadores/:id` | Sí | Cualquier rol | **Contrato original Etapa 6**: Perfil del organizador (`id`, `nombre`, `puntajePromedio`, `cantidadResenas`) | 200, 401, 404 |
+| 24 | `GET` | `/organizadores/:id/reputacion` | Sí | Cualquier rol | *Alias de `/organizadores/:id`* mantenido para retrocompatibilidad | 200, 401, 404 |
+| 25 | `GET` | `/organizadores/:id/resenas` | Sí | Cualquier rol | **Contrato original Etapa 6**: Reseñas acumuladas de los eventos del organizador | 200, 401, 404 |
+| 26 | `GET` | `/favoritos` | Sí | `COMPRADOR` | Lista de eventos favoritos del comprador (orden más reciente primero, incluye realizados) | 200, 401, 403 |
+| 27 | `POST` | `/favoritos/:eventoId` | Sí | `COMPRADOR` | Agrega un evento a favoritos (idempotente) | 200, 201, 401, 403, 404 |
+| 28 | `DELETE` | `/favoritos/:eventoId` | Sí | `COMPRADOR` | Quita un evento de favoritos (idempotente) | 204, 401, 403, 404 |
+| 29 | `POST` | `/dev/reset` | No | Entorno Dev | Restaura la persistencia en memoria al seed original (`ENABLE_DEV_ENDPOINTS=true`) | 200, 404 |
 
 ---
 

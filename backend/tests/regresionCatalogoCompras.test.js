@@ -34,8 +34,9 @@ describe("BLOQUE A: Regresión de Autenticación, Catálogo y Compras (Jest + Su
     const resHealth = await request(app).get("/health");
     expect(resHealth.status).toBe(200);
 
-    const resUsuarios = await request(app).get("/usuarios");
-    expect(resUsuarios.status).toBe(200);
+    // GET /usuarios ya no existe (404 tanto con auth como sin ella o probado con usuario autenticado)
+    const resUsuarios = await request(app).get("/usuarios").set("x-user-id", COMPRADOR);
+    expect(resUsuarios.status).toBe(404);
   });
 
   test("A2. Los mensajes del chat NO deben filtrarse en /compras/:id, /compras/mias ni /eventos/:id/compras", async () => {

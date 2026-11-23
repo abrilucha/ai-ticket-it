@@ -13,10 +13,15 @@ export function PopInput({
   onChangeText,
   placeholder,
   error,
+  isPink = false,
   secureTextEntry = false,
   keyboardType = 'default',
   multiline = false,
   numberOfLines = 1,
+  autoCapitalize = 'sentences',
+  autoCorrect = true,
+  autoComplete,
+  rightComponent,
   style,
   inputStyle,
 }) {
@@ -26,7 +31,9 @@ export function PopInput({
       <View
         style={[
           styles.inputContainer,
+          isPink ? styles.inputContainerPink : null,
           error ? styles.inputContainerError : null,
+          rightComponent ? styles.inputContainerWithRight : null,
         ]}
       >
         <TextInput
@@ -38,12 +45,17 @@ export function PopInput({
           keyboardType={keyboardType}
           multiline={multiline}
           numberOfLines={numberOfLines}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
+          autoComplete={autoComplete}
           style={[
             styles.input,
             multiline && { minHeight: numberOfLines * 24 },
+            rightComponent ? { flex: 1 } : null,
             inputStyle,
           ]}
         />
+        {rightComponent}
       </View>
       {error ? <Text style={styles.errorText}>⚠ {error}</Text> : null}
     </View>
@@ -66,6 +78,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  inputContainerWithRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputContainerPink: {
+    backgroundColor: '#FFE4E6',
+    borderColor: '#F43F5E',
   },
   inputContainerError: {
     borderColor: Colors.error,

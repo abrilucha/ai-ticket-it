@@ -36,20 +36,15 @@ export function CatalogoScreen({ navigation }) {
   const [direccion, setDireccion] = useState('asc');
   const [incluirRealizados, setIncluirRealizados] = useState(false);
 
-  // Lista de categorías obtenidas de la API
+  // Lista de categorías canónicas
   const [categorias, setCategorias] = useState([]);
-  const [catLoading, setCatLoading] = useState(true);
 
-  // Cargar categorías canónicas de la API
   const cargarCategorias = useCallback(async () => {
     try {
-      setCatLoading(true);
       const data = await listarCategorias();
       setCategorias(Array.isArray(data) ? data : []);
     } catch {
-      // Si falla, el listado quedará vacío y se puede reintentar con reload
-    } finally {
-      setCatLoading(false);
+      // Ignorar fallback si falla
     }
   }, []);
 
@@ -85,7 +80,7 @@ export function CatalogoScreen({ navigation }) {
 
   const handleSelectCategoria = (codigo) => {
     if (categoriaSeleccionada === codigo) {
-      setCategoriaSeleccionada(''); // Desactivar si ya estaba activo
+      setCategoriaSeleccionada('');
     } else {
       setCategoriaSeleccionada(codigo);
     }
@@ -144,8 +139,8 @@ export function CatalogoScreen({ navigation }) {
                 {categorias.map((cat) => (
                   <FilterChip
                     key={cat.id || cat.codigo}
-                    label={cat.nombre.toUpperCase()}
-                    selected={categoriaSeleccionada === cat.codigo}
+                    label={(cat.nombre || cat.codigo).toUpperCase()}
+                    selected={categoriaSeleccionada === cat.codigo || categoriaSeleccionada === cat.id}
                     onPress={() => handleSelectCategoria(cat.codigo)}
                     activeColor={Colors.electricCobalt}
                     activeTextColor={Colors.white}
@@ -177,7 +172,7 @@ export function CatalogoScreen({ navigation }) {
                       styles.pasadosBtn,
                       {
                         backgroundColor: incluirRealizados
-                          ? Colors.popVermilion
+                          ? Colors.canaryYellow
                           : Colors.white,
                       },
                     ]}
@@ -186,7 +181,8 @@ export function CatalogoScreen({ navigation }) {
                       style={[
                         styles.pasadosBtnText,
                         {
-                          color: incluirRealizados ? Colors.white : Colors.inkBlack,
+                          color: Colors.inkBlack,
+                          fontWeight: incluirRealizados ? '900' : '700',
                         },
                       ]}
                     >
@@ -203,9 +199,15 @@ export function CatalogoScreen({ navigation }) {
                 {eventosLoading ? 'Buscando...' : `${eventos.length} ${eventos.length === 1 ? 'evento disponible' : 'eventos disponibles'}`}
               </Text>
               {hayFiltrosActivos && (
-                <Pressable onPress={handleLimpiarFiltros} hitSlop={6}>
-                  <Text style={styles.clearFiltrosText}>Limpiar filtros ✕</Text>
-                </Pressable>
+                <HardShadow offset={2} borderRadius={6}>
+                  <Pressable
+                    onPress={handleLimpiarFiltros}
+                    style={styles.clearCardBtn}
+                    hitSlop={6}
+                  >
+                    <Text style={styles.clearCardBtnText}>✕ LIMPIAR FILTROS</Text>
+                  </Pressable>
+                </HardShadow>
               )}
             </View>
           </View>
@@ -246,7 +248,7 @@ export function CatalogoScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   headerBlock: {
     paddingHorizontal: 16,
@@ -285,17 +287,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
-    borderBottomWidth: 1.5,
-    borderColor: Colors.surfaceDim,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.inkBlack,
     marginBottom: 12,
   },
   summaryCount: {
-    ...Typography.labelSm,
-    color: Colors.onSurfaceVariant,
+    ...Typography.titleMd,
+    fontSize: 16,
+    fontWeight: '900',
+    color: Colors.inkBlack,
   },
-  clearFiltrosText: {
+  clearCardBtn: {
+    backgroundColor: Colors.popVermilion,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearCardBtnText: {
     ...Typography.labelSm,
-    color: Colors.popVermilion,
-    textDecorationLine: 'underline',
+    color: Colors.white,
+    fontWeight: '900',
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
 });

@@ -9,20 +9,20 @@ export class ApiError extends Error {
   }
 }
 
-let getUserIdCallback = () => null;
+let getTokenCallback = () => null;
 let onUnauthorizedCallback = () => {};
 
 /**
  * Vincula el cliente HTTP con la sesión activa de AuthContext.
  */
-export function setAuthHandlers({ getUserId, onUnauthorized }) {
-  if (getUserId) getUserIdCallback = getUserId;
+export function setAuthHandlers({ getToken, onUnauthorized }) {
+  if (getToken) getTokenCallback = getToken;
   if (onUnauthorized) onUnauthorizedCallback = onUnauthorized;
 }
 
 /**
  * Cliente HTTP base para AI Ticket It.
- * Timeout de 8 segundos, inyección de x-user-id, parseo de { error: { code, message } }
+ * Timeout de 8 segundos, inyección de Authorization: Bearer <token>, parseo de { error: { code, message } }
  * y detección de 401 para cierre automático de sesión.
  */
 export async function apiClient(endpoint, options = {}) {
@@ -33,9 +33,9 @@ export async function apiClient(endpoint, options = {}) {
     ...(options.headers || {}),
   };
 
-  const userId = getUserIdCallback();
-  if (userId && !headers['x-user-id']) {
-    headers['x-user-id'] = userId;
+  const token = getTokenCallback();
+  if (token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const controller = new AbortController();
@@ -51,8 +51,18 @@ export async function apiClient(endpoint, options = {}) {
 
     clearTimeout(timeoutId);
 
-    // Si devuelve 401 en una ruta autenticada, notificar al AuthContext para desloguear
-    if (response.status === 401 && endpoint !== '/usuarios' && endpoint !== '/health') {
+    // 204 No Content
+    if (response.status === 204) {
+      return null;
+    }
+
+    // Si devuelve 401 en una ruta autenticada (no en login ni register), notificar a AuthContext
+    if (
+      response.status === 401 &&
+      !endpoint.startsWith('/auth/login') &&
+      !endpoint.startsWith('/auth/register') &&
+      endpoint !== '/health'
+    ) {
       onUnauthorizedCallback();
     }
 

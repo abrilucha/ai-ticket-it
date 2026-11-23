@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: Colors.canvasBase,
+    backgroundColor: 'transparent',
   },
   text: {
     ...Typography.bodyLg,

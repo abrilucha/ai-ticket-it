@@ -4,11 +4,13 @@ import dotenv from "dotenv";
 
 // Rutas (todas bajo src/routes/)
 import healthRoutes from "./routes/HealthCheckRoutes.js";
+import authRoutes from "./routes/AuthRoutes.js";
 import usuarioRoutes from "./routes/UsuarioRoutes.js";
 import categoriaRoutes from "./routes/CategoriaRoutes.js";
 import eventoRoutes from "./routes/EventoRoutes.js";
 import compraRoutes from "./routes/CompraRoutes.js";
 import organizadorRoutes from "./routes/OrganizadorRoutes.js";
+import favoritosRoutes from "./routes/FavoritosRoutes.js";
 import devRoutes from "./routes/DevRoutes.js";
 
 // Middlewares
@@ -31,11 +33,13 @@ app.use(requireAuth);
 
 // 2. Registro de rutas
 app.use("/health", healthRoutes);
+app.use("/auth", authRoutes);
 app.use("/usuarios", usuarioRoutes);
 app.use("/categorias", categoriaRoutes);
 app.use("/eventos", eventoRoutes);
 app.use("/compras", compraRoutes);
 app.use("/organizadores", organizadorRoutes);
+app.use("/favoritos", favoritosRoutes);
 app.use("/dev", devRoutes);
 
 // 3. Middlewares de errores

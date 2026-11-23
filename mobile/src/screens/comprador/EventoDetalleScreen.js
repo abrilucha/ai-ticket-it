@@ -23,11 +23,14 @@ import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { QuantityStepper } from '../../components/QuantityStepper.js';
 import { ConfirmModal } from '../../components/ConfirmModal.js';
+import { FavoriteButton } from '../../components/FavoriteButton.js';
 import { formatFechaCompleta, formatPrecio } from '../../utils/formato.js';
+import { useFeedback } from '../../context/FeedbackContext.js';
 
 export function EventoDetalleScreen({ route, navigation }) {
   const { id } = route.params || {};
   const { data: evento, loading, error, reload } = useEvento(id);
+  const { showLoading, hideLoading, showSuccess } = useFeedback();
 
   // Recargar datos al recibir foco para mantener el cupo actualizado
   useFocusEffect(
@@ -74,6 +77,7 @@ export function EventoDetalleScreen({ route, navigation }) {
     if (comprando || !evento || !tipoSeleccionado) return;
     setComprando(true);
     setCompraError(null);
+    showLoading('Procesando compra...');
 
     try {
       const nuevaCompra = await crearCompra({
@@ -83,12 +87,15 @@ export function EventoDetalleScreen({ route, navigation }) {
       });
 
       setModalVisible(false);
+      hideLoading();
+      showSuccess('¡Compra realizada con éxito!');
       // Navegamos al detalle de la compra recién creada reemplazando la vista para evitar estados viejos
       navigation.replace('CompraDetalle', {
         id: nuevaCompra.id,
         origen: 'compra_nueva',
       });
     } catch (err) {
+      hideLoading();
       setCompraError(err.message || 'Error al procesar la compra.');
       // Refrescar el detalle del evento para actualizar cupos
       reload();
@@ -169,18 +176,24 @@ export function EventoDetalleScreen({ route, navigation }) {
   const resenasOrganizador = Array.isArray(evento.organizador?.resenas)
     ? evento.organizador.resenas
     : [];
-  const ultimas3Resenas = resenasOrganizador.slice(0, 3);
+  const ultimas3ResenasOrganizador = resenasOrganizador.slice(0, 3);
 
   return (
     <Screen>
-      {/* Barra superior fija */}
+      {/* Barra superior fija con botón volver en rojo y botón de favoritos */}
       <View style={styles.topFixedBar}>
         <HardShadow offset={2} borderRadius={8}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={10}>
             <Text style={styles.backButtonText}>← VOLVER</Text>
           </Pressable>
         </HardShadow>
-        <Text style={styles.screenTag}>DETALLE DEL EVENTO</Text>
+
+        {evento?.id ? (
+          <FavoriteButton
+            eventoId={evento.id}
+            esFavoritoInicial={Boolean(evento.esFavorito)}
+          />
+        ) : null}
       </View>
 
       <ScrollView
@@ -235,6 +248,20 @@ export function EventoDetalleScreen({ route, navigation }) {
           <Text style={styles.sectionLabel}>ACERCA DE ESTE EVENTO</Text>
           <Text style={styles.descripcion}>{evento.descripcion || 'Sin descripción detallada.'}</Text>
         </View>
+
+        {/* Tarjeta de Categoría y Descripción no hardcodeada */}
+        <HardShadow offset={3} borderRadius={10} style={styles.catCardShadow}>
+          <View style={styles.catCard}>
+            <View style={styles.catHeaderPill}>
+              <Text style={styles.catHeaderPillText}>
+                CATEGORÍA: {(evento.categoria?.nombre || evento.categoria?.codigo || (typeof evento.categoria === 'string' ? evento.categoria : 'General')).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.catCardDesc}>
+              {evento.categoria?.descripcion || 'Eventos y espectáculos de esta categoría.'}
+            </Text>
+          </View>
+        </HardShadow>
 
         {/* Tipos de Entrada y Selector de Cantidad */}
         <View style={styles.seccionBloque}>
@@ -343,29 +370,43 @@ export function EventoDetalleScreen({ route, navigation }) {
             OPINIONES SOBRE EL ORGANIZADOR ({resenasOrganizador.length})
           </Text>
 
-          {ultimas3Resenas.length === 0 ? (
+          {ultimas3ResenasOrganizador.length === 0 ? (
             <Text style={styles.sinResenasTexto}>
-              Este organizador todavía no posee reseñas registradas en el sistema.
+              Este organizador todavía no posee opiniones registradas.
             </Text>
           ) : (
-            ultimas3Resenas.map((resena) => (
-              <ReviewCard key={resena.id} resena={resena} />
+            ultimas3ResenasOrganizador.map((resena) => (
+              <ReviewCard
+                key={resena.id}
+                resena={resena}
+                onPressEvento={(targetEventoId) => {
+                  if (targetEventoId && targetEventoId !== id) {
+                    navigation.push('EventoDetalle', { eventoId: targetEventoId });
+                  }
+                }}
+              />
             ))
           )}
 
-          {evento.organizador?.id && (
+          {resenasOrganizador.length > 0 && (
             <View style={styles.verTodasBtnContainer}>
-              <PopButton
-                title={`VER TODAS LAS RESEÑAS (${evento.organizador?.cantidadResenas || 0}) →`}
-                variant="secondary"
-                size="sm"
-                onPress={() =>
-                  navigation.navigate('OrganizadorPerfil', {
-                    organizadorId: evento.organizador.id,
-                    organizadorNombre: evento.organizador.nombre,
-                  })
-                }
-              />
+              <HardShadow offset={3} borderRadius={8}>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('EventoResenas', {
+                      organizadorNombre: evento.organizador?.nombre || 'Organizador',
+                      resenas: resenasOrganizador,
+                      puntaje: evento.organizador?.puntajePromedio,
+                      cantidadResenas: evento.organizador?.cantidadResenas || resenasOrganizador.length,
+                    })
+                  }
+                  style={styles.verTodasBtnAmarillo}
+                >
+                  <Text style={styles.verTodasBtnAmarilloText}>
+                    VER TODAS LAS RESEÑAS ({resenasOrganizador.length}) →
+                  </Text>
+                </Pressable>
+              </HardShadow>
             </View>
           )}
         </View>
@@ -406,13 +447,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: Colors.canvasBase,
-    borderBottomWidth: 1.5,
+    backgroundColor: Colors.vibrantTurquoise,
+    borderBottomWidth: 2,
     borderColor: Colors.inkBlack,
     zIndex: 10,
   },
   backButton: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.popVermilion, // Botón volver en rojo Pop Art
     borderWidth: 2,
     borderColor: Colors.inkBlack,
     borderRadius: 8,
@@ -420,12 +461,54 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   backButtonText: {
+    ...Typography.labelMd,
+    color: Colors.white,
+    fontWeight: '900',
+  },
+  catCardShadow: {
+    marginBottom: 16,
+  },
+  catCard: {
+    backgroundColor: Colors.white,
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 10,
+    padding: 14,
+  },
+  catHeaderPill: {
+    backgroundColor: Colors.canaryYellow,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    marginBottom: 8,
+  },
+  catHeaderPillText: {
     ...Typography.labelSm,
     color: Colors.inkBlack,
+    fontWeight: '900',
   },
-  screenTag: {
-    ...Typography.labelSm,
-    color: Colors.outline,
+  catCardDesc: {
+    ...Typography.bodyMd,
+    color: Colors.inkBlack,
+    lineHeight: 20,
+  },
+  verTodasBtnAmarillo: {
+    backgroundColor: Colors.canaryYellow, // Cartelito en amarillo
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verTodasBtnAmarilloText: {
+    ...Typography.labelMd,
+    color: Colors.inkBlack,
+    fontWeight: '900',
   },
   imageWrapper: {
     marginBottom: 16,

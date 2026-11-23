@@ -171,6 +171,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingTop: 14,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
 });
