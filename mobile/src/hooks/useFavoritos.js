@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { listarFavoritos, agregarFavorito, quitarFavorito } from '../api/favoritos.js';
+import { useFeedback } from '../context/FeedbackContext.js';
 
 /**
  * Hook para listar los favoritos del comprador con protección contra respuestas viejas.
@@ -44,6 +45,7 @@ export function useFavoritos() {
  * actualiza el estado y en caso de error revierte al estado anterior y expone error.message.
  */
 export function useToggleFavorito(eventoId, esFavoritoInicial = false, onToggleSuccess = null) {
+  const { showSuccess } = useFeedback();
   const [esFavorito, setEsFavorito] = useState(Boolean(esFavoritoInicial));
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState(null);
@@ -62,10 +64,12 @@ export function useToggleFavorito(eventoId, esFavoritoInicial = false, onToggleS
       if (estadoPrevio) {
         await quitarFavorito(eventoId);
         setEsFavorito(false);
+        showSuccess('Quitado de favoritos');
         if (onToggleSuccess) onToggleSuccess(false, eventoId);
       } else {
         await agregarFavorito(eventoId);
         setEsFavorito(true);
+        showSuccess('¡Agregado a favoritos!');
         if (onToggleSuccess) onToggleSuccess(true, eventoId);
       }
     } catch (err) {
@@ -74,7 +78,7 @@ export function useToggleFavorito(eventoId, esFavoritoInicial = false, onToggleS
     } finally {
       setProcesando(false);
     }
-  }, [procesando, eventoId, esFavorito, onToggleSuccess]);
+  }, [procesando, eventoId, esFavorito, onToggleSuccess, showSuccess]);
 
   return {
     esFavorito,

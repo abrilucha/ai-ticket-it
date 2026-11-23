@@ -22,11 +22,13 @@ import { PopInput } from '../../components/PopInput.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { FotoPerfilPicker } from '../../components/FotoPerfilPicker.js';
 import { setAndroidBottomBar } from '../../utils/systemBars.js';
+import { useFeedback } from '../../context/FeedbackContext.js';
 
 const authBg = require('../../../assets/auth-bg.jpg');
 
 export function RegisterScreen({ navigation }) {
   const { registrar } = useAuth();
+  const { showLoading, hideLoading, showSuccess } = useFeedback();
 
   useEffect(() => {
     setAndroidBottomBar('auth');
@@ -96,6 +98,7 @@ export function RegisterScreen({ navigation }) {
     }
 
     setLoading(true);
+    showLoading('Creando tu cuenta...');
     try {
       const datos = {
         nombre: nom,
@@ -111,8 +114,11 @@ export function RegisterScreen({ navigation }) {
       }
 
       await registrar(datos);
+      hideLoading();
+      showSuccess('¡Cuenta creada exitosamente!');
       // Al registrarse con éxito, AuthContext asigna `usuario` y `token`, derivando a la pantalla correspondiente
     } catch (err) {
+      hideLoading();
       // Mostrar exactamente lo que responde el back (ej: "Ese email ya está registrado", etc.)
       setErrorMsg(err.message || 'Error al crear la cuenta');
       setLoading(false);

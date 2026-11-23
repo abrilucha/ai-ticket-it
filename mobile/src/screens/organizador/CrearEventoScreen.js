@@ -24,8 +24,10 @@ import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { crearEvento } from '../../api/eventos.js';
 import { parsearFechaHora, formatFecha } from '../../utils/formato.js';
 import { getDefaultCoverString } from '../../utils/defaultCover.js';
+import { useFeedback } from '../../context/FeedbackContext.js';
 
 export function CrearEventoScreen({ navigation }) {
+  const { showLoading, hideLoading, showSuccess } = useFeedback();
   // Datos del evento (Strings libres obligatorios)
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -365,10 +367,14 @@ export function CrearEventoScreen({ navigation }) {
         })),
       };
 
+      showLoading('Publicando evento...');
       await crearEvento(datosParaEnviar);
       salidaConfirmadaRef.current = true;
+      hideLoading();
+      showSuccess('¡Evento creado exitosamente!');
       navigation.goBack();
     } catch (err) {
+      hideLoading();
       setApiError(err.message || 'Error al publicar el evento en el servidor.');
     } finally {
       setPublicando(false);

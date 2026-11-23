@@ -61,8 +61,13 @@ export function Header({ usuario, onLogout, onBack = null }) {
           {usuario ? (
             <Pressable
               onPress={() => setMenuVisible(true)}
-              style={styles.avatarTrigger}
-              hitSlop={6}
+              style={({ pressed }) => [
+                styles.avatarTrigger,
+                pressed && styles.avatarTriggerPressed,
+              ]}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              accessibilityRole="button"
+              accessibilityLabel="Perfil y ajustes de usuario"
             >
               <HardShadow offset={2} borderRadius={20} style={styles.avatarShadow}>
                 <View style={styles.avatarCircle}>
@@ -240,7 +245,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   avatarTrigger: {
-    padding: 2,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: -4,
+  },
+  avatarTriggerPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.95 }],
   },
   avatarShadow: {
     width: 38,

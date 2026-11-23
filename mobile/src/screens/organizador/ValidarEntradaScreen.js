@@ -28,6 +28,7 @@ import { EmptyState } from '../../components/EmptyState.js';
 import { LoadingView } from '../../components/LoadingView.js';
 import { formatPrecio, formatFecha } from '../../utils/formato.js';
 import { leerPayloadQR } from '../../utils/qr.js';
+import { useFeedback } from '../../context/FeedbackContext.js';
 
 const TABS = [
   { id: 'CAMARA', label: '📷 CÁMARA' },
@@ -50,6 +51,7 @@ export function ValidarEntradaScreen({ navigation }) {
 
   // Bloqueo anti doble lectura
   const isScanningLocked = useRef(false);
+  const { showLoading, hideLoading, showSuccess } = useFeedback();
 
   const {
     compra,
@@ -99,8 +101,15 @@ export function ValidarEntradaScreen({ navigation }) {
   };
 
   const handleConfirmarCanje = async () => {
-    await marcarUtilizada();
-    setConfirmModalVisible(false);
+    showLoading('Validando entrada...');
+    try {
+      await marcarUtilizada();
+      setConfirmModalVisible(false);
+      hideLoading();
+      showSuccess('¡Entrada validada exitosamente!');
+    } catch {
+      hideLoading();
+    }
   };
 
   const handleReset = () => {

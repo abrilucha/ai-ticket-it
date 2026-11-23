@@ -21,11 +21,13 @@ import { PopButton } from '../../components/PopButton.js';
 import { PopInput } from '../../components/PopInput.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { setAndroidBottomBar } from '../../utils/systemBars.js';
+import { useFeedback } from '../../context/FeedbackContext.js';
 
 const authBg = require('../../../assets/auth-bg.jpg');
 
 export function LoginScreen({ navigation }) {
   const { login } = useAuth();
+  const { showLoading, hideLoading, showSuccess } = useFeedback();
 
   useEffect(() => {
     setAndroidBottomBar('auth');
@@ -81,9 +83,12 @@ export function LoginScreen({ navigation }) {
     }
 
     setLoading(true);
+    showLoading('Iniciando sesión...');
     try {
       await login(emailTrim, password);
+      hideLoading();
     } catch (err) {
+      hideLoading();
       // Si el usuario no existe o las credenciales son inválidas, se pintan ambas en rosita
       setEmailPink(true);
       setPasswordPink(true);

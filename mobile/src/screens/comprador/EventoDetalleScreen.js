@@ -25,10 +25,12 @@ import { QuantityStepper } from '../../components/QuantityStepper.js';
 import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { FavoriteButton } from '../../components/FavoriteButton.js';
 import { formatFechaCompleta, formatPrecio } from '../../utils/formato.js';
+import { useFeedback } from '../../context/FeedbackContext.js';
 
 export function EventoDetalleScreen({ route, navigation }) {
   const { id } = route.params || {};
   const { data: evento, loading, error, reload } = useEvento(id);
+  const { showLoading, hideLoading, showSuccess } = useFeedback();
 
   // Recargar datos al recibir foco para mantener el cupo actualizado
   useFocusEffect(
@@ -75,6 +77,7 @@ export function EventoDetalleScreen({ route, navigation }) {
     if (comprando || !evento || !tipoSeleccionado) return;
     setComprando(true);
     setCompraError(null);
+    showLoading('Procesando compra...');
 
     try {
       const nuevaCompra = await crearCompra({
@@ -84,12 +87,15 @@ export function EventoDetalleScreen({ route, navigation }) {
       });
 
       setModalVisible(false);
+      hideLoading();
+      showSuccess('¡Compra realizada con éxito!');
       // Navegamos al detalle de la compra recién creada reemplazando la vista para evitar estados viejos
       navigation.replace('CompraDetalle', {
         id: nuevaCompra.id,
         origen: 'compra_nueva',
       });
     } catch (err) {
+      hideLoading();
       setCompraError(err.message || 'Error al procesar la compra.');
       // Refrescar el detalle del evento para actualizar cupos
       reload();

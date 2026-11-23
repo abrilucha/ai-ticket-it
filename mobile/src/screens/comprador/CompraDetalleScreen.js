@@ -34,10 +34,12 @@ import { LoadingView } from '../../components/LoadingView.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { formatFechaCompleta, formatPrecio } from '../../utils/formato.js';
+import { useFeedback } from '../../context/FeedbackContext.js';
 
 export function CompraDetalleScreen({ route, navigation }) {
   const { id, origen } = route.params || {};
   const { usuario } = useAuth();
+  const { showLoading, hideLoading, showSuccess } = useFeedback();
   const { data: compra, loading, error, reload } = useCompra(id);
   const { resena, reload: reloadResena } = useResenaDeCompra(id);
 
@@ -103,6 +105,7 @@ export function CompraDetalleScreen({ route, navigation }) {
 
     setEnviandoResena(true);
     setResenaError(null);
+    showLoading('Publicando tu reseña...');
 
     try {
       await crearResena(compra.id, {
@@ -113,7 +116,10 @@ export function CompraDetalleScreen({ route, navigation }) {
       setResenaComentario('');
       await reload();
       await reloadResena();
+      hideLoading();
+      showSuccess('¡Reseña publicada con éxito!');
     } catch (err) {
+      hideLoading();
       setResenaError(err.message || 'Error al enviar la reseña.');
     } finally {
       setEnviandoResena(false);
@@ -125,11 +131,15 @@ export function CompraDetalleScreen({ route, navigation }) {
     if (pagando || !compra || !compra.puedePagar) return;
     setPagando(true);
     setAccionError(null);
+    showLoading('Confirmando pago...');
 
     try {
       await pagarCompra(compra.id);
       await reload();
+      hideLoading();
+      showSuccess('¡Pago confirmado con éxito!');
     } catch (err) {
+      hideLoading();
       setAccionError(err.message || 'Error al procesar el pago.');
       reload();
     } finally {
@@ -142,12 +152,16 @@ export function CompraDetalleScreen({ route, navigation }) {
     if (cancelando || !compra || !compra.puedeCancelar) return;
     setCancelando(true);
     setAccionError(null);
+    showLoading('Cancelando compra...');
 
     try {
       await cancelarCompra(compra.id);
       setCancelModalVisible(false);
       await reload();
+      hideLoading();
+      showSuccess('¡Compra cancelada exitosamente!');
     } catch (err) {
+      hideLoading();
       setAccionError(err.message || 'Error al procesar la cancelación.');
       reload();
     } finally {
@@ -159,12 +173,16 @@ export function CompraDetalleScreen({ route, navigation }) {
   const handleConfirmarUtilizar = async () => {
     if (utilizando || !compra || !compra.puedeUtilizar) return;
     setAccionError(null);
+    showLoading('Validando entrada...');
 
     try {
       await marcarUtilizada(compra.id);
       setUtilizarModalVisible(false);
       await reload();
+      hideLoading();
+      showSuccess('¡Entrada validada exitosamente!');
     } catch (err) {
+      hideLoading();
       setAccionError(err.message || 'Error al canjear la entrada.');
       reload();
     }
