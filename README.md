@@ -1,6 +1,6 @@
 ## **AI Ticket It - Plataforma de Venta de Entradas para Eventos**
 
-
+![alt text](image.png)
 
 Trabajo Práctico Individual de 
 Desarrollo con Inteligencia Artificial
