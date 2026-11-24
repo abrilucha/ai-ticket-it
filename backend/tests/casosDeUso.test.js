@@ -168,7 +168,7 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
     const cupoAntes = evAntes.body.tiposEntrada.find((t) => t.id === "tipo_rock_1").cupoRestante;
 
     const res = await request(app)
-      .post("/compras/cmp_confirmada_1/cancelar")
+      .post("/compras/cmp_confirmada_1/cancelaciones")
       .set("x-user-id", COMPRADOR_1);
 
     expect(res.status).toBe(200);
@@ -188,7 +188,7 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
   test("CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó", async () => {
     // Bloqueo 1: compra ya UTILIZADA
     const resUtilizada = await request(app)
-      .post("/compras/cmp_utilizada_1/cancelar")
+      .post("/compras/cmp_utilizada_1/cancelaciones")
       .set("x-user-id", COMPRADOR_1);
 
     expect(resUtilizada.status).toBe(409);
@@ -198,7 +198,7 @@ describe("Casos de Uso del TP (CU1 a CU12) - AI Ticket It", () => {
     // Bloqueo 2: evento ya realizado
     // cmp_utilizada_sin_resena es de evt_divididos (fecha pasada)
     const resEventoRealizado = await request(app)
-      .post("/compras/cmp_utilizada_sin_resena/cancelar")
+      .post("/compras/cmp_utilizada_sin_resena/cancelaciones")
       .set("x-user-id", COMPRADOR_1);
 
     expect(resEventoRealizado.status).toBe(409);

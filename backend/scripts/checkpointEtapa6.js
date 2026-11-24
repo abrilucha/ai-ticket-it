@@ -37,7 +37,7 @@ async function runCheckpointEtapa6() {
   console.log(`[COMPRADOR] Compra creada: ${compraId} | Estado: ${resCompra.body.estado}`);
 
   const resPagar = await request(app)
-    .post(`/compras/${compraId}/pagar`)
+    .post(`/compras/${compraId}/pagos`)
     .set("x-user-id", compradorTitular);
   console.log(`[COMPRADOR] Compra pagada | Estado: ${resPagar.body.estado} | puedeResenar: ${resPagar.body.puedeResenar}`);
 
@@ -52,7 +52,7 @@ async function runCheckpointEtapa6() {
   // 3. Organizador A marca la entrada como utilizada; verificar puedeResenar=true
   console.log("\n--- 3. Organizador A valida y utiliza la entrada ---");
   const resUtilizar = await request(app)
-    .post(`/compras/${compraId}/utilizar`)
+    .post(`/compras/${compraId}/usos`)
     .set("x-user-id", orgA);
   console.log(`[ORGANIZADOR A] Entrada utilizada | Estado: ${resUtilizar.body.estado}`);
 
@@ -136,8 +136,8 @@ async function runCheckpointEtapa6() {
     .post("/compras")
     .set("x-user-id", compradorAjeno)
     .send({ eventoId: "evt_teatro", tipoEntradaId: "tipo_teatro_2", cantidad: 1 });
-  await request(app).post(`/compras/${resCompra2.body.id}/pagar`).set("x-user-id", compradorAjeno);
-  await request(app).post(`/compras/${resCompra2.body.id}/utilizar`).set("x-user-id", orgA);
+  await request(app).post(`/compras/${resCompra2.body.id}/pagos`).set("x-user-id", compradorAjeno);
+  await request(app).post(`/compras/${resCompra2.body.id}/usos`).set("x-user-id", orgA);
 
   const resCalif2 = await request(app)
     .post(`/compras/${resCompra2.body.id}/resena`)

@@ -19,10 +19,22 @@ export async function crearCompra({ eventoId, tipoEntradaId, cantidad }) {
  */
 export async function pagarCompra(id) {
   if (!id) throw new Error('ID de compra requerido');
-  return await apiClient(`/compras/${encodeURIComponent(id)}/pagar`, {
+  return await apiClient(`/compras/${encodeURIComponent(id)}/pagos`, {
     method: 'POST',
   });
 }
+
+
+/**
+ * Marca una entrada de compra CONFIRMADA como UTILIZADA (rol ORGANIZADOR dueño del evento).
+ */
+export async function utilizarCompra(id) {
+  if (!id) throw new Error('ID de compra requerido');
+  return await apiClient(`/compras/${encodeURIComponent(id)}/usos`, {
+    method: 'POST',
+  });
+}
+
 
 /**
  * Lista las compras del comprador autenticado.
@@ -44,17 +56,8 @@ export async function obtenerCompra(id) {
  */
 export async function cancelarCompra(id) {
   if (!id) throw new Error('ID de compra requerido');
-  return await apiClient(`/compras/${encodeURIComponent(id)}/cancelar`, {
+  return await apiClient(`/compras/${encodeURIComponent(id)}/cancelaciones`, {
     method: 'POST',
   });
 }
 
-/**
- * Marca una entrada de compra CONFIRMADA como UTILIZADA (rol ORGANIZADOR dueño del evento).
- */
-export async function utilizarCompra(id) {
-  if (!id) throw new Error('ID de compra requerido');
-  return await apiClient(`/compras/${encodeURIComponent(id)}/utilizar`, {
-    method: 'POST',
-  });
-}

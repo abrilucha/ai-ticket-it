@@ -166,9 +166,9 @@ A continuación se lista la totalidad de las 26 rutas registradas en el router d
 | 13 | `GET` | `/compras/mias` | Sí | `COMPRADOR` | Listado de compras del comprador con badges calculados | 200, 401, 403 |
 | 14 | `POST` | `/compras` | Sí | `COMPRADOR` | Creación de compra (`PENDIENTE`) y descuento de cupo | 201, 400, 401, 403, 404, 409 |
 | 15 | `GET` | `/compras/:id` | Sí | Participante | Detalle de compra e `historialEstados` | 200, 401, 403, 404 |
-| 16 | `POST` | `/compras/:id/pagar` | Sí | `COMPRADOR` | Pasa de `PENDIENTE` a `CONFIRMADA` | 200, 401, 403, 404, 409 |
-| 17 | `POST` | `/compras/:id/utilizar` | Sí | `ORGANIZADOR` | Pasa de `CONFIRMADA` a `UTILIZADA` | 200, 401, 403, 404, 409 |
-| 18 | `POST` | `/compras/:id/cancelar` | Sí | `COMPRADOR` | Cancela (`CANCELADA` o `REEMBOLSADA`) y libera cupo | 200, 401, 403, 404, 409 |
+| 16 | `POST` | `/compras/:id/pagos` | Sí | `COMPRADOR` | Registro de pago (pasa de `PENDIENTE` a `CONFIRMADA`). Alias: `/pagar` | 200, 401, 403, 404, 409 |
+| 17 | `POST` | `/compras/:id/usos` | Sí | `ORGANIZADOR` | Registro de uso (pasa de `CONFIRMADA` a `UTILIZADA`). Alias: `/utilizaciones`, `/validaciones`, `/utilizar` | 200, 401, 403, 404, 409 |
+| 18 | `POST` | `/compras/:id/cancelaciones` | Sí | `COMPRADOR` | Registro de cancelación (`CANCELADA` o `REEMBOLSADA`) y libera cupo. Alias: `/cancelar` | 200, 401, 403, 404, 409 |
 | 19 | `GET` | `/compras/:id/mensajes` | Sí | Participante | Historial de chat de la compra | 200, 401, 403, 404 |
 | 20 | `POST` | `/compras/:id/mensajes` | Sí | Participante | Envía mensaje en el chat de la compra | 201, 400, 401, 403, 404 |
 | 21 | `GET` | `/compras/:id/resena` | Sí | Participante | Consulta la reseña de una compra | 200, 401, 403, 404 |

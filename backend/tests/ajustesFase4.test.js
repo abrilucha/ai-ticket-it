@@ -111,7 +111,7 @@ describe('Ajustes Autorizados Fase 4 (A1, A2, A3, A4)', () => {
     expect(dispVentas.cupoDisponible).toBe(498);
 
     // Cancelar la compra cmp_confirmada_1 libera el cupo a 500
-    const resCancelar = await request(app).post('/compras/cmp_confirmada_1/cancelar').set('x-user-id', COMPRADOR_1);
+    const resCancelar = await request(app).post('/compras/cmp_confirmada_1/cancelaciones').set('x-user-id', COMPRADOR_1);
     expect(resCancelar.status).toBe(200);
 
     const resDetallePost = await request(app).get('/eventos/evt_cosquin').set('x-user-id', COMPRADOR_1);

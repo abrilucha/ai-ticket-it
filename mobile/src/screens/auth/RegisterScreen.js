@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
 import { PopInput } from '../../components/PopInput.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
+import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { FotoPerfilPicker } from '../../components/FotoPerfilPicker.js';
 import { setAndroidBottomBar } from '../../utils/systemBars.js';
 import { useFeedback } from '../../context/FeedbackContext.js';
@@ -29,6 +30,8 @@ const authBg = require('../../../assets/auth-bg.jpg');
 export function RegisterScreen({ navigation }) {
   const { registrar } = useAuth();
   const { showLoading, hideLoading, showSuccess } = useFeedback();
+  const scrollViewRef = useRef(null);
+  const fieldPositions = useRef({});
 
   useEffect(() => {
     setAndroidBottomBar('auth');
@@ -44,56 +47,97 @@ export function RegisterScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const isComprador = rol === 'COMPRADOR';
+  const isDirty = Boolean(
+    nombre.trim() || apellido.trim() || email.trim() || password || confirmPassword || fotoPerfil
+  );
 
   // Volver siempre a la primerísima pantalla (Welcome), tanto por botón físico como en pantalla
   const handleGoWelcome = useCallback(() => {
     navigation.navigate('Welcome');
   }, [navigation]);
 
+  const handleRequestVolver = useCallback(() => {
+    if (isDirty) {
+      setShowExitModal(true);
+    } else {
+      handleGoWelcome();
+    }
+  }, [isDirty, handleGoWelcome]);
+
   useFocusEffect(
     useCallback(() => {
       setAndroidBottomBar('auth');
       const onBackPress = () => {
-        handleGoWelcome();
+        handleRequestVolver();
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [handleGoWelcome])
+    }, [handleRequestVolver])
   );
+
+  const limpiarErrorCampo = (campo) => {
+    setFieldErrors((prev) => {
+      if (!prev[campo]) return prev;
+      const copy = { ...prev };
+      delete copy[campo];
+      return copy;
+    });
+    if (errorMsg) setErrorMsg(null);
+  };
 
   const handleRegister = async () => {
     if (loading) return;
     setErrorMsg(null);
+    setFieldErrors({});
 
     const nom = nombre.trim();
     const ape = apellido.trim();
     const em = email.trim();
+    const errores = {};
 
     if (!nom) {
-      setErrorMsg(isComprador ? 'Ingresá tu nombre.' : 'Ingresá el nombre del organizador o productora.');
-      return;
+      errores.nombre = isComprador ? 'Ingresá tu nombre.' : 'Ingresá el nombre del organizador o productora.';
     }
 
     if (isComprador && !ape) {
-      setErrorMsg('El apellido es obligatorio para compradores.');
-      return;
+      errores.apellido = 'El apellido es obligatorio para compradores.';
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!em) {
-      setErrorMsg('Ingresá tu email.');
-      return;
+      errores.email = 'Ingresá tu email.';
+    } else if (!emailRegex.test(em)) {
+      errores.email = 'Ingresá un formato de email válido.';
     }
 
     if (!password) {
-      setErrorMsg('Ingresá una contraseña.');
-      return;
+      errores.password = 'Ingresá una contraseña.';
+    } else if (password.length < 8) {
+      errores.password = 'La contraseña debe tener al menos 8 caracteres.';
     }
 
-    if (password !== confirmPassword) {
-      setErrorMsg('Las contraseñas no coinciden.');
+    if (!confirmPassword) {
+      errores.confirmPassword = 'Confirmá tu contraseña.';
+    } else if (password !== confirmPassword) {
+      errores.confirmPassword = 'Las contraseñas no coinciden.';
+    }
+
+    if (Object.keys(errores).length > 0) {
+      setFieldErrors(errores);
+      const ordenCampos = ['nombre', 'apellido', 'email', 'password', 'confirmPassword'];
+      const primerError = ordenCampos.find((campo) => errores[campo]);
+      if (primerError) {
+        setErrorMsg(errores[primerError]);
+        const yPos = fieldPositions.current[primerError];
+        if (typeof yPos === 'number' && scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: Math.max(0, yPos - 30), animated: true });
+        }
+      }
       return;
     }
 
@@ -116,11 +160,16 @@ export function RegisterScreen({ navigation }) {
       await registrar(datos);
       hideLoading();
       showSuccess('¡Cuenta creada exitosamente!');
-      // Al registrarse con éxito, AuthContext asigna `usuario` y `token`, derivando a la pantalla correspondiente
     } catch (err) {
       hideLoading();
-      // Mostrar exactamente lo que responde el back (ej: "Ese email ya está registrado", etc.)
       setErrorMsg(err.message || 'Error al crear la cuenta');
+      if (err.message && err.message.toLowerCase().includes('email')) {
+        setFieldErrors({ email: err.message });
+        const yPos = fieldPositions.current.email;
+        if (typeof yPos === 'number' && scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: Math.max(0, yPos - 30), animated: true });
+        }
+      }
       setLoading(false);
     }
   };
@@ -134,14 +183,15 @@ export function RegisterScreen({ navigation }) {
           style={styles.keyboardContainer}
         >
           <ScrollView
+            ref={scrollViewRef}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Botón Volver (lleva a Welcome) */}
+            {/* Botón Volver (lleva a Welcome con advertencia si hay cambios) */}
             <View style={styles.topBar}>
               <Pressable
-                onPress={handleGoWelcome}
+                onPress={handleRequestVolver}
                 style={styles.backBtn}
                 hitSlop={10}
               >
@@ -232,9 +282,13 @@ export function RegisterScreen({ navigation }) {
               <PopInput
                 label={isComprador ? 'NOMBRE *' : 'NOMBRE DEL ORGANIZADOR O PRODUCTORA *'}
                 value={nombre}
+                error={fieldErrors.nombre}
+                onLayout={(e) => {
+                  fieldPositions.current.nombre = e.nativeEvent.layout.y;
+                }}
                 onChangeText={(text) => {
                   setNombre(text);
-                  if (errorMsg) setErrorMsg(null);
+                  limpiarErrorCampo('nombre');
                 }}
                 placeholder={isComprador ? 'ej: Lucas' : 'ej: Productora Rock'}
                 autoCapitalize="words"
@@ -246,9 +300,13 @@ export function RegisterScreen({ navigation }) {
                 <PopInput
                   label="APELLIDO *"
                   value={apellido}
+                  error={fieldErrors.apellido}
+                  onLayout={(e) => {
+                    fieldPositions.current.apellido = e.nativeEvent.layout.y;
+                  }}
                   onChangeText={(text) => {
                     setApellido(text);
-                    if (errorMsg) setErrorMsg(null);
+                    limpiarErrorCampo('apellido');
                   }}
                   placeholder="ej: García"
                   autoCapitalize="words"
@@ -260,9 +318,13 @@ export function RegisterScreen({ navigation }) {
               <PopInput
                 label="EMAIL *"
                 value={email}
+                error={fieldErrors.email}
+                onLayout={(e) => {
+                  fieldPositions.current.email = e.nativeEvent.layout.y;
+                }}
                 onChangeText={(text) => {
                   setEmail(text);
-                  if (errorMsg) setErrorMsg(null);
+                  limpiarErrorCampo('email');
                 }}
                 placeholder="ej: usuario@ejemplo.com"
                 keyboardType="email-address"
@@ -275,9 +337,13 @@ export function RegisterScreen({ navigation }) {
               <PopInput
                 label="CONTRASEÑA *"
                 value={password}
+                error={fieldErrors.password}
+                onLayout={(e) => {
+                  fieldPositions.current.password = e.nativeEvent.layout.y;
+                }}
                 onChangeText={(text) => {
                   setPassword(text);
-                  if (errorMsg) setErrorMsg(null);
+                  limpiarErrorCampo('password');
                 }}
                 placeholder="Mínimo 8 caracteres"
                 secureTextEntry={!showPassword}
@@ -304,9 +370,13 @@ export function RegisterScreen({ navigation }) {
               <PopInput
                 label="REPETIR CONTRASEÑA *"
                 value={confirmPassword}
+                error={fieldErrors.confirmPassword}
+                onLayout={(e) => {
+                  fieldPositions.current.confirmPassword = e.nativeEvent.layout.y;
+                }}
                 onChangeText={(text) => {
                   setConfirmPassword(text);
-                  if (errorMsg) setErrorMsg(null);
+                  limpiarErrorCampo('confirmPassword');
                 }}
                 placeholder="Repetí tu contraseña"
                 secureTextEntry={!showPassword}
@@ -354,6 +424,21 @@ export function RegisterScreen({ navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+
+    {/* Modal de Confirmación para Descartar Datos */}
+    <ConfirmModal
+      visible={showExitModal}
+      title="¿DESCARTAR DATOS?"
+      message="Tenés información ingresada en el registro. Si salís ahora perderás lo que escribiste."
+      confirmText="SÍ, SALIR"
+      cancelText="SEGUIR EDITANDO"
+      variant="danger"
+      onConfirm={() => {
+        setShowExitModal(false);
+        handleGoWelcome();
+      }}
+      onCancel={() => setShowExitModal(false)}
+    />
     </ImageBackground>
   );
 }

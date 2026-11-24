@@ -131,17 +131,21 @@ export async function inicializarSeedInMemory() {
     fotoPerfil: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=150&auto=format&fit=crop&q=80",
   });
 
-  // 3. Eventos: 6 futuros escalonados (+15d, +30d, +45d, +60d, +90d, +120d) + 1 pasado (-5d)
-  const ahora = Date.now();
-  const diaMs = 1000 * 60 * 60 * 24;
+  // 3. Eventos: fechas reales de calendario con horarios definidos (6 futuros y 1 pasado)
+  const fechaCharly = "2027-04-10T21:00:00.000Z";       // Sábado 10 de abril de 2027, 21:00 hs
+  const fechaCosquin = "2027-02-13T19:00:00.000Z";      // Sábado 13 de febrero de 2027, 16:00 hs
+  const fechaTeatro = "2027-01-16T20:30:00.000Z";       // Sábado 16 de enero de 2027, 20:30 hs
+  const fechaSuperclasico = "2027-01-24T21:30:00.000Z"; // Domingo 24 de enero de 2027, 21:30 hs
+  const fechaTechSummit = "2027-05-20T12:00:00.000Z";   // Jueves 20 de mayo de 2027, 09:00 hs
+  const fechaLollapalooza = "2027-03-19T16:00:00.000Z"; // Viernes 19 de marzo de 2027, 13:00 hs
+  const fechaDivididosPasado = "2026-10-10T21:00:00.000Z"; // Sábado 10 de octubre de 2026, 21:00 hs (evento pasado)
 
-  const fechaFutura15d = new Date(ahora + diaMs * 15).toISOString();
-  const fechaFutura30d = new Date(ahora + diaMs * 30).toISOString();
-  const fechaFutura45d = new Date(ahora + diaMs * 45).toISOString();
-  const fechaFutura60d = new Date(ahora + diaMs * 60).toISOString();
-  const fechaFutura90d = new Date(ahora + diaMs * 90).toISOString();
-  const fechaFutura120d = new Date(ahora + diaMs * 120).toISOString();
-  const fechaPasada5d = new Date(ahora - diaMs * 5).toISOString();
+  const fechaPagoConfirmado = "2026-11-20T18:15:00.000Z";
+  const fechaIngresoDivididos = "2026-10-10T20:45:00.000Z";
+  const fechaResena1 = "2026-10-11T14:00:00.000Z";
+  const fechaResena2 = "2026-10-11T16:30:00.000Z";
+  const fechaResena3 = "2026-11-15T10:00:00.000Z";
+  const fechaResena4 = "2026-11-16T11:30:00.000Z";
 
   // 1. Recitales (futuro)
   const eventoCharly = await eventoRepository.save({
@@ -149,7 +153,7 @@ export async function inicializarSeedInMemory() {
     nombre: "Charly García Sinfónico",
     descripcion: "Homenaje sinfónico inolvidable a la obra cumbre de Charly García en el histórico estadio Luna Park.",
     categoria: catRecitales,
-    fecha: fechaFutura15d,
+    fecha: fechaCharly,
     organizador: organizadorDeportes,
     multimedia: [
       "https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
@@ -179,7 +183,7 @@ export async function inicializarSeedInMemory() {
     nombre: "Cosquín Rock 2027",
     descripcion: "El festival de rock más grande del país con más de 100 bandas en escena en el Aeródromo de Santa María de Punilla.",
     categoria: catFestivales,
-    fecha: fechaFutura30d,
+    fecha: fechaCosquin,
     organizador: organizadorRock,
     multimedia: [
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745",
@@ -213,7 +217,7 @@ export async function inicializarSeedInMemory() {
     nombre: "Toc Toc en Calle Corrientes",
     descripcion: "La comedia más exitosa de la cartelera teatral argentina sobre seis personajes con trastornos obsesivos compulsivos.",
     categoria: catTeatro,
-    fecha: fechaFutura45d,
+    fecha: fechaTeatro,
     organizador: organizadorTeatro,
     multimedia: [
       "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf",
@@ -243,7 +247,7 @@ export async function inicializarSeedInMemory() {
     nombre: "Superclásico de Verano",
     descripcion: "El apasionante clásico del fútbol argentino en una noche única con ambas parcialidades.",
     categoria: catDeportes,
-    fecha: fechaFutura60d,
+    fecha: fechaSuperclasico,
     organizador: organizadorDeportes,
     multimedia: [
       "https://images.unsplash.com/photo-1508098682722-e99c43a406b2",
@@ -273,7 +277,7 @@ export async function inicializarSeedInMemory() {
     nombre: "Argentina Tech Summit 2027",
     descripcion: "El congreso de tecnología e inteligencia artificial más destacado de la región con speakers internacionales.",
     categoria: catConferencias,
-    fecha: fechaFutura90d,
+    fecha: fechaTechSummit,
     organizador: organizadorRock,
     multimedia: [
       "https://images.unsplash.com/photo-1540575467063-178a50c2df87",
@@ -303,7 +307,7 @@ export async function inicializarSeedInMemory() {
     nombre: "Lollapalooza Argentina 2027",
     descripcion: "Tres días de música internacional, arte y gastronomía en el Hipódromo de San Isidro.",
     categoria: catFestivales,
-    fecha: fechaFutura120d,
+    fecha: fechaLollapalooza,
     organizador: organizadorDeportes,
     multimedia: [
       "https://images.unsplash.com/photo-1459749411175-04bf5292ceea",
@@ -327,13 +331,13 @@ export async function inicializarSeedInMemory() {
     ],
   });
 
-  // 7. Recitales (pasado -5d) para probar cancelación bloqueada y reseñas
+  // 7. Recitales (pasado) para probar cancelación bloqueada y reseñas
   const eventoPasado = await eventoRepository.save({
     id: "evt_divididos",
     nombre: "Divididos en vivo",
     descripcion: "La aplanadora del rock festejó sus 35 años de trayectoria con un show demoledor.",
     categoria: catRecitales,
-    fecha: fechaPasada5d,
+    fecha: fechaDivididosPasado,
     organizador: organizadorRock,
     multimedia: ["https://images.unsplash.com/photo-1465847899084-d164df4dedc6"],
     tiposEntrada: [
@@ -369,7 +373,7 @@ export async function inicializarSeedInMemory() {
     compraId: "cmp_confirmada_1",
     autorId: comprador1.id,
     texto: "¡Hola! ¿A qué hora abren las puertas?",
-    fecha: new Date(ahora - 1000 * 60 * 60 * 2).toISOString(),
+    fecha: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
   });
 
   await mensajeRepository.save({
@@ -377,7 +381,7 @@ export async function inicializarSeedInMemory() {
     compraId: "cmp_confirmada_1",
     autorId: organizadorRock.id,
     texto: "Buenas tardes Lucas, abren a las 16:00 hs puntual.",
-    fecha: new Date(ahora - 1000 * 60 * 45).toISOString(),
+    fecha: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
   });
 
   // Compra 2: PENDIENTE (Comprador 2 en Teatro)
@@ -445,7 +449,7 @@ export async function inicializarSeedInMemory() {
     compraId: compraConfirmada.id,
     estadoAnterior: "PENDIENTE",
     estadoNuevo: "CONFIRMADA",
-    fecha: new Date(ahora - 1000 * 60 * 60 * 2.5).toISOString(),
+    fecha: fechaPagoConfirmado,
     motivo: "Pago confirmado exitosamente",
   });
 
@@ -453,7 +457,7 @@ export async function inicializarSeedInMemory() {
     compraId: compraUtilizada1.id,
     estadoAnterior: "CONFIRMADA",
     estadoNuevo: "UTILIZADA",
-    fecha: fechaPasada5d,
+    fecha: fechaIngresoDivididos,
     motivo: "Entrada utilizada en el evento",
   });
 
@@ -461,7 +465,7 @@ export async function inicializarSeedInMemory() {
     compraId: compraUtilizada2.id,
     estadoAnterior: "CONFIRMADA",
     estadoNuevo: "UTILIZADA",
-    fecha: fechaPasada5d,
+    fecha: fechaIngresoDivididos,
     motivo: "Entrada utilizada en el evento",
   });
 
@@ -472,7 +476,7 @@ export async function inicializarSeedInMemory() {
     compraId: "cmp_utilizada_1",
     puntaje: 5,
     comentario: "¡Increíble show y excelente organización del acceso!",
-    fecha: new Date(ahora - diaMs * 4).toISOString(),
+    fecha: fechaResena1,
   });
 
   // Reseña 2: puntaje 3 (Comprador 2) -> promedio Productora Rock = (5 + 3)/2 = 4.0
@@ -481,7 +485,7 @@ export async function inicializarSeedInMemory() {
     compraId: "cmp_utilizada_2",
     puntaje: 3,
     comentario: "El sonido en el campo trasero estuvo regular, pero buena onda.",
-    fecha: new Date(ahora - diaMs * 3).toISOString(),
+    fecha: fechaResena2,
   });
 
   // Compras y reseñas para el evento Charly García (Asociación Deportes y Espectáculos)
@@ -518,7 +522,7 @@ export async function inicializarSeedInMemory() {
     compraId: "cmp_utilizada_charly_1",
     puntaje: 5,
     comentario: "¡La orquesta en vivo fue emocionante! Un homenaje a la altura de Charly.",
-    fecha: new Date(ahora - diaMs * 2).toISOString(),
+    fecha: fechaResena3,
   });
 
   await resenaRepository.save({
@@ -526,7 +530,7 @@ export async function inicializarSeedInMemory() {
     compraId: "cmp_utilizada_charly_2",
     puntaje: 4,
     comentario: "Muy buena acústica en el Luna Park y el ingreso fue súper rápido.",
-    fecha: new Date(ahora - diaMs * 1).toISOString(),
+    fecha: fechaResena4,
   });
 
   console.log(" Seed en memoria cargado exitosamente:");

@@ -38,7 +38,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
 
     // Paso 3: Pagar la compra -> Pasa a CONFIRMADA -> Cupo se mantiene en 496
     const resPagar = await request(app)
-      .post(`/compras/${resCrear.body.id}/pagar`)
+      .post(`/compras/${resCrear.body.id}/pagos`)
       .set("x-user-id", "usr_comprador_1");
     expect(resPagar.status).toBe(200);
     expect(resPagar.body.estado).toBe("CONFIRMADA");
@@ -51,7 +51,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
 
     // Paso 4: Cancelar la compra -> Pasa a REEMBOLSADA -> Cupo vuelve a subir a 498
     const resCancelar = await request(app)
-      .post(`/compras/${resCrear.body.id}/cancelar`)
+      .post(`/compras/${resCrear.body.id}/cancelaciones`)
       .set("x-user-id", "usr_comprador_1");
     expect(resCancelar.status).toBe(200);
     expect(resCancelar.body.estado).toBe("REEMBOLSADA");
@@ -80,7 +80,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
     });
 
     const res = await request(app)
-      .post(`/compras/${compraPasada.id}/cancelar`)
+      .post(`/compras/${compraPasada.id}/cancelaciones`)
       .set("x-user-id", "usr_comprador_1");
 
     expect(res.status).toBe(409);
@@ -91,7 +91,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
     // Evento Cosquín Rock pertenece a 'usr_org_rock'
     // 'usr_org_teatro' es otro organizador ajeno al evento
     const res = await request(app)
-      .post("/compras/cmp_confirmada_1/utilizar")
+      .post("/compras/cmp_confirmada_1/usos")
       .set("x-user-id", "usr_org_teatro"); // Organizador ajeno
 
     expect(res.status).toBe(403);
@@ -102,7 +102,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
     // La compra 'cmp_confirmada_1' pertenece a 'usr_comprador_1' (Lucas)
     // 'usr_comprador_2' (Mariana) intenta cancelarla
     const res = await request(app)
-      .post("/compras/cmp_confirmada_1/cancelar")
+      .post("/compras/cmp_confirmada_1/cancelaciones")
       .set("x-user-id", "usr_comprador_2"); // Comprador ajeno
 
     expect(res.status).toBe(403);
@@ -112,7 +112,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
   test("5. Permiso de cancelación: un organizador intenta cancelar una compra y debe dar 403 Forbidden", async () => {
     // Los organizadores no pueden cancelar compras de los usuarios (caso de uso C10)
     const res = await request(app)
-      .post("/compras/cmp_confirmada_1/cancelar")
+      .post("/compras/cmp_confirmada_1/cancelaciones")
       .set("x-user-id", "usr_org_rock");
 
     expect(res.status).toBe(403);
@@ -122,12 +122,12 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
   test("6. Transición inválida: pagar sobre una compra cancelada debe dar 409 Conflict", async () => {
     // Cancelar la compra pendiente del seed 'cmp_pendiente_1'
     await request(app)
-      .post("/compras/cmp_pendiente_1/cancelar")
+      .post("/compras/cmp_pendiente_1/cancelaciones")
       .set("x-user-id", "usr_comprador_2");
 
     // Intentar pagar sobre la compra ya CANCELADA
     const res = await request(app)
-      .post("/compras/cmp_pendiente_1/pagar")
+      .post("/compras/cmp_pendiente_1/pagos")
       .set("x-user-id", "usr_comprador_2");
 
     expect(res.status).toBe(409);
@@ -137,14 +137,14 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
   test("7. Transición inválida: utilizar dos veces debe dar 409 Conflict", async () => {
     // 1er uso: exitoso
     const res1 = await request(app)
-      .post("/compras/cmp_confirmada_1/utilizar")
+      .post("/compras/cmp_confirmada_1/usos")
       .set("x-user-id", "usr_org_rock");
     expect(res1.status).toBe(200);
     expect(res1.body.estado).toBe("UTILIZADA");
 
     // 2do uso: falla con 409
     const res2 = await request(app)
-      .post("/compras/cmp_confirmada_1/utilizar")
+      .post("/compras/cmp_confirmada_1/usos")
       .set("x-user-id", "usr_org_rock");
     expect(res2.status).toBe(409);
     expect(res2.body.message).toMatch(/ya ha sido utilizada previamente/i);
@@ -153,7 +153,7 @@ describe("Ciclo de Vida de la Compra y Máquina de Estados (Jest + Supertest)", 
   test("8. Bloqueo S8: cancelar sobre una entrada ya utilizada debe dar 409 Conflict", async () => {
     // 'cmp_utilizada_1' está en estado UTILIZADA
     const res = await request(app)
-      .post("/compras/cmp_utilizada_1/cancelar")
+      .post("/compras/cmp_utilizada_1/cancelaciones")
       .set("x-user-id", "usr_comprador_1");
 
     expect(res.status).toBe(409);

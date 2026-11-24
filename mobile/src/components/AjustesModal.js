@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -17,10 +17,13 @@ import { HardShadow } from './HardShadow.js';
 import { PopButton } from './PopButton.js';
 import { PopInput } from './PopInput.js';
 import { ErrorBanner } from './ErrorBanner.js';
+import { ConfirmModal } from './ConfirmModal.js';
 import { FotoPerfilPicker } from './FotoPerfilPicker.js';
 
 export function AjustesModal({ visible, onClose }) {
   const { usuario, actualizarUsuario } = useAuth();
+  const scrollViewRef = useRef(null);
+  const fieldPositions = useRef({});
 
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
@@ -42,8 +45,36 @@ export function AjustesModal({ visible, onClose }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [exitoMsg, setExitoMsg] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const isComprador = usuario?.rol === 'COMPRADOR';
+
+  const isDirty = Boolean(
+    (nombre.trim() !== (usuario?.nombre || '')) ||
+    (apellido.trim() !== (usuario?.apellido || '')) ||
+    (fotoPerfil !== (usuario?.fotoPerfil || null)) ||
+    (deseaCambiarEmail && (nuevoEmail.trim() || passwordEmail)) ||
+    (deseaCambiarPassword && (passwordActual || passwordNueva || confirmPasswordNueva))
+  );
+
+  const handleRequestClose = () => {
+    if (isDirty) {
+      setShowExitModal(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const limpiarErrorCampo = (campo) => {
+    setFieldErrors((prev) => {
+      if (!prev[campo]) return prev;
+      const copy = { ...prev };
+      delete copy[campo];
+      return copy;
+    });
+    if (errorMsg) setErrorMsg(null);
+  };
 
   // Sincronizar estado inicial al abrir modal
   useEffect(() => {
@@ -61,6 +92,8 @@ export function AjustesModal({ visible, onClose }) {
       setConfirmPasswordNueva('');
       setErrorMsg(null);
       setExitoMsg(null);
+      setFieldErrors({});
+      setShowExitModal(false);
       setLoading(false);
     }
   }, [visible, usuario]);
@@ -69,17 +102,55 @@ export function AjustesModal({ visible, onClose }) {
     if (loading) return;
     setErrorMsg(null);
     setExitoMsg(null);
+    setFieldErrors({});
 
     const nom = nombre.trim();
     const ape = apellido.trim();
+    const errores = {};
 
     if (!nom) {
-      setErrorMsg(isComprador ? 'Ingresá tu nombre.' : 'Ingresá el nombre del organizador o productora.');
-      return;
+      errores.nombre = isComprador ? 'Ingresá tu nombre.' : 'Ingresá el nombre del organizador o productora.';
     }
 
     if (isComprador && !ape) {
-      setErrorMsg('El apellido es obligatorio para compradores.');
+      errores.apellido = 'El apellido es obligatorio para compradores.';
+    }
+
+    if (deseaCambiarEmail && nuevoEmail.trim()) {
+      const emailTrim = nuevoEmail.trim().toLowerCase();
+      if (!emailTrim.includes('@')) {
+        errores.nuevoEmail = 'El formato del nuevo email es inválido.';
+      }
+      if (!passwordEmail) {
+        errores.passwordEmail = 'Ingresá tu contraseña actual para confirmar.';
+      }
+    }
+
+    if (deseaCambiarPassword || passwordNueva) {
+      if (!passwordActual) {
+        errores.passwordActual = 'Ingresá tu contraseña actual para confirmar.';
+      }
+      if (!passwordNueva) {
+        errores.passwordNueva = 'Ingresá tu nueva contraseña.';
+      } else if (passwordNueva.length < 8) {
+        errores.passwordNueva = 'La nueva contraseña debe tener al menos 8 caracteres.';
+      }
+      if (passwordNueva !== confirmPasswordNueva) {
+        errores.confirmPasswordNueva = 'Las contraseñas nuevas no coinciden.';
+      }
+    }
+
+    if (Object.keys(errores).length > 0) {
+      setFieldErrors(errores);
+      const ordenCampos = ['nombre', 'apellido', 'nuevoEmail', 'passwordEmail', 'passwordActual', 'passwordNueva', 'confirmPasswordNueva'];
+      const primerError = ordenCampos.find((campo) => errores[campo]);
+      if (primerError) {
+        setErrorMsg(errores[primerError]);
+        const yPos = fieldPositions.current[primerError];
+        if (typeof yPos === 'number' && scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: Math.max(0, yPos - 20), animated: true });
+        }
+      }
       return;
     }
 
@@ -90,36 +161,11 @@ export function AjustesModal({ visible, onClose }) {
     };
 
     if (deseaCambiarEmail && nuevoEmail.trim()) {
-      const emailTrim = nuevoEmail.trim().toLowerCase();
-      if (!emailTrim.includes('@')) {
-        setErrorMsg('El formato del nuevo email es inválido.');
-        return;
-      }
-      if (!passwordEmail) {
-        setErrorMsg('Ingresá tu contraseña actual para confirmar el cambio de email.');
-        return;
-      }
-      payload.email = emailTrim;
+      payload.email = nuevoEmail.trim().toLowerCase();
       payload.passwordActual = passwordEmail;
     }
 
-    if (deseaCambiarPassword || passwordNueva) {
-      if (!passwordActual) {
-        setErrorMsg('Ingresá tu contraseña actual para confirmar el cambio de contraseña.');
-        return;
-      }
-      if (!passwordNueva) {
-        setErrorMsg('Ingresá tu nueva contraseña.');
-        return;
-      }
-      if (passwordNueva.length < 8) {
-        setErrorMsg('La nueva contraseña debe tener al menos 8 caracteres.');
-        return;
-      }
-      if (passwordNueva !== confirmPasswordNueva) {
-        setErrorMsg('Las contraseñas nuevas no coinciden.');
-        return;
-      }
+    if (deseaCambiarPassword && passwordNueva) {
       payload.passwordActual = passwordActual;
       payload.passwordNueva = passwordNueva;
     }
@@ -144,7 +190,7 @@ export function AjustesModal({ visible, onClose }) {
       visible={visible}
       animationType="slide"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={handleRequestClose}
     >
       <View style={styles.modalOverlay}>
         <KeyboardAvoidingView
@@ -158,12 +204,13 @@ export function AjustesModal({ visible, onClose }) {
                 <View style={styles.titleBadge}>
                   <Text style={styles.titleBadgeText}>AJUSTES DE PERFIL</Text>
                 </View>
-                <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={10}>
+                <Pressable onPress={handleRequestClose} style={styles.closeBtn} hitSlop={10}>
                   <Text style={styles.closeBtnText}>✕</Text>
                 </Pressable>
               </View>
 
               <ScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
@@ -193,9 +240,13 @@ export function AjustesModal({ visible, onClose }) {
                 <PopInput
                   label={isComprador ? 'NOMBRE *' : 'NOMBRE DEL ORGANIZADOR *'}
                   value={nombre}
+                  error={fieldErrors.nombre}
+                  onLayout={(e) => {
+                    fieldPositions.current.nombre = e.nativeEvent.layout.y;
+                  }}
                   onChangeText={(val) => {
                     setNombre(val);
-                    if (errorMsg) setErrorMsg(null);
+                    limpiarErrorCampo('nombre');
                   }}
                   autoCapitalize="words"
                 />
@@ -205,9 +256,13 @@ export function AjustesModal({ visible, onClose }) {
                   <PopInput
                     label="APELLIDO *"
                     value={apellido}
+                    error={fieldErrors.apellido}
+                    onLayout={(e) => {
+                      fieldPositions.current.apellido = e.nativeEvent.layout.y;
+                    }}
                     onChangeText={(val) => {
                       setApellido(val);
-                      if (errorMsg) setErrorMsg(null);
+                      limpiarErrorCampo('apellido');
                     }}
                     autoCapitalize="words"
                   />
@@ -235,9 +290,13 @@ export function AjustesModal({ visible, onClose }) {
                         <PopInput
                           label="NUEVO EMAIL *"
                           value={nuevoEmail}
+                          error={fieldErrors.nuevoEmail}
+                          onLayout={(e) => {
+                            fieldPositions.current.nuevoEmail = e.nativeEvent.layout.y;
+                          }}
                           onChangeText={(val) => {
                             setNuevoEmail(val);
-                            if (errorMsg) setErrorMsg(null);
+                            limpiarErrorCampo('nuevoEmail');
                           }}
                           placeholder="ej: nuevo@ejemplo.com"
                           keyboardType="email-address"
@@ -247,9 +306,13 @@ export function AjustesModal({ visible, onClose }) {
                         <PopInput
                           label="CONTRASEÑA ACTUAL PARA CONFIRMAR *"
                           value={passwordEmail}
+                          error={fieldErrors.passwordEmail}
+                          onLayout={(e) => {
+                            fieldPositions.current.passwordEmail = e.nativeEvent.layout.y;
+                          }}
                           onChangeText={(val) => {
                             setPasswordEmail(val);
-                            if (errorMsg) setErrorMsg(null);
+                            limpiarErrorCampo('passwordEmail');
                           }}
                           placeholder="Ingresá tu contraseña"
                           secureTextEntry={!showPasswordEmail}
@@ -285,7 +348,14 @@ export function AjustesModal({ visible, onClose }) {
                       <PopInput
                         label="CONTRASEÑA ACTUAL *"
                         value={passwordActual}
-                        onChangeText={setPasswordActual}
+                        error={fieldErrors.passwordActual}
+                        onLayout={(e) => {
+                          fieldPositions.current.passwordActual = e.nativeEvent.layout.y;
+                        }}
+                        onChangeText={(val) => {
+                          setPasswordActual(val);
+                          limpiarErrorCampo('passwordActual');
+                        }}
                         placeholder="Tu contraseña de hoy"
                         secureTextEntry={!showPasswords}
                         autoCapitalize="none"
@@ -294,7 +364,14 @@ export function AjustesModal({ visible, onClose }) {
                       <PopInput
                         label="NUEVA CONTRASEÑA *"
                         value={passwordNueva}
-                        onChangeText={setPasswordNueva}
+                        error={fieldErrors.passwordNueva}
+                        onLayout={(e) => {
+                          fieldPositions.current.passwordNueva = e.nativeEvent.layout.y;
+                        }}
+                        onChangeText={(val) => {
+                          setPasswordNueva(val);
+                          limpiarErrorCampo('passwordNueva');
+                        }}
                         placeholder="Mínimo 8 car., 1 letra, 1 número"
                         secureTextEntry={!showPasswords}
                         autoCapitalize="none"
@@ -303,7 +380,14 @@ export function AjustesModal({ visible, onClose }) {
                       <PopInput
                         label="CONFIRMAR NUEVA CONTRASEÑA *"
                         value={confirmPasswordNueva}
-                        onChangeText={setConfirmPasswordNueva}
+                        error={fieldErrors.confirmPasswordNueva}
+                        onLayout={(e) => {
+                          fieldPositions.current.confirmPasswordNueva = e.nativeEvent.layout.y;
+                        }}
+                        onChangeText={(val) => {
+                          setConfirmPasswordNueva(val);
+                          limpiarErrorCampo('confirmPasswordNueva');
+                        }}
                         placeholder="Repetí tu nueva contraseña"
                         secureTextEntry={!showPasswords}
                         autoCapitalize="none"
@@ -336,6 +420,21 @@ export function AjustesModal({ visible, onClose }) {
           </HardShadow>
         </KeyboardAvoidingView>
       </View>
+
+      {/* Modal de confirmación para descartar cambios en el perfil */}
+      <ConfirmModal
+        visible={showExitModal}
+        title="¿DESCARTAR CAMBIOS?"
+        message="Tenés modificaciones en tu perfil sin guardar. Si salís ahora perderás los cambios."
+        confirmText="SÍ, DESCARTAR"
+        cancelText="SEGUIR EDITANDO"
+        variant="danger"
+        onConfirm={() => {
+          setShowExitModal(false);
+          onClose();
+        }}
+        onCancel={() => setShowExitModal(false)}
+      />
     </Modal>
   );
 }

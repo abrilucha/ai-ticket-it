@@ -22,7 +22,7 @@ async function runCheckpoint() {
   console.log(`[COMPRADOR] Compra creada: ${compraId} | Estado: ${compraRes.body.estado}`);
 
   const pagarRes = await request(app)
-    .post(`/compras/${compraId}/pagar`)
+    .post(`/compras/${compraId}/pagos`)
     .set("x-user-id", comprador);
   console.log(`[COMPRADOR] Compra pagada | Estado actual: ${pagarRes.body.estado}`);
 
@@ -61,7 +61,7 @@ async function runCheckpoint() {
   // 2. Cancelar la compra (queda REEMBOLSADA) y seguir enviando y leyendo
   console.log("\n--- PASO 2: Cancelar compra (pasa a REEMBOLSADA) y seguir usando el chat ---");
   const cancelRes = await request(app)
-    .post(`/compras/${compraId}/cancelar`)
+    .post(`/compras/${compraId}/cancelaciones`)
     .set("x-user-id", comprador);
   console.log(`[COMPRADOR] Cancelación solicitada | Nuevo estado: ${cancelRes.body.estado} | Monto reembolsado: $${cancelRes.body.montoReembolsado}`);
 
@@ -84,7 +84,7 @@ async function runCheckpoint() {
     .post("/compras")
     .set("x-user-id", comprador)
     .send({ eventoId: "evt_cosquin", tipoEntradaId: "tipo_rock_1", cantidad: 1 });
-  await request(app).post(`/compras/${cPendiente.body.id}/cancelar`).set("x-user-id", comprador);
+  await request(app).post(`/compras/${cPendiente.body.id}/cancelaciones`).set("x-user-id", comprador);
   const mCancelada = await request(app)
     .post(`/compras/${cPendiente.body.id}/mensajes`)
     .set("x-user-id", comprador)

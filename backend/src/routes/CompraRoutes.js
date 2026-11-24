@@ -27,13 +27,13 @@ router.route("/")
 router.route("/:id")
   .get((req, res, next) => compraController.obtenerPorId(req, res, next));
 
-router.route("/:id/pagar")
+router.route("/:id/pagos")
   .post(requireRole("COMPRADOR"), (req, res, next) => compraController.pagar(req, res, next));
 
-router.route("/:id/utilizar")
+router.route("/:id/usos")
   .post(requireRole("ORGANIZADOR"), (req, res, next) => compraController.utilizar(req, res, next));
 
-router.route("/:id/cancelar")
+router.route("/:id/cancelaciones")
   .post((req, res, next) => compraController.cancelar(req, res, next));
 
 router.route("/:id/mensajes")

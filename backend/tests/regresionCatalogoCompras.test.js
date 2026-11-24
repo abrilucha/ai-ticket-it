@@ -17,7 +17,7 @@ describe("BLOQUE A: Regresión de Autenticación, Catálogo y Compras (Jest + Su
     const rutasSinAuth = [
       { method: "get", path: "/compras/mias" },
       { method: "post", path: "/compras", body: { eventoId: "evt_cosquin", tipoEntradaId: "tipo_rock_1", cantidad: 1 } },
-      { method: "post", path: "/compras/cmp_confirmada_1/cancelar" },
+      { method: "post", path: "/compras/cmp_confirmada_1/cancelaciones" },
       { method: "post", path: "/eventos", body: { nombre: "Test" } },
       { method: "get", path: "/eventos/mios" },
       { method: "get", path: "/eventos" },

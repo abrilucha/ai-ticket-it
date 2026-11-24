@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   AppState,
+  BackHandler,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Colors } from '../theme/colors.js';
@@ -23,6 +24,7 @@ import { StateBadge } from '../components/StateBadge.js';
 import { LoadingView } from '../components/LoadingView.js';
 import { ErrorBanner } from '../components/ErrorBanner.js';
 import { EmptyState } from '../components/EmptyState.js';
+import { ConfirmModal } from '../components/ConfirmModal.js';
 
 export function ChatCompraScreen({ route, navigation }) {
   const { compraId, compra: compraInicial } = route.params || {};
@@ -50,9 +52,32 @@ export function ChatCompraScreen({ route, navigation }) {
 
   const [texto, setTexto] = useState('');
   const [localError, setLocalError] = useState(null);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const flatListRef = useRef(null);
   const inFlightRef = useRef(false);
+
+  const isDirty = texto.trim().length > 0;
+
+  const handleRequestVolver = useCallback(() => {
+    if (isDirty) {
+      setShowExitModal(true);
+    } else {
+      navigation.goBack();
+    }
+  }, [isDirty, navigation]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (isDirty) {
+        setShowExitModal(true);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [isDirty]);
 
   // Determinar roles e interlocutor
   const esOrganizador = usuario?.rol === 'ORGANIZADOR';
@@ -156,7 +181,7 @@ export function ChatCompraScreen({ route, navigation }) {
       <View style={styles.topBar}>
         <HardShadow offset={2} borderRadius={8}>
           <Pressable
-            onPress={() => navigation.goBack()}
+            onPress={handleRequestVolver}
             style={styles.backButton}
             hitSlop={10}
           >
@@ -331,11 +356,18 @@ export function ChatCompraScreen({ route, navigation }) {
             </Text>
           )}
 
+          {localError && (
+            <Text style={styles.errorTextPrompt}>⚠ {localError}</Text>
+          )}
+
           <View style={styles.inputRow}>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, localError && styles.textInputPink]}
               value={texto}
-              onChangeText={setTexto}
+              onChangeText={(val) => {
+                setTexto(val);
+                if (localError) setLocalError(null);
+              }}
               placeholder="Escribí un mensaje..."
               placeholderTextColor={Colors.outline}
               multiline
@@ -361,6 +393,21 @@ export function ChatCompraScreen({ route, navigation }) {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Modal de confirmación para descartar mensaje sin enviar */}
+      <ConfirmModal
+        visible={showExitModal}
+        title="¿DESCARTAR MENSAJE?"
+        message="Tenés un mensaje escrito sin enviar. Si salís ahora perderás el texto ingresado."
+        confirmText="SÍ, SALIR"
+        cancelText="SEGUIR ESCRIBIENDO"
+        variant="danger"
+        onConfirm={() => {
+          setShowExitModal(false);
+          navigation.goBack();
+        }}
+        onCancel={() => setShowExitModal(false)}
+      />
     </Screen>
   );
 }
@@ -581,6 +628,16 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     ...Typography.bodyMd,
     color: Colors.inkBlack,
+  },
+  textInputPink: {
+    backgroundColor: '#FFE4E6',
+    borderColor: '#F43F5E',
+  },
+  errorTextPrompt: {
+    ...Typography.labelSm,
+    color: '#E11D48',
+    fontWeight: '700',
+    marginBottom: 4,
   },
   sendButtonShadow: {},
   sendButton: {

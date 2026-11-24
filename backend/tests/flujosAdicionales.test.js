@@ -13,7 +13,7 @@ describe("Flujos Adicionales y Robustez Técnica - AI Ticket It", () => {
 
   test("Pagar compra: pasa de PENDIENTE a CONFIRMADA y activa diasRestantes", async () => {
     const resPagar = await request(app)
-      .post("/compras/cmp_pendiente_1/pagar")
+      .post("/compras/cmp_pendiente_1/pagos")
       .set("x-user-id", COMPRADOR_2);
 
     expect(resPagar.status).toBe(200);
@@ -42,7 +42,7 @@ describe("Flujos Adicionales y Robustez Técnica - AI Ticket It", () => {
     const cupoAntes = evTeatroAntes.body.tiposEntrada.find((t) => t.id === "tipo_teatro_1").cupoRestante;
 
     const res = await request(app)
-      .post("/compras/cmp_pendiente_1/cancelar")
+      .post("/compras/cmp_pendiente_1/cancelaciones")
       .set("x-user-id", COMPRADOR_2);
 
     expect(res.status).toBe(200);

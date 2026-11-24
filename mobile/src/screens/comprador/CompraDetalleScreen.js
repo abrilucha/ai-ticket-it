@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import {
   View,
   Text,
@@ -25,6 +26,7 @@ import { armarPayloadQR } from '../../utils/qr.js';
 import { Screen } from '../../components/Screen.js';
 import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
+import { PopInput } from '../../components/PopInput.js';
 import { StateBadge } from '../../components/StateBadge.js';
 import { StatusTimeline } from '../../components/StatusTimeline.js';
 import { RatingStars } from '../../components/RatingStars.js';
@@ -57,7 +59,19 @@ export function CompraDetalleScreen({ route, navigation }) {
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [utilizarModalVisible, setUtilizarModalVisible] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [copiado, setCopiado] = useState(false);
   const [accionError, setAccionError] = useState(null);
+
+  const handleCopiarId = useCallback(async () => {
+    if (!compra?.id) return;
+    try {
+      await Clipboard.setStringAsync(compra.id);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // Ignora error
+    }
+  }, [compra?.id]);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -68,10 +82,20 @@ export function CompraDetalleScreen({ route, navigation }) {
 
   // Estados de reseña
   const [resenaModalVisible, setResenaModalVisible] = useState(false);
+  const [descartarResenaModalVisible, setDescartarResenaModalVisible] = useState(false);
   const [resenaPuntaje, setResenaPuntaje] = useState(5);
   const [resenaComentario, setResenaComentario] = useState('');
   const [enviandoResena, setEnviandoResena] = useState(false);
   const [resenaError, setResenaError] = useState(null);
+
+  const handleRequestCerrarResena = () => {
+    if (resenaComentario.trim().length > 0) {
+      setDescartarResenaModalVisible(true);
+    } else {
+      setResenaModalVisible(false);
+      setResenaError(null);
+    }
+  };
 
   // Hook para utilización por parte del organizador
   const { loading: utilizando, marcarUtilizada } = useUtilizarCompra();
@@ -392,6 +416,28 @@ export function CompraDetalleScreen({ route, navigation }) {
                       </View>
                     </HardShadow>
 
+                    {/* ID de la entrada únicamente debajo del QR con botón copiar */}
+                    <View style={styles.idBoxContainer}>
+                      <View style={styles.idTextWrapper}>
+                        <Text style={styles.idBadgeLabel}>ID DE ENTRADA:</Text>
+                        <Text style={styles.idBadgeValue} selectable numberOfLines={1} adjustsFontSizeToFit>
+                          {compra.id}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={handleCopiarId}
+                        style={({ pressed }) => [
+                          styles.copyBtn,
+                          copiado && styles.copyBtnSuccess,
+                          pressed && styles.copyBtnPressed,
+                        ]}
+                      >
+                        <Text style={[styles.copyBtnText, copiado && styles.copyBtnTextSuccess]}>
+                          {copiado ? '✓ COPIADO' : '📋 COPIAR'}
+                        </Text>
+                      </Pressable>
+                    </View>
+
                     <PopButton
                       title="🔍 VER QR GRANDE"
                       variant="secondary"
@@ -640,7 +686,7 @@ export function CompraDetalleScreen({ route, navigation }) {
         visible={resenaModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => !enviandoResena && setResenaModalVisible(false)}
+        onRequestClose={() => !enviandoResena && handleRequestCerrarResena()}
       >
         <KeyboardAvoidingView
           style={styles.modalBackdrop}
@@ -669,7 +715,7 @@ export function CompraDetalleScreen({ route, navigation }) {
               />
 
               <View style={styles.comentarioHeaderRow}>
-                <Text style={styles.inputSectionLabel}>TU OPINIÓN</Text>
+                <Text style={styles.inputSectionLabel}>TU OPINIÓN *</Text>
                 <Text
                   style={[
                     styles.commentCounter,
@@ -680,15 +726,18 @@ export function CompraDetalleScreen({ route, navigation }) {
                 </Text>
               </View>
 
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Contanos qué te pareció la organización, la puntualidad, el sonido..."
-                placeholderTextColor={Colors.outline}
+              <PopInput
                 value={resenaComentario}
-                onChangeText={setResenaComentario}
+                onChangeText={(text) => {
+                  setResenaComentario(text);
+                  if (resenaError) setResenaError(null);
+                }}
+                error={resenaError}
+                placeholder="Contanos qué te pareció la organización, la puntualidad, el sonido..."
                 multiline
+                numberOfLines={4}
                 maxLength={500}
-                editable={!enviandoResena}
+                inputStyle={styles.commentInput}
               />
 
               <View style={styles.reviewModalActions}>
@@ -706,7 +755,7 @@ export function CompraDetalleScreen({ route, navigation }) {
                   variant="secondary"
                   size="sm"
                   disabled={enviandoResena}
-                  onPress={() => setResenaModalVisible(false)}
+                  onPress={handleRequestCerrarResena}
                   style={styles.reviewModalBtn}
                 />
               </View>
@@ -714,6 +763,23 @@ export function CompraDetalleScreen({ route, navigation }) {
           </HardShadow>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Modal de confirmación para descartar reseña sin guardar */}
+      <ConfirmModal
+        visible={descartarResenaModalVisible}
+        title="¿DESCARTAR RESEÑA?"
+        message="Tenés una reseña escrita sin publicar. Si salís ahora perderás el comentario ingresado."
+        confirmText="SÍ, DESCARTAR"
+        cancelText="SEGUIR EDITANDO"
+        variant="danger"
+        onConfirm={() => {
+          setDescartarResenaModalVisible(false);
+          setResenaModalVisible(false);
+          setResenaComentario('');
+          setResenaError(null);
+        }}
+        onCancel={() => setDescartarResenaModalVisible(false)}
+      />
     </Screen>
   );
 }
@@ -935,6 +1001,59 @@ const styles = StyleSheet.create({
   },
   btnQrGrande: {
     marginTop: 4,
+  },
+  idBoxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 2,
+    borderColor: Colors.inkBlack,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginVertical: 10,
+    width: '100%',
+    maxWidth: 290,
+  },
+  idTextWrapper: {
+    flex: 1,
+    marginRight: 8,
+  },
+  idBadgeLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  idBadgeValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.inkBlack,
+    marginTop: 1,
+  },
+  copyBtn: {
+    backgroundColor: Colors.sunnyYellow,
+    borderWidth: 1.5,
+    borderColor: Colors.inkBlack,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  copyBtnSuccess: {
+    backgroundColor: '#10B981',
+    borderColor: Colors.inkBlack,
+  },
+  copyBtnPressed: {
+    transform: [{ translateY: 1 }],
+  },
+  copyBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.inkBlack,
+  },
+  copyBtnTextSuccess: {
+    color: Colors.white,
   },
   selloCardShadow: {
     width: '100%',

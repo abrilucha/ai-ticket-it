@@ -42,6 +42,7 @@ export function ValidarEntradaScreen({ navigation }) {
   // Modo activo: 'CAMARA' (por defecto) o 'MANUAL'
   const [modo, setModo] = useState('CAMARA');
   const [codigoInput, setCodigoInput] = useState('');
+  const [inputError, setInputError] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [qrInvalidoMsg, setQrInvalidoMsg] = useState(null);
   const [cameraError, setCameraError] = useState(null);
@@ -97,6 +98,11 @@ export function ValidarEntradaScreen({ navigation }) {
   };
 
   const handleBuscarManual = () => {
+    if (!codigoInput.trim()) {
+      setInputError('Ingresá un código o ID de compra.');
+      return;
+    }
+    setInputError(null);
     verificar(codigoInput);
   };
 
@@ -114,6 +120,7 @@ export function ValidarEntradaScreen({ navigation }) {
 
   const handleReset = () => {
     setCodigoInput('');
+    setInputError(null);
     setQrInvalidoMsg(null);
     reset();
     isScanningLocked.current = false;
@@ -280,7 +287,12 @@ export function ValidarEntradaScreen({ navigation }) {
                     label="CÓDIGO O ID DE COMPRA *"
                     placeholder="Ej: cmp_confirmada_1"
                     value={codigoInput}
-                    onChangeText={setCodigoInput}
+                    onChangeText={(val) => {
+                      setCodigoInput(val);
+                      if (inputError) setInputError(null);
+                      if (error) reset();
+                    }}
+                    error={inputError || (error && !compra ? error : null)}
                     autoCapitalize="none"
                   />
 
@@ -289,7 +301,7 @@ export function ValidarEntradaScreen({ navigation }) {
                     variant="primary"
                     size="md"
                     loading={loading}
-                    disabled={loading || !codigoInput.trim()}
+                    disabled={loading}
                     onPress={handleBuscarManual}
                     style={styles.buscarBtn}
                   />

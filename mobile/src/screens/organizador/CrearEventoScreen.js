@@ -50,12 +50,21 @@ export function CrearEventoScreen({ navigation }) {
   const unsavedChanges = useUnsavedChanges();
   const [pendingAction, setPendingAction] = useState(null);
   const salidaConfirmadaRef = useRef(false);
+  const scrollViewRef = useRef(null);
+  const fieldPositions = useRef({});
 
   // Estados de validación y publicación
   const [publicando, setPublicando] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [errores, setErrores] = useState({});
   const [descartarModalVisible, setDescartarModalVisible] = useState(false);
+
+  const scrollAlPrimerError = (campo) => {
+    const yPos = fieldPositions.current[campo];
+    if (typeof yPos === 'number' && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: Math.max(0, yPos - 20), animated: true });
+    }
+  };
 
   // Limpiar error específico de un campo al escribir
   const limpiarError = (campo) => {
@@ -279,24 +288,28 @@ export function CrearEventoScreen({ navigation }) {
       nuevosErrores.nombre = 'El nombre debe tener al menos 2 caracteres';
       setErrores(nuevosErrores);
       setApiError('El nombre del evento debe tener al menos 2 caracteres.');
+      scrollAlPrimerError('nombre');
       return;
     }
     if (!descripcion.trim() || descripcion.trim().length < 5) {
       nuevosErrores.descripcion = 'La descripción debe tener al menos 5 caracteres';
       setErrores(nuevosErrores);
       setApiError('La descripción del evento debe tener al menos 5 caracteres.');
+      scrollAlPrimerError('descripcion');
       return;
     }
     if (!categoriaNombre.trim()) {
       nuevosErrores.categoriaNombre = 'Ingresá el nombre';
       setErrores(nuevosErrores);
       setApiError('Debés ingresar el nombre de la categoría.');
+      scrollAlPrimerError('categoria');
       return;
     }
     if (!categoriaDescripcion.trim()) {
       nuevosErrores.categoriaDescripcion = 'Ingresá la descripción';
       setErrores(nuevosErrores);
       setApiError('Debés ingresar la descripción de la categoría.');
+      scrollAlPrimerError('categoria');
       return;
     }
     if (fechaError || !fechaParsed) {
@@ -304,20 +317,24 @@ export function CrearEventoScreen({ navigation }) {
       nuevosErrores.hora = 'Hora requerida';
       setErrores(nuevosErrores);
       setApiError(fechaError || 'Debés ingresar una fecha y hora válidas (DD/MM/AAAA y HH:MM).');
+      scrollAlPrimerError('fecha');
       return;
     }
     if (esFechaPasada) {
       nuevosErrores.fecha = 'Fecha pasada';
       setErrores(nuevosErrores);
       setApiError('La fecha del evento debe ser a futuro.');
+      scrollAlPrimerError('fecha');
       return;
     }
     if (tiposEntrada.length === 0) {
       setApiError('Debés incluir al menos un tipo de entrada.');
+      scrollAlPrimerError('tipos');
       return;
     }
     if (nombresDuplicados.size > 0) {
       setApiError('No puede haber tipos de entrada con nombres repetidos.');
+      scrollAlPrimerError('tipos');
       return;
     }
 
@@ -327,6 +344,7 @@ export function CrearEventoScreen({ navigation }) {
         nuevosErrores[`tipo_${i}_nombre`] = 'Obligatorio';
         setErrores(nuevosErrores);
         setApiError(`El nombre del tipo #${i + 1} es obligatorio.`);
+        scrollAlPrimerError('tipos');
         return;
       }
       const precioNum = Number(t.precio);
@@ -334,6 +352,7 @@ export function CrearEventoScreen({ navigation }) {
         nuevosErrores[`tipo_${i}_precio`] = 'Inválido';
         setErrores(nuevosErrores);
         setApiError(`El precio del tipo #${i + 1} debe ser mayor o igual a 0.`);
+        scrollAlPrimerError('tipos');
         return;
       }
       const cupoNum = Number(t.cupo);
@@ -341,6 +360,7 @@ export function CrearEventoScreen({ navigation }) {
         nuevosErrores[`tipo_${i}_cupo`] = 'Inválido';
         setErrores(nuevosErrores);
         setApiError(`El cupo del tipo #${i + 1} debe ser un entero mayor a 0.`);
+        scrollAlPrimerError('tipos');
         return;
       }
     }
@@ -403,6 +423,7 @@ export function CrearEventoScreen({ navigation }) {
         style={{ flex: 1 }}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -417,7 +438,13 @@ export function CrearEventoScreen({ navigation }) {
 
           {/* 1. Tarjeta de Datos Básicos del Evento */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
-            <View style={styles.sectionCard}>
+            <View
+              style={styles.sectionCard}
+              onLayout={(e) => {
+                fieldPositions.current.nombre = e.nativeEvent.layout.y;
+                fieldPositions.current.descripcion = e.nativeEvent.layout.y;
+              }}
+            >
               <Text style={styles.sectionHeading}>DATOS BÁSICOS DEL EVENTO</Text>
 
               <PopInput
@@ -450,7 +477,12 @@ export function CrearEventoScreen({ navigation }) {
 
           {/* 2. Tarjeta de Categoría (Entidad Categoria: nombre y descripción libres) */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
-            <View style={styles.sectionCard}>
+            <View
+              style={styles.sectionCard}
+              onLayout={(e) => {
+                fieldPositions.current.categoria = e.nativeEvent.layout.y;
+              }}
+            >
               <Text style={styles.sectionHeading}>CATEGORÍA DEL EVENTO</Text>
               <Text style={styles.sectionSub}>
                 Clase Categoría según el modelo UML (nombre y descripción libres).
@@ -486,7 +518,12 @@ export function CrearEventoScreen({ navigation }) {
 
           {/* 3. Tarjeta de Fecha y Hora con máscara automática */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
-            <View style={styles.sectionCard}>
+            <View
+              style={styles.sectionCard}
+              onLayout={(e) => {
+                fieldPositions.current.fecha = e.nativeEvent.layout.y;
+              }}
+            >
               <Text style={styles.sectionHeading}>FECHA Y HORA</Text>
 
               <View style={styles.dateTimeRow}>
@@ -585,7 +622,12 @@ export function CrearEventoScreen({ navigation }) {
 
           {/* 5. Tarjeta de Tipos de Entrada (sin límite de filas) */}
           <HardShadow offset={4} borderRadius={12} style={styles.sectionShadow}>
-            <View style={styles.sectionCard}>
+            <View
+              style={styles.sectionCard}
+              onLayout={(e) => {
+                fieldPositions.current.tipos = e.nativeEvent.layout.y;
+              }}
+            >
               <View style={styles.ticketsHeader}>
                 <Text style={styles.sectionHeading}>TIPOS DE ENTRADA</Text>
                 <Text style={styles.ticketsCountBadge}>

@@ -24,19 +24,21 @@ export function PopInput({
   rightComponent,
   style,
   inputStyle,
+  onLayout,
+  inputRef,
 }) {
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, style]} onLayout={onLayout}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View
         style={[
           styles.inputContainer,
-          isPink ? styles.inputContainerPink : null,
-          error ? styles.inputContainerError : null,
+          isPink || error ? styles.inputContainerPink : null,
           rightComponent ? styles.inputContainerWithRight : null,
         ]}
       >
         <TextInput
+          ref={inputRef}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -88,8 +90,8 @@ const styles = StyleSheet.create({
     borderColor: '#F43F5E',
   },
   inputContainerError: {
-    borderColor: Colors.error,
-    backgroundColor: Colors.errorContainer,
+    backgroundColor: '#FFE4E6',
+    borderColor: '#F43F5E',
   },
   input: {
     ...Typography.bodyLg,
@@ -98,7 +100,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...Typography.bodyMd,
-    color: Colors.error,
+    color: '#E11D48',
+    fontWeight: '700',
     marginTop: 4,
   },
 });

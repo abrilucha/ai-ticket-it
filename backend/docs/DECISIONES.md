@@ -20,10 +20,10 @@ Este documento registra los fundamentos y criterios técnicos aplicados en el di
 
 ---
 
-## 3. Máquina de Estados Centralizada (`MaquinaEstadoCompra`)
+## 3. Transiciones de Estados en `CompraService`
 
-- **Problema**: Dispersar validaciones de estado condicionales (`if (compra.estado === ...)`) en múltiples controladores o servicios genera inconsistencias y riesgo de transiciones ilegales.
-- **Decisión**: Toda la lógica del ciclo de vida de una compra se encuentra encapsulada en la clase de dominio `MaquinaEstadoCompra`.
+- **Problema**: Dispersar validaciones de estado condicionales (`if (compra.estado === ...)`) en múltiples controladores genera inconsistencias y riesgo de transiciones ilegales.
+- **Decisión**: Toda la lógica del ciclo de vida y control de estados de una compra se encuentra encapsulada directamente en `CompraService` (mediante `CompraService.transicionarEstado`), alineado a la arquitectura del sistema.
   - Estados soportados: `PENDIENTE`, `CONFIRMADA`, `UTILIZADA`, `CANCELADA`, `REEMBOLSADA`.
   - Acciones:
     - `PAGAR`: únicamente desde `PENDIENTE` $\rightarrow$ `CONFIRMADA`.
@@ -32,7 +32,7 @@ Este documento registra los fundamentos y criterios técnicos aplicados en el di
       - Desde `PENDIENTE` $\rightarrow$ `CANCELADA` (libera cupo).
       - Desde `CONFIRMADA` $\rightarrow$ `REEMBOLSADA` (libera cupo y registra reembolso).
       - Desde `UTILIZADA` $\rightarrow$ **Bloqueada** (lanza `ConflictError`).
-- **Beneficio**: Las reglas de transición son la única fuente de verdad y no pueden ser eludidas por ningún endpoint.
+- **Beneficio**: Las reglas de transición son la única fuente de verdad en el servicio y no pueden ser eludidas por ningún endpoint.
 
 ---
 
@@ -73,8 +73,8 @@ Este documento registra los fundamentos y criterios técnicos aplicados en el di
 | **CU4** Organizador crea un evento con varios tipos de entrada | `CU4: organizador crea un evento con varios tipos de entrada` | `POST /eventos` |
 | **CU5** Comprador envía mensajes en una compra | `CU5: comprador envía mensajes en una compra` | `POST /compras/:id/mensajes` |
 | **CU6** Organizador responde mensajes | `CU6: organizador responde mensajes` | `POST /compras/:id/mensajes`, `GET /compras/:id/mensajes` |
-| **CU7** Comprador cancela una compra y se registra el reembolso | `CU7: comprador cancela una compra y se registra el reembolso` | `POST /compras/:id/cancelar`, `GET /eventos/:id` |
-| **CU8** Cancelación permitida solo si la compra no está `UTILIZADA` y el evento no se realizó | `CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó` | `POST /compras/:id/cancelar` |
+| **CU7** Comprador cancela una compra y se registra el reembolso | `CU7: comprador cancela una compra y se registra el reembolso` | `POST /compras/:id/cancelaciones` (alias: `/cancelar`), `GET /eventos/:id` |
+| **CU8** Cancelación permitida solo si la compra no está `UTILIZADA` y el evento no se realizó | `CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó` | `POST /compras/:id/cancelaciones` (alias: `/cancelar`) |
 | **CU9** Comprador puntúa y comenta una vez utilizada la entrada | `CU9: comprador puntúa y comenta una vez utilizada la entrada` | `POST /compras/:id/resena` |
 | **CU10** Las reseñas de eventos anteriores se ven en los eventos de cada organizador | `CU10: las reseñas de eventos anteriores se ven en los eventos de cada organizador` | `GET /eventos/:id`, `GET /organizadores/:id` |
 | **CU11** Comprador ordena por precio, fecha y puntaje del organizador | `CU11: comprador ordena por precio, fecha y puntaje del organizador` | `GET /eventos?orden=...&direccion=...` |
@@ -143,8 +143,8 @@ Este documento registra los fundamentos y criterios técnicos aplicados en el di
 | **CU4** Organizador crea un evento con varios tipos de entrada | `CU4: organizador crea un evento con varios tipos de entrada` | `POST /eventos` |
 | **CU5** Comprador envía mensajes en una compra | `CU5: comprador envía mensajes en una compra` | `POST /compras/:id/mensajes` |
 | **CU6** Organizador responde mensajes | `CU6: organizador responde mensajes` | `POST /compras/:id/mensajes`, `GET /compras/:id/mensajes` |
-| **CU7** Comprador cancela una compra y se registra el reembolso | `CU7: comprador cancela una compra y se registra el reembolso` | `POST /compras/:id/cancelar`, `GET /eventos/:id` |
-| **CU8** Cancelación permitida solo si la compra no está `UTILIZADA` y el evento no se realizó | `CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó` | `POST /compras/:id/cancelar` |
+| **CU7** Comprador cancela una compra y se registra el reembolso | `CU7: comprador cancela una compra y se registra el reembolso` | `POST /compras/:id/cancelaciones` (alias: `/cancelar`), `GET /eventos/:id` |
+| **CU8** Cancelación permitida solo si la compra no está `UTILIZADA` y el evento no se realizó | `CU8: cancelación permitida solo si la compra no está UTILIZADA y el evento no se realizó` | `POST /compras/:id/cancelaciones` (alias: `/cancelar`) |
 | **CU9** Comprador puntúa y comenta una vez utilizada la entrada | `CU9: comprador puntúa y comenta una vez utilizada la entrada` | `POST /compras/:id/resena` |
 | **CU10** Las reseñas de eventos anteriores se ven en los eventos de cada organizador | `CU10: las reseñas de eventos anteriores se ven en los eventos de cada organizador` | `GET /eventos/:id`, `GET /organizadores/:id` |
 | **CU11** Comprador ordena por precio, fecha y puntaje del organizador | `CU11: comprador ordena por precio, fecha y puntaje del organizador` | `GET /eventos?orden=...&direccion=...` |

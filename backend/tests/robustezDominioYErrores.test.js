@@ -1,63 +1,63 @@
-import { MaquinaEstadoCompra } from "../src/domain/MaquinaEstadoCompra.js";
+import { CompraService } from "../src/services/CompraService.js";
 import { EstadoCompra } from "../src/domain/EstadoCompra.js";
 import { ConflictError } from "../src/errors/ConflictError.js";
 import { errorHandler } from "../src/middlewares/errorHandler.js";
 
-describe("Ramas de MaquinaEstadoCompra y Manejador de Errores 500", () => {
-  describe("MaquinaEstadoCompra - Transiciones inválidas y casos borde", () => {
+describe("Ramas de transiciones de CompraService y Manejador de Errores 500", () => {
+  describe("CompraService - Transiciones inválidas y casos borde", () => {
     test("Transiciones inválidas para acción PAGAR", () => {
       // Desde CONFIRMADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.CONFIRMADA, "PAGAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.CONFIRMADA, "PAGAR"))
         .toThrow(ConflictError);
       // Desde UTILIZADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.UTILIZADA, "PAGAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.UTILIZADA, "PAGAR"))
         .toThrow(ConflictError);
       // Desde CANCELADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.CANCELADA, "PAGAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.CANCELADA, "PAGAR"))
         .toThrow(ConflictError);
       // Desde REEMBOLSADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.REEMBOLSADA, "PAGAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.REEMBOLSADA, "PAGAR"))
         .toThrow(ConflictError);
       // Desde estado desconocido
-      expect(() => MaquinaEstadoCompra.transicionar("ESTADO_INEXISTENTE", "PAGAR"))
+      expect(() => CompraService.transicionarEstado("ESTADO_INEXISTENTE", "PAGAR"))
         .toThrow(ConflictError);
     });
 
     test("Transiciones inválidas para acción UTILIZAR", () => {
       // Desde UTILIZADA (doble uso)
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.UTILIZADA, "UTILIZAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.UTILIZADA, "UTILIZAR"))
         .toThrow(ConflictError);
       // Desde PENDIENTE
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.PENDIENTE, "UTILIZAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.PENDIENTE, "UTILIZAR"))
         .toThrow(ConflictError);
       // Desde CANCELADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.CANCELADA, "UTILIZAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.CANCELADA, "UTILIZAR"))
         .toThrow(ConflictError);
       // Desde REEMBOLSADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.REEMBOLSADA, "UTILIZAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.REEMBOLSADA, "UTILIZAR"))
         .toThrow(ConflictError);
       // Desde estado desconocido
-      expect(() => MaquinaEstadoCompra.transicionar("ESTADO_INEXISTENTE", "UTILIZAR"))
+      expect(() => CompraService.transicionarEstado("ESTADO_INEXISTENTE", "UTILIZAR"))
         .toThrow(ConflictError);
     });
 
     test("Transiciones inválidas para acción CANCELAR", () => {
       // Desde UTILIZADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.UTILIZADA, "CANCELAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.UTILIZADA, "CANCELAR"))
         .toThrow(ConflictError);
       // Desde CANCELADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.CANCELADA, "CANCELAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.CANCELADA, "CANCELAR"))
         .toThrow(ConflictError);
       // Desde REEMBOLSADA
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.REEMBOLSADA, "CANCELAR"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.REEMBOLSADA, "CANCELAR"))
         .toThrow(ConflictError);
       // Desde estado desconocido
-      expect(() => MaquinaEstadoCompra.transicionar("ESTADO_INEXISTENTE", "CANCELAR"))
+      expect(() => CompraService.transicionarEstado("ESTADO_INEXISTENTE", "CANCELAR"))
         .toThrow(ConflictError);
     });
 
     test("Acción desconocida en la máquina de estados", () => {
-      expect(() => MaquinaEstadoCompra.transicionar(EstadoCompra.PENDIENTE, "ACCION_INEXISTENTE"))
+      expect(() => CompraService.transicionarEstado(EstadoCompra.PENDIENTE, "ACCION_INEXISTENTE"))
         .toThrow(ConflictError);
     });
   });

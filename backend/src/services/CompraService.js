@@ -5,7 +5,6 @@ import { cambioEstadoCompraRepository } from "../repositories/CambioEstadoCompra
 import { resenaRepository } from "../repositories/ResenaRepository.js";
 import { EstadoCompra } from "../domain/EstadoCompra.js";
 import { Compra } from "../domain/Compra.js";
-import { MaquinaEstadoCompra } from "../domain/MaquinaEstadoCompra.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { ConflictError } from "../errors/ConflictError.js";
@@ -24,6 +23,70 @@ export class CompraService {
     this.usuarioRepository = usrRepo;
     this.cambioEstadoCompraRepository = histRepo;
     this.resenaRepository = resRepo;
+  }
+
+  static transicionarEstado(compraOEstado, accion) {
+    const estadoActual =
+      typeof compraOEstado === "object" && compraOEstado !== null
+        ? compraOEstado.estado
+        : compraOEstado;
+
+    let accionNormalizada = accion;
+    if (accion === EstadoCompra.CONFIRMADA) accionNormalizada = "PAGAR";
+    if (accion === EstadoCompra.UTILIZADA) accionNormalizada = "UTILIZAR";
+    if (accion === EstadoCompra.CANCELADA || accion === EstadoCompra.REEMBOLSADA) {
+      accionNormalizada = "CANCELAR";
+    }
+
+    switch (accionNormalizada) {
+      case "PAGAR":
+        if (estadoActual === EstadoCompra.CONFIRMADA) {
+          throw new ConflictError("La compra ya se encuentra confirmada y pagada");
+        }
+        if (estadoActual === EstadoCompra.UTILIZADA) {
+          throw new ConflictError("No se puede pagar una entrada que ya fue utilizada");
+        }
+        if (estadoActual === EstadoCompra.CANCELADA || estadoActual === EstadoCompra.REEMBOLSADA) {
+          throw new ConflictError(`No se puede pagar una compra en estado ${estadoActual}`);
+        }
+        if (estadoActual !== EstadoCompra.PENDIENTE) {
+          throw new ConflictError(`Transición inválida: no se puede pagar en estado ${estadoActual}`);
+        }
+        return EstadoCompra.CONFIRMADA;
+
+      case "UTILIZAR":
+        if (estadoActual === EstadoCompra.UTILIZADA) {
+          throw new ConflictError("La entrada ya ha sido utilizada previamente");
+        }
+        if (estadoActual === EstadoCompra.PENDIENTE) {
+          throw new ConflictError("No se puede utilizar una entrada con pago pendiente");
+        }
+        if (estadoActual === EstadoCompra.CANCELADA || estadoActual === EstadoCompra.REEMBOLSADA) {
+          throw new ConflictError(`No se puede utilizar una entrada ${estadoActual.toLowerCase()}`);
+        }
+        if (estadoActual !== EstadoCompra.CONFIRMADA) {
+          throw new ConflictError(`Transición inválida: no se puede utilizar en estado ${estadoActual}`);
+        }
+        return EstadoCompra.UTILIZADA;
+
+      case "CANCELAR":
+        if (estadoActual === EstadoCompra.UTILIZADA) {
+          throw new ConflictError("No se puede cancelar una compra cuya entrada ya fue utilizada");
+        }
+        if (estadoActual === EstadoCompra.CANCELADA || estadoActual === EstadoCompra.REEMBOLSADA) {
+          throw new ConflictError(`La compra ya se encuentra ${estadoActual.toLowerCase()}`);
+        }
+        if (estadoActual === EstadoCompra.CONFIRMADA) {
+          return EstadoCompra.REEMBOLSADA;
+        }
+        if (estadoActual === EstadoCompra.PENDIENTE) {
+          return EstadoCompra.CANCELADA;
+        }
+        throw new ConflictError(`Transición inválida: no se puede cancelar en estado ${estadoActual}`);
+
+      default:
+        throw new ConflictError(`Acción desconocida en la máquina de estados: ${accion}`);
+    }
   }
 
   calcularDiasRestantes(fechaEvento) {
@@ -224,8 +287,8 @@ export class CompraService {
 
     const estadoAnterior = compra.estado;
 
-    // Delegación estricta a la máquina de estados centralizada
-    const nuevoEstado = MaquinaEstadoCompra.transicionar(compra, "PAGAR");
+    // Validación y transición estricta de estados en la capa de servicio
+    const nuevoEstado = CompraService.transicionarEstado(compra, "PAGAR");
     compra.estado = nuevoEstado;
 
     const compraActualizada = await this.compraRepository.save(compra);
@@ -256,7 +319,7 @@ export class CompraService {
     }
 
     const estadoAnterior = compra.estado;
-    const nuevoEstado = MaquinaEstadoCompra.transicionar(compra, "UTILIZAR");
+    const nuevoEstado = CompraService.transicionarEstado(compra, "UTILIZAR");
     compra.estado = nuevoEstado;
 
     const compraActualizada = await this.compraRepository.save(compra);
@@ -312,7 +375,7 @@ export class CompraService {
         ? EstadoCompra.REEMBOLSADA
         : EstadoCompra.CANCELADA;
 
-    const nuevoEstado = MaquinaEstadoCompra.transicionar(compra, "CANCELAR");
+    const nuevoEstado = CompraService.transicionarEstado(compra, "CANCELAR");
     compra.estado = nuevoEstado;
     compra.fechaCancelacion = new Date().toISOString();
     compra.montoReembolsado = estadoDestino === EstadoCompra.REEMBOLSADA ? compra.total : 0;

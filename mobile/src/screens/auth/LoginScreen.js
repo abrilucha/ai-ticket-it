@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { HardShadow } from '../../components/HardShadow.js';
 import { PopButton } from '../../components/PopButton.js';
 import { PopInput } from '../../components/PopInput.js';
 import { ErrorBanner } from '../../components/ErrorBanner.js';
+import { ConfirmModal } from '../../components/ConfirmModal.js';
 import { setAndroidBottomBar } from '../../utils/systemBars.js';
 import { useFeedback } from '../../context/FeedbackContext.js';
 
@@ -28,6 +29,7 @@ const authBg = require('../../../assets/auth-bg.jpg');
 export function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const { showLoading, hideLoading, showSuccess } = useFeedback();
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
     setAndroidBottomBar('auth');
@@ -38,47 +40,69 @@ export function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [emailError, setEmailError] = useState(null);
+  const [passwordError, setPasswordError] = useState(null);
   const [emailPink, setEmailPink] = useState(false);
   const [passwordPink, setPasswordPink] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
 
-  // Volver siempre a la primerísima pantalla (Welcome), tanto por botón físico como en pantalla
+  const isDirty = email.trim().length > 0 || password.length > 0;
+
+  // Volver siempre a la primerísima pantalla (Welcome), con advertencia si hay cambios
   const handleGoWelcome = useCallback(() => {
     navigation.navigate('Welcome');
   }, [navigation]);
+
+  const handleRequestVolver = useCallback(() => {
+    if (isDirty) {
+      setShowExitModal(true);
+    } else {
+      handleGoWelcome();
+    }
+  }, [isDirty, handleGoWelcome]);
 
   useFocusEffect(
     useCallback(() => {
       setAndroidBottomBar('auth');
       const onBackPress = () => {
-        handleGoWelcome();
+        handleRequestVolver();
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [handleGoWelcome])
+    }, [handleRequestVolver])
   );
 
   const handleLogin = async () => {
     if (loading) return;
     setErrorMsg(null);
+    setEmailError(null);
+    setPasswordError(null);
 
     const emailTrim = email.trim();
     if (!emailTrim && !password) {
       setEmailPink(true);
       setPasswordPink(true);
+      setEmailError('El email es obligatorio');
+      setPasswordError('La contraseña es obligatoria');
       setErrorMsg('Por favor completá tu email y contraseña.');
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
 
     if (!emailTrim) {
       setEmailPink(true);
+      setEmailError('El email es obligatorio');
       setErrorMsg('Por favor completá tu email.');
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
 
     if (!password) {
       setPasswordPink(true);
+      setPasswordError('La contraseña es obligatoria');
       setErrorMsg('Por favor completá tu contraseña.');
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
 
@@ -89,10 +113,11 @@ export function LoginScreen({ navigation }) {
       hideLoading();
     } catch (err) {
       hideLoading();
-      // Si el usuario no existe o las credenciales son inválidas, se pintan ambas en rosita
       setEmailPink(true);
       setPasswordPink(true);
       setErrorMsg(err.message || 'Email o contraseña incorrectos');
+      setPasswordError('Credenciales incorrectas');
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       setLoading(false);
     }
   };
@@ -106,6 +131,7 @@ export function LoginScreen({ navigation }) {
           style={styles.keyboardContainer}
         >
           <ScrollView
+            ref={scrollViewRef}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -113,7 +139,7 @@ export function LoginScreen({ navigation }) {
             {/* Botón Volver (lleva a Welcome) */}
             <View style={styles.topBar}>
               <Pressable
-                onPress={handleGoWelcome}
+                onPress={handleRequestVolver}
                 style={styles.backBtn}
                 hitSlop={10}
               >
@@ -145,9 +171,11 @@ export function LoginScreen({ navigation }) {
                   label="EMAIL *"
                   value={email}
                   isPink={emailPink}
+                  error={emailError}
                   onChangeText={(text) => {
                     setEmail(text);
                     if (emailPink) setEmailPink(false);
+                    if (emailError) setEmailError(null);
                     if (errorMsg) setErrorMsg(null);
                   }}
                   placeholder="ej: usuario@ejemplo.com"
@@ -162,9 +190,11 @@ export function LoginScreen({ navigation }) {
                   label="CONTRASEÑA *"
                   value={password}
                   isPink={passwordPink}
+                  error={passwordError}
                   onChangeText={(text) => {
                     setPassword(text);
                     if (passwordPink) setPasswordPink(false);
+                    if (passwordError) setPasswordError(null);
                     if (errorMsg) setErrorMsg(null);
                   }}
                   placeholder="Tu contraseña"
@@ -213,6 +243,21 @@ export function LoginScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* Modal de Confirmación para Descartar Cambios */}
+      <ConfirmModal
+        visible={showExitModal}
+        title="¿DESCARTAR DATOS?"
+        message="Tenés información ingresada en el formulario. Si salís ahora perderás lo que escribiste."
+        confirmText="SÍ, SALIR"
+        cancelText="SEGUIR EDITANDO"
+        variant="danger"
+        onConfirm={() => {
+          setShowExitModal(false);
+          handleGoWelcome();
+        }}
+        onCancel={() => setShowExitModal(false)}
+      />
     </ImageBackground>
   );
 }
